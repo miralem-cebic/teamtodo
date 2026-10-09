@@ -1,6 +1,6 @@
 // Speichert das FileSystemDirectoryHandle des Datenordners in IndexedDB,
 // damit die App nach einem Neustart „Weiter mit Ordner …“ anbieten kann.
-const DB_NAME = 'teamaufgaben';
+const DB_NAME = 'teamtodo';
 const STORE = 'handles';
 const KEY = 'dataDir';
 

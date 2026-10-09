@@ -47,7 +47,7 @@ export function Sidebar({ view, go, openKeys, openData }: Props) {
     <nav className="side" aria-label="Navigation">
       <div className="brand">
         <span className="logo" aria-hidden="true"><Icon n="check" s={14} /></span>
-        Teamaufgaben
+        teamtodo
       </div>
       <button type="button" className={'nav' + (view.type === 'my' ? ' on' : '')} onClick={() => go({ type: 'my' })} aria-current={view.type === 'my' ? 'page' : undefined}>
         <Icon n="mine" />

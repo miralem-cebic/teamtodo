@@ -85,7 +85,7 @@ export class StorageDir {
     private readonly s: Storage,
     private readonly ns: string,
     private readonly path = '',
-    readonly name = 'Teamaufgaben-Test',
+    readonly name = 'teamtodo-Test',
   ) {
     if (!path) s.setItem(`${ns}:d:`, '1');
   }

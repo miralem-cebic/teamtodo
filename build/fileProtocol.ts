@@ -9,7 +9,7 @@ import type { Plugin } from 'vite';
  */
 export function fileProtocol(): Plugin {
   return {
-    name: 'teamaufgaben:file-protocol',
+    name: 'teamtodo:file-protocol',
     apply: 'build',
     enforce: 'post',
     generateBundle(_options, bundle) {

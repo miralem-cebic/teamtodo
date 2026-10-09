@@ -49,7 +49,7 @@ interface ReadState {
   read: Set<string>;
 }
 
-const keyFor = (workspaceId: string, meId: string) => `teamaufgaben.inbox.${workspaceId}.${meId}`;
+const keyFor = (workspaceId: string, meId: string) => `teamtodo.inbox.${workspaceId}.${meId}`;
 
 export const useInboxRead = create<ReadState>()(() => ({ key: '', readBefore: '', read: new Set() }));
 

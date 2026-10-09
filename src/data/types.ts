@@ -1,4 +1,4 @@
-// Datenmodell der Teamaufgaben. Jede Datei im Datenordner trägt `schemaVersion`.
+// Datenmodell der teamtodo. Jede Datei im Datenordner trägt `schemaVersion`.
 
 export type ID = string;
 /** Kalenderdatum ohne Uhrzeit, z. B. "2026-10-02" */

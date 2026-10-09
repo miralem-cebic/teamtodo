@@ -12,7 +12,7 @@ export function Onboarding() {
       <div className="onb-card">
         <div className="brand onb-brand">
           <span className="logo" aria-hidden="true"><Icon n="check" s={14} /></span>
-          Teamaufgaben
+          teamtodo
         </div>
         {s.phase === 'checking' || s.phase === 'loading' ? <p className="onb-text" role="status">Lädt …</p> : null}
         {s.phase === 'unsupported' && <Unsupported />}
@@ -77,7 +77,7 @@ function Setup({ name, notEmpty }: { name: string; notEmpty: boolean }) {
       <h1>Neuen Datenordner einrichten</h1>
       {notEmpty ? (
         <p className="onb-text">
-          Der Ordner „{name}“ enthält bereits andere Dateien. Am besten legt die App darin einen eigenen Unterordner „Teamaufgaben“ an.
+          Der Ordner „{name}“ enthält bereits andere Dateien. Am besten legt die App darin einen eigenen Unterordner „teamtodo“ an.
         </p>
       ) : (
         <p className="onb-text">Der Ordner „{name}“ ist leer. Die App legt hier ihre Dateien an.</p>
@@ -90,7 +90,7 @@ function Setup({ name, notEmpty }: { name: string; notEmpty: boolean }) {
         {notEmpty ? (
           <>
             <button type="button" className="btn primary lg" onClick={() => void initialize({ samples, subfolder: true })} autoFocus>
-              Unterordner „Teamaufgaben“ anlegen
+              Unterordner „teamtodo“ anlegen
             </button>
             <button type="button" className="btn lg" onClick={() => void initialize({ samples, subfolder: false })}>
               Trotzdem hier anlegen

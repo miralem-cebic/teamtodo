@@ -8,7 +8,7 @@ import type { Snapshot } from './types';
 // und lösen keinen erneuten Schreibvorgang aus.
 
 export const DEBOUNCE_MS = 400;
-export const EMERGENCY_KEY = 'teamaufgaben.unsaved.v1';
+export const EMERGENCY_KEY = 'teamtodo.unsaved.v1';
 
 type Job = () => Promise<void>;
 

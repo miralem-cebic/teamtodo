@@ -32,7 +32,7 @@ export async function readFolder(page: Page): Promise<Record<string, string>> {
   return page.evaluate(() => {
     const out: Record<string, string> = {};
     for (const k of Object.keys(localStorage)) {
-      const m = /^teamaufgaben\.e2e:f:(.+)$/.exec(k);
+      const m = /^teamtodo\.e2e:f:(.+)$/.exec(k);
       if (m) out[m[1]!] = (JSON.parse(localStorage.getItem(k)!) as { c: string }).c;
     }
     return out;

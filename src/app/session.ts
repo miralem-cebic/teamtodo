@@ -55,7 +55,7 @@ let sync: SyncEngine | null = null;
 
 const params = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
 const E2E = params.has('e2e');
-const E2E_NS = 'teamaufgaben.e2e';
+const E2E_NS = 'teamtodo.e2e';
 /** Abgleich-Intervall, im Testmodus per ?poll=ms verkürzbar */
 const POLL = E2E && params.get('poll') ? Number(params.get('poll')) : undefined;
 
@@ -96,7 +96,7 @@ export async function pickFolder() {
       StorageDir.clear(localStorage, E2E_NS);
       handle = new StorageDir(localStorage, E2E_NS).asHandle();
     } else {
-      handle = await window.showDirectoryPicker!({ id: 'teamaufgaben', mode: 'readwrite' });
+      handle = await window.showDirectoryPicker!({ id: 'teamtodo', mode: 'readwrite' });
       await saveDirHandle(handle);
     }
     set({ dirName: handle.name });
@@ -142,12 +142,12 @@ async function openFolder() {
   }
 }
 
-/** Datenstruktur anlegen. `subfolder`: im gewählten Ordner einen Unterordner „Teamaufgaben“ verwenden. */
+/** Datenstruktur anlegen. `subfolder`: im gewählten Ordner einen Unterordner „teamtodo“ verwenden. */
 export async function initialize(opts: { samples: boolean; subfolder: boolean }) {
   if (!handle) return;
   try {
     if (opts.subfolder) {
-      handle = await handle.getDirectoryHandle('Teamaufgaben', { create: true });
+      handle = await handle.getDirectoryHandle('teamtodo', { create: true });
       if (!E2E) await saveDirHandle(handle);
       set({ dirName: handle.name });
       repo = new FsRepository(handle);

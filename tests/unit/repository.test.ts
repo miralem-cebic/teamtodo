@@ -6,10 +6,10 @@ import { SCHEMA_VERSION } from '../../src/data/schema';
 
 describe('FsRepository', () => {
   it('legt Struktur an und liest sie vollständig zurück', async () => {
-    const root = new MemDir('Teamaufgaben');
+    const root = new MemDir('teamtodo');
     const repo = new FsRepository(root.asHandle());
     expect(await repo.isEmpty()).toBe(true);
-    const snap = sampleSnapshot('Teamaufgaben');
+    const snap = sampleSnapshot('teamtodo');
     await repo.initialize(snap);
 
     expect(await repo.hasWorkspace()).toBe(true);
@@ -23,9 +23,9 @@ describe('FsRepository', () => {
   });
 
   it('erkennt OneDrive-Konfliktkopien und ignoriert Hilfsdateien', async () => {
-    const root = new MemDir('Teamaufgaben');
+    const root = new MemDir('teamtodo');
     const repo = new FsRepository(root.asHandle());
-    const snap = sampleSnapshot('Teamaufgaben');
+    const snap = sampleSnapshot('teamtodo');
     await repo.initialize(snap);
     const tasks = await root.getDirectoryHandle('tasks');
     const t = snap.tasks[0]!;

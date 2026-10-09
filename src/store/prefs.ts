@@ -4,8 +4,8 @@ import { defaultSettings, type View, type ViewSettings } from './selectors';
 
 // Einstellungen pro Browser (nicht im geteilten Ordner): Ansicht, Gruppierung, Filter, eingeklappte Bereiche.
 
-const KEY = 'teamaufgaben.prefs.v1';
-const ME_KEY = (workspaceId: string) => `teamaufgaben.me.${workspaceId}`;
+const KEY = 'teamtodo.prefs.v1';
+const ME_KEY = (workspaceId: string) => `teamtodo.me.${workspaceId}`;
 
 export type Layout = 'list' | 'board' | 'calendar';
 
