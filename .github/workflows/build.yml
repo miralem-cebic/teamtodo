@@ -1,4 +1,5 @@
 # Reusable build workflow. Called by ci.yml for pull requests and by release.yml for tags.
+# Runs lint, tests and the production build, then packages dist/ into a zip with a SHA-256 checksum.
 name: Build
 
 on:
@@ -13,9 +14,8 @@ permissions:
   contents: read
 
 env:
-  # Directory that contains the finished application.
-  # Change this to your build output (for example "dist") once the app has a build step.
-  APP_DIR: src
+  # Directory with the finished application (Vite build output, see DEVELOPMENT.md).
+  APP_DIR: dist
 
 jobs:
   package:
@@ -42,7 +42,7 @@ jobs:
           fi
           npm run lint --if-present
           npm test --if-present
-          npm run build --if-present
+          npm run build
 
       - name: Create package and checksum
         env:
@@ -52,16 +52,16 @@ jobs:
             echo "::error::APP_DIR '$APP_DIR' does not exist. Set APP_DIR in .github/workflows/build.yml."
             exit 1
           fi
-          mkdir -p dist
+          mkdir -p release
           ARCHIVE="teamtodo-${VERSION}.zip"
-          (cd "$APP_DIR" && zip -r -q "$GITHUB_WORKSPACE/dist/$ARCHIVE" .)
-          (cd dist && sha256sum "$ARCHIVE" > "$ARCHIVE.sha256")
-          ls -lh dist
+          (cd "$APP_DIR" && zip -r -q "$GITHUB_WORKSPACE/release/$ARCHIVE" .)
+          (cd release && sha256sum "$ARCHIVE" > "$ARCHIVE.sha256")
+          ls -lh release
 
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
           name: teamtodo-package
-          path: dist/
+          path: release/
           if-no-files-found: error
           retention-days: 14

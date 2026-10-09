@@ -15,4 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Project renamed to **teamtodo** and README rewritten in English.
+- Project renamed to **teamtodo**: package name, app title, storage keys, and default data folder name.
+- README, user guide, and development guide translated to English (`docs/user-guide.md`, `DEVELOPMENT.md`).
+- Build output (`dist/`) and test results are no longer tracked in git. Releases are built by CI.
+
+### Notes
+
+- The user interface and code comments are still in German.

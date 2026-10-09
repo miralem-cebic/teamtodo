@@ -61,12 +61,22 @@ Examples:
 
 ## Coding guidelines
 
+Set up the project and run the same checks as CI before you push (see [DEVELOPMENT.md](DEVELOPMENT.md) for details):
+
+```bash
+npm ci
+npm run lint
+npm test
+npm run build
+```
+
 - Keep changes small and focused. Avoid unrelated refactoring in the same pull request.
 - Match the style of the surrounding code and existing naming conventions.
 - Add or update tests for behavior you change.
 - Update the documentation when behavior changes.
 - Do not commit generated files, secrets, or local configuration. The `.gitignore` covers the common cases.
 - Editor settings are shared via [`.editorconfig`](.editorconfig).
+- The app's user interface and code comments are currently in German. New text should follow the language of the surrounding code, and translating the UI is welcome in its own pull request.
 
 ## Pull request checklist
 

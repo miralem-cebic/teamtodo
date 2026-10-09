@@ -1,0 +1,113 @@
+/* Ergänzungen zum Prototyp-CSS */
+
+/* Startbildschirme */
+.onb{min-height:100%;display:grid;place-items:center;padding:24px 16px;background:var(--bg)}
+.onb-card{width:min(520px,100%);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px 28px 30px;box-shadow:0 1px 2px rgba(18,22,30,.04)}
+.onb-brand{padding:0 0 18px}
+.onb h1{font-size:21px;font-weight:600;letter-spacing:-.015em;margin:0 0 8px}
+.onb-text{color:var(--text-2);margin:0 0 18px;line-height:1.55}
+.onb-text code{font-size:12px;background:var(--hover);padding:1px 5px;border-radius:4px}
+.onb-actions{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.btn.lg{height:40px;justify-content:center;font-size:14px}
+.onb-check{display:flex;align-items:center;gap:8px;margin:0 0 18px;color:var(--text-2)}
+.onb-check input{width:16px;height:16px;accent-color:var(--accent)}
+.onb-users{list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:4px}
+.onb-user{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);text-align:left;font-weight:500}
+.onb-user span{flex:1}
+.onb-user:hover{background:var(--hover);border-color:var(--line-2)}
+.onb-new label{display:block;font-size:13px;color:var(--text-3);margin-bottom:6px}
+.onb-row{display:flex;gap:8px}
+.onb-row input{flex:1;min-width:0;height:32px;border:1px solid var(--line-2);border-radius:var(--r);padding:0 10px;background:var(--surface)}
+.onb-row input:focus{border-color:var(--accent);outline:none}
+.btn:disabled{opacity:.5;cursor:default}
+
+/* Kopfzeile */
+.save.saved{color:var(--text-3)}
+.save.error{color:var(--danger);gap:8px;flex-wrap:wrap}
+.save.error .btn{color:var(--text)}
+.badge{font-size:11px;font-weight:500;color:var(--text-2);background:var(--hover);padding:2px 7px;border-radius:9px}
+
+/* Navigation */
+.side-toggle{width:100%;cursor:pointer}
+.side-toggle:hover{color:var(--text)}
+.nav-arch{display:flex;align-items:center;gap:2px}
+.nav-arch .nav{flex:1;opacity:.75}
+.side-empty{font-size:12px;color:var(--text-3);padding:4px 8px;margin:0}
+.side-note{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--warn);padding:6px 8px;margin:0 0 4px;background:var(--warn-soft);border-radius:var(--r)}
+
+/* Liste: Zeilenauswahl per Tastatur */
+.row:focus{outline:none}
+.row:focus-visible,.row:focus{background:var(--sel)}
+.row:focus::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent)}
+.srow:focus{outline:none;background:var(--sel)}
+.row-wrap{display:contents}
+
+/* Datumsauswahl */
+.dp-in{width:calc(100% + 20px);margin:-10px -10px 10px}
+.dp-in[aria-invalid="true"]{color:var(--danger)}
+.dp-hint{font-size:12px;color:var(--danger);margin:-6px 0 8px}
+.chip.hi{border-color:var(--accent);color:var(--text)}
+
+/* Icon-Buttons deaktiviert */
+.icon-btn:disabled{opacity:.35;cursor:default}
+
+/* Änderungen anderer Personen kurz sichtbar machen */
+@keyframes flash{0%{background:var(--warn-soft)}100%{background:var(--surface)}}
+.row.flash,.card.flash{animation:flash 1.6s ease-out}
+@media (prefers-reduced-motion:reduce){.row.flash,.card.flash{animation:none;box-shadow:inset 3px 0 0 var(--warn)}}
+
+/* Eingang */
+.badge-n{background:var(--accent);color:var(--on-accent)!important;border-radius:9px;padding:1px 7px;font-weight:600}
+.inbox{padding:12px 24px 80px;max-width:860px}
+.inbox-tools{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.inbox-tools .seg{margin-left:0}
+.inbox-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.inbox-it{display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px 10px;border-bottom:1px solid var(--line);text-align:left}
+.inbox-it:hover{background:var(--surface-2)}
+.inbox-it.selected{background:var(--sel)}
+.inbox-dot{width:8px;height:8px;border-radius:50%;margin-top:11px;flex:none;background:transparent}
+.inbox-it.unread .inbox-dot{background:var(--accent)}
+.inbox-it:not(.unread) .inbox-h{color:var(--text-2)}
+.inbox-b{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.inbox-h{display:flex;gap:5px;align-items:baseline;flex-wrap:wrap}
+.inbox-t{margin-left:auto;font-size:12px;color:var(--text-3)}
+.inbox-task{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--text-2)}
+.inbox-snip{font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Detailansicht: Follower, Anhänge, Kommentare */
+.followers{display:flex;align-items:center;gap:10px;margin:18px 0 4px;flex-wrap:wrap}
+.fol-list{display:flex;align-items:center;gap:4px;flex:1;flex-wrap:wrap}
+.fol{position:relative;border-radius:50%}
+.fol-x{position:absolute;right:-3px;top:-3px;width:14px;height:14px;border-radius:50%;background:var(--text);color:var(--surface);display:none;place-items:center}
+.fol:hover .fol-x,.fol:focus-visible .fol-x{display:grid}
+.att-open{display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:left}
+.att-open:hover .att-n{text-decoration:underline}
+.atts.drop{outline:2px dashed var(--accent);outline-offset:4px;border-radius:8px}
+.feed-empty{font-size:13px;color:var(--text-3);margin:0}
+.cmt-del{margin-left:auto;width:22px;height:22px;opacity:0}
+.cmt:hover .cmt-del,.cmt-del:focus-visible{opacity:1}
+
+/* Drag and Drop */
+.ghead{position:relative}
+.ghead .g-grip{margin-left:-20px}
+.ghead:hover .g-grip{opacity:1}
+.ghead.drop-before{box-shadow:inset 0 2px 0 var(--accent)}
+.ghead.drop-after{box-shadow:inset 0 -2px 0 var(--accent)}
+.ghead.dragging{opacity:.4}
+.group.drop-group{box-shadow:inset 2px 0 0 var(--accent);border-radius:2px}
+.group.drop-group>.add-row:last-child{box-shadow:inset 0 2px 0 var(--accent)}
+.grip{touch-action:none}
+.drag-ghost{display:inline-flex;align-items:center;max-width:360px;padding:7px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--line-2);box-shadow:var(--shadow);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:grabbing}
+.srow.dragging{opacity:.4}
+.search.active{border-color:var(--sel-line);background:var(--accent-soft);color:var(--accent)}
+.tb-reset{width:24px;height:24px;margin-left:-4px;color:var(--accent)}
+.card:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* Daten und Sicherungen */
+.backups,.conflicts{list-style:none;margin:0;padding:0}
+.bk{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.bk-n{flex:1;min-width:180px}
+.bk-s{font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.bk-confirm{display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;font-size:13px;color:var(--text-2);background:var(--warn-soft);padding:8px 10px;border-radius:var(--r)}
+.conflicts li{padding:3px 0;font-size:12px}
+.side-note{cursor:pointer}
