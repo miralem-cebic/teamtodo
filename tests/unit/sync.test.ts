@@ -6,7 +6,9 @@ import { dailyBackup, purge, restoreBackup, KEEP_BACKUPS } from '../../src/data/
 import * as A from '../../src/store/appStore';
 import type { Task } from '../../src/data/types';
 
-const at = (min: number) => new Date(Date.UTC(2026, 9, 2, 8, min)).toISOString();
+// Änderungszeitpunkte relativ zu „jetzt“, wie in der App. Feste Daten in der Vergangenheit
+// liegen vor den Beispieldaten (createdAt = vor 3 Tagen) und würden beim Zusammenführen verlieren.
+const at = (min: number) => new Date(Date.now() + min * 60_000).toISOString();
 const tick = () => new Promise((r) => setTimeout(r, 2));
 
 describe('Zwei Personen, ein Ordner (Repository-Ebene)', () => {
