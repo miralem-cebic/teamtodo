@@ -16,10 +16,10 @@ export function ToastHost() {
       {toast.undo && (
         <button type="button" onClick={undo}>
           <Icon n="chevL" s={13} />
-          Rückgängig
+          Undo
         </button>
       )}
-      <button type="button" className="icon-btn" onClick={dismissToast} aria-label="Hinweis schließen">
+      <button type="button" className="icon-btn" onClick={dismissToast} aria-label="Dismiss notice">
         <Icon n="x" s={14} />
       </button>
     </div>

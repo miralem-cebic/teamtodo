@@ -1,5 +1,5 @@
-// Abnahmetest Build: dist/index.html per file:// im installierten Chrome öffnen
-// und prüfen, dass die App ohne Konsolenfehler startet.
+// Build acceptance test: open dist/index.html via file:// in the installed Chrome
+// and check that the app starts without console errors.
 import { chromium } from 'playwright-core';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
@@ -14,7 +14,7 @@ page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
 page.on('requestfailed', (r) => problems.push(`requestfailed: ${r.url()} ${r.failure()?.errorText}`));
 
 await page.goto(url);
-await page.getByRole('button', { name: 'Datenordner wählen' }).waitFor({ timeout: 5000 });
+await page.getByRole('button', { name: 'Choose data folder' }).waitFor({ timeout: 5000 });
 const env = await page.evaluate(async () => {
   await document.fonts.ready;
   return {
@@ -29,6 +29,6 @@ const env = await page.evaluate(async () => {
 });
 console.log(`Browser: ${channel} ${browser.version()}`);
 console.log(env);
-console.log(problems.length ? `PROBLEME:\n${problems.join('\n')}` : 'Keine Konsolenfehler oder -warnungen.');
+console.log(problems.length ? `PROBLEMS:\n${problems.join('\n')}` : 'No console errors or warnings.');
 await browser.close();
 process.exit(problems.length || !env.directoryPicker || !env.secureContext || !env.font ? 1 : 0);

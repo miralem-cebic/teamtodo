@@ -1,9 +1,9 @@
 import type { Activity, Attachment, Comment, Project, Section, Task, User } from './types';
 import { MERGEABLE_FIELDS } from './types';
 
-// Zusammenführen paralleler Änderungen (z. B. zwei Personen über OneDrive).
-// Aufgaben: feldweise nach `fieldUpdatedAt`, neuer gewinnt, bei Gleichstand der lokale Stand.
-// Kommentare, Aktivitäten, Anhänge: Vereinigung nach ID.
+// Merging of parallel changes (e.g. two people via OneDrive).
+// Tasks: field by field by `fieldUpdatedAt`; the newer one wins, on a tie the local one.
+// Comments, activity, attachments: union by ID.
 
 const stamp = (t: Task, f: (typeof MERGEABLE_FIELDS)[number]) => t.fieldUpdatedAt[f] ?? t.createdAt;
 const later = (a?: string | null, b?: string | null) => ((a ?? '') >= (b ?? '') ? a : b) ?? null;
@@ -45,7 +45,7 @@ export function mergeTask(local: Task, remote: Task): Task {
 
 const pickNewer = <T extends { updatedAt: string }>(x: T, y: T) => (y.updatedAt > x.updatedAt ? y : x);
 
-/** Projekte: Projektfelder nach `updatedAt` des Projekts, Bereiche einzeln nach ihrem `updatedAt`. */
+/** Projects: project fields by the project's `updatedAt`, sections individually by their own `updatedAt`. */
 export function mergeProjects(local: Project[], remote: Project[]): Project[] {
   return unionById(local, remote, (l, r) => {
     const base = pickNewer(l, r);
@@ -57,7 +57,7 @@ export function mergeUsers(local: User[], remote: User[]): User[] {
   return unionById(local, remote, pickNewer);
 }
 
-/** Inhaltlich gleich (ohne Reihenfolge-Rauschen der Serialisierung)? */
+/** Same content (ignoring serialization noise such as key order)? */
 export function sameJson(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }

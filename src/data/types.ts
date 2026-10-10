@@ -1,9 +1,9 @@
-// Datenmodell der teamtodo. Jede Datei im Datenordner trägt `schemaVersion`.
+// Data model of teamtodo. Every file in the data folder carries `schemaVersion`.
 
 export type ID = string;
-/** Kalenderdatum ohne Uhrzeit, z. B. "2026-10-02" */
+/** Calendar date without time, e.g. "2026-10-02" */
 export type ISODate = string;
-/** Zeitstempel, z. B. "2026-10-02T14:03:11.123Z" */
+/** Timestamp, e.g. "2026-10-02T14:03:11.123Z" */
 export type ISODateTime = string;
 
 export const COLORS = ['teal', 'violet', 'amber', 'rose', 'blue', 'green', 'slate'] as const;
@@ -54,9 +54,9 @@ export interface ProjectsFile {
   projects: Project[];
 }
 
-/** „Erledigt“ ist kein Status, sondern `completedAt`. Der Status bleibt fürs Wiederöffnen erhalten. */
+/** "Done" is not a status but `completedAt`. The status is kept so that the task can be reopened. */
 export type TaskStatus = 'todo' | 'doing' | 'waiting';
-export const STATUS_LABEL: Record<TaskStatus, string> = { todo: 'Offen', doing: 'In Arbeit', waiting: 'Wartet' };
+export const STATUS_LABEL: Record<TaskStatus, string> = { todo: 'Open', doing: 'In progress', waiting: 'Waiting' };
 
 export interface Attachment {
   id: ID;
@@ -103,7 +103,7 @@ export interface Activity {
   at: ISODateTime;
 }
 
-/** Felder, die beim Zusammenführen einzeln nach `fieldUpdatedAt` verglichen werden. */
+/** Fields that are compared individually by `fieldUpdatedAt` when merging. */
 export const MERGEABLE_FIELDS = [
   'parentId',
   'projectId',
@@ -121,7 +121,7 @@ export const MERGEABLE_FIELDS = [
 ] as const;
 export type MergeableField = (typeof MERGEABLE_FIELDS)[number];
 
-/** Für später vorgesehen (wiederkehrende Aufgaben), heute ungenutzt. */
+/** Planned for later (recurring tasks), unused for now. */
 export interface RecurrenceRule {
   freq: 'daily' | 'weekly' | 'monthly' | 'yearly';
   interval: number;
@@ -153,7 +153,7 @@ export interface Task {
   recurrence?: RecurrenceRule | null;
 }
 
-/** Aufgabe im Arbeitsspeicher. `draft` = neu angelegt, noch ohne Titel, wird nicht gespeichert. */
+/** Task in memory. `draft` = newly created, still without a title, not saved. */
 export interface TaskState extends Task {
   draft?: boolean;
 }

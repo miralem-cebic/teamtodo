@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { requestFocus, type FocusScope } from '../store/appStore';
 import { Icon, type IconName } from './Icon';
 
-/** Steuert ein Popover, das an einem Auslöser-Element hängt. */
+/** Controls a popover that is attached to a trigger element. */
 export function usePop() {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const ref = useRef<HTMLElement | null>(null);
@@ -13,7 +13,7 @@ export function usePop() {
     const el = e.currentTarget;
     setAnchor((a) => (a ? null : el));
   }, []);
-  /** `refocus`: Fokus zurück auf den Auslöser (nach Auswahl oder Esc) */
+  /** `refocus`: move focus back to the trigger (after a choice or Esc) */
   const close = useCallback((refocus?: boolean) => {
     const a = ref.current;
     setAnchor(null);
@@ -22,7 +22,7 @@ export function usePop() {
     delete a.dataset.returnFocus;
     if (!refocus) return;
     if (back) {
-      // Per Tastenkürzel aus dem Titelfeld geöffnet: zurück in den Titel (die Zeile kann inzwischen umgezogen sein)
+      // Opened by a shortcut from the title field: back to the title (the row may have moved meanwhile)
       const [id, scope] = back.split('|') as [string, FocusScope];
       setTimeout(() => requestFocus(id, scope), 0);
     } else setTimeout(() => a.isConnected && a.focus(), 0);
@@ -90,7 +90,7 @@ export function Popover({ anchor, onClose, children, width = 260, label }: Popov
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => e.stopPropagation()}
       onBlur={(e) => {
-        // Fokus verlässt das Popover per Tab → schließen
+        // focus leaves the popover via Tab → close
         const next = e.relatedTarget as Node | null;
         if (next && ref.current && !ref.current.contains(next)) onClose(false);
       }}
@@ -112,7 +112,7 @@ export type MenuItem =
       avatar?: ReactNode;
       danger?: boolean;
       active?: boolean;
-      /** Fokus nach Auswahl nicht auf den Auslöser zurücksetzen (z. B. weil ein Eingabefeld erscheint) */
+      /** Do not move focus back to the trigger after a choice (e.g. because an input field appears) */
       keepFocus?: boolean;
     };
 
@@ -139,7 +139,7 @@ export function Menu({ items, onClose, label }: { items: MenuItem[]; onClose: (r
           e.preventDefault();
           btns[(i - 1 + btns.length) % btns.length]?.focus();
         } else if (e.key.length === 1 && /\S/.test(e.key)) {
-          // Tippen springt zum ersten passenden Eintrag
+          // typing jumps to the first matching entry
           const k = e.key.toLowerCase();
           const start = i + 1;
           const hit = [...btns.slice(start), ...btns.slice(0, start)].find((b) => b.textContent?.trim().toLowerCase().startsWith(k));

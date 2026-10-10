@@ -1,8 +1,8 @@
 import type { Plugin } from 'vite';
 
 /**
- * Chrome blockiert unter file:// Modul-Skripte und CORS-Anfragen (Origin "null").
- * Dieses Plugin macht aus dem gebauten index.html ein klassisches Dokument:
+ * Chrome blocks module scripts and CORS requests under file:// (origin "null").
+ * This plugin turns the built index.html into a classic document:
  * - <script type="module" crossorigin> → <script defer>
  * - crossorigin an Stylesheets entfernen
  * - modulepreload-Links entfernen
@@ -23,7 +23,7 @@ export function fileProtocol(): Plugin {
         });
         html = html.replace(/(<link\b[^>]*?)\s+crossorigin(="[^"]*")?/g, '$1');
         if (/type="module"/.test(html)) {
-          this.error('index.html enthält noch type="module" – unter file:// würde die App nicht starten.');
+          this.error('index.html still contains type="module" – under file:// the app would not start.');
         }
         asset.source = html;
       }

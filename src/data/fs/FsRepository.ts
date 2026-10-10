@@ -18,7 +18,7 @@ const TASK_FILE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 const TOP_CONFLICT = /^(workspace|users|projects)[-\s].+\.json$/i;
 const isNotFound = (e: unknown) => e instanceof DOMException && e.name === 'NotFoundError';
 
-/** Dateien eines Verzeichnisses (ohne Hilfsdateien wie .crswap, .DS_Store, ~$…) mit lastModified */
+/** Files of a directory (without helper files such as .crswap, .DS_Store, ~$…), with lastModified */
 async function listFiles(dir: FileSystemDirectoryHandle): Promise<Map<string, { handle: FileSystemFileHandle; lastModified: number; size: number }>> {
   const out = new Map<string, { handle: FileSystemFileHandle; lastModified: number; size: number }>();
   const jobs: Promise<void>[] = [];
@@ -28,7 +28,7 @@ async function listFiles(dir: FileSystemDirectoryHandle): Promise<Map<string, { 
     jobs.push(
       (h as FileSystemFileHandle).getFile().then(
         (f) => void out.set(name, { handle: h as FileSystemFileHandle, lastModified: f.lastModified, size: f.size }),
-        () => undefined, // Datei während des Lesens verschwunden (OneDrive) → überspringen
+        () => undefined, // file vanished while being read (OneDrive) → skip
       ),
     );
   }
@@ -36,9 +36,9 @@ async function listFiles(dir: FileSystemDirectoryHandle): Promise<Map<string, { 
   return out;
 }
 
-/** „bericht.pdf“ → „bericht (2).pdf“, falls schon vorhanden */
+/** "report.pdf" → "report (2).pdf" if the name is already taken */
 function uniqueName(name: string, taken: Set<string>): string {
-  const clean = name.replace(/[\\/:*?"<>|]/g, '_').trim() || 'Datei';
+  const clean = name.replace(/[\\/:*?"<>|]/g, '_').trim() || 'file';
   if (!taken.has(clean)) return clean;
   const dot = clean.lastIndexOf('.');
   const stem = dot > 0 ? clean.slice(0, dot) : clean;
@@ -50,7 +50,7 @@ function uniqueName(name: string, taken: Set<string>): string {
 }
 
 export class FsRepository implements Repository {
-  /** Pfad → lastModified beim letzten Lesen/Schreiben */
+  /** Path → lastModified at the last read/write */
   readonly known = new Map<string, number>();
 
   constructor(private readonly root: FileSystemDirectoryHandle) {}
@@ -84,7 +84,7 @@ export class FsRepository implements Repository {
     await this.saveUsers(snapshot.users);
     await this.saveProjects(snapshot.projects);
     for (const t of snapshot.tasks) await this.saveTask(t);
-    // workspace.json zuletzt: erst wenn sie existiert, gilt der Ordner als eingerichtet
+    // workspace.json last: the folder counts as set up only once it exists
     await this.saveWorkspace(snapshot.workspace);
   }
 
@@ -147,7 +147,7 @@ export class FsRepository implements Repository {
           else if (name === FILES.projects) out.projects = migrate<ProjectsFile>('projects', await this.readJson(f.handle, name)).projects;
           else if (name === FILES.workspace) out.workspace = migrate<WorkspaceFile>('workspace', await this.readJson(f.handle, name));
         } catch {
-          /* halb geschriebene Datei (OneDrive) → beim nächsten Durchlauf erneut */
+          /* half-written file (OneDrive) → retried on the next pass */
         }
     }
 
@@ -178,8 +178,8 @@ export class FsRepository implements Repository {
   }
 
   /**
-   * Schreibt mit Konfliktprüfung: Ist die Datei seit dem letzten Lesen extern geändert worden,
-   * wird sie neu eingelesen und mit `merge` zusammengeführt.
+   * Writes with a conflict check: if the file was changed externally since the last read,
+   * it is read again and merged with `merge`.
    */
   private async writeChecked<T>(dir: FileSystemDirectoryHandle, name: string, path: string, data: T, parse: (raw: unknown) => T, merge: (local: T, remote: T) => T): Promise<T> {
     let next = data;
@@ -245,7 +245,7 @@ export class FsRepository implements Repository {
     await att.removeEntry(id, { recursive: true }).catch(() => undefined);
   }
 
-  /* ---------- Sicherungen ---------- */
+  /* ---------- Backups ---------- */
 
   async writeBackup(name: string, snapshot: Snapshot) {
     await writeJson(await this.dir(DIRS.backups), `${name}.json`, { schemaVersion: SCHEMA_VERSION, createdAt: new Date().toISOString(), ...snapshot });
@@ -274,7 +274,7 @@ export class FsRepository implements Repository {
     await (await this.dir(DIRS.backups)).removeEntry(`${name}.json`).catch(() => undefined);
   }
 
-  /* ---------- Anhänge ---------- */
+  /* ---------- Attachments ---------- */
 
   private async attachmentDir(taskId: ID, create: boolean) {
     return (await this.dir(DIRS.attachments)).getDirectoryHandle(taskId, { create });

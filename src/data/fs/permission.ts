@@ -1,6 +1,6 @@
 /**
- * Prüft bzw. erneuert die Schreibberechtigung für den Datenordner.
- * `request` darf nur aus einer Nutzergeste (Klick) heraus true sein.
+ * Checks or renews write permission for the data folder.
+ * `request` may only return true from a user gesture (click).
  */
 export async function ensureReadWrite(handle: FileSystemDirectoryHandle, request: boolean): Promise<boolean> {
   const opts = { mode: 'readwrite' as const };

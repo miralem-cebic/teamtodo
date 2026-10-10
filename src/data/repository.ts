@@ -7,15 +7,15 @@ export interface LoadIssue {
 
 export interface LoadResult {
   snapshot: Snapshot;
-  /** OneDrive-Konfliktkopien (z. B. `abc-LAPTOP-123.json`), werden ignoriert */
+  /** OneDrive conflict copies (e.g. `abc-LAPTOP-123.json`), are ignored */
   conflictCopies: string[];
-  /** Dateien, die nicht gelesen werden konnten */
+  /** Files that could not be read */
   issues: LoadIssue[];
-  /** Eine Datei stammt aus einer neueren App-Version */
+  /** A file comes from a newer app version */
   newerSchema: boolean;
 }
 
-/** Was sich seit dem letzten Lesen/Schreiben im Speicher geändert hat */
+/** What changed in storage since the last read/write */
 export interface ChangeSet {
   tasks: Task[];
   removedTaskIds: ID[];
@@ -32,11 +32,11 @@ export interface BackupInfo {
 }
 
 /**
- * Speicherschnittstelle. Die UI kennt nur diese Schnittstelle, nicht den Datei-Ordner.
- * Später kann hier z. B. ein Server angebunden werden.
+ * Storage interface. The UI only knows this interface, not the folder of files.
+ * A server could be plugged in behind this interface later.
  *
- * Die save*-Methoden prüfen vor dem Schreiben, ob der gespeicherte Stand inzwischen von
- * jemand anderem geändert wurde, führen dann zusammen und geben den tatsächlich geschriebenen Stand zurück.
+ * The save* methods check before writing whether the stored state has meanwhile been changed
+ * by someone else. They merge in that case and return the state that was actually written.
  */
 export interface Repository {
   readonly label: string;
@@ -44,13 +44,13 @@ export interface Repository {
   isEmpty(): Promise<boolean>;
   initialize(snapshot: Snapshot): Promise<void>;
   loadAll(): Promise<LoadResult>;
-  /** Geänderte Dateien seit dem letzten Lesen/Schreiben */
+  /** Files changed since the last read/write */
   pullChanges(): Promise<ChangeSet>;
   saveWorkspace(ws: WorkspaceFile): Promise<WorkspaceFile>;
   saveUsers(users: User[]): Promise<User[]>;
   saveProjects(projects: Project[]): Promise<Project[]>;
   saveTask(task: Task): Promise<Task>;
-  /** Endgültig entfernen (Aufräumen nach 30 Tagen), inkl. Anhänge */
+  /** Remove permanently (cleanup after 30 days), including attachments */
   removeTask(id: ID): Promise<void>;
 
   writeBackup(name: string, snapshot: Snapshot): Promise<void>;
@@ -58,7 +58,7 @@ export interface Repository {
   readBackup(name: string): Promise<Snapshot>;
   removeBackup(name: string): Promise<void>;
 
-  /** Speichert eine Datei als Anhang, gibt den (ggf. eindeutig gemachten) Dateinamen zurück */
+  /** Saves a file as attachment and returns its file name (made unique if needed) */
   writeAttachment(taskId: ID, fileName: string, data: Blob): Promise<string>;
   readAttachment(taskId: ID, fileName: string): Promise<File>;
   removeAttachment(taskId: ID, fileName: string): Promise<void>;
@@ -77,9 +77,9 @@ export function classifyError(e: unknown): StorageErrorKind {
 }
 
 export const ERROR_TEXT: Record<StorageErrorKind, string> = {
-  permission: 'Kein Zugriff auf den Ordner.',
-  notFound: 'Datenordner nicht gefunden. Wurde er verschoben oder umbenannt?',
-  quota: 'Kein Speicherplatz mehr frei.',
-  newerSchema: 'Die Daten stammen aus einer neueren Version der App. Bitte App aktualisieren.',
-  other: 'Speichern fehlgeschlagen.',
+  permission: 'No access to the folder.',
+  notFound: 'Data folder not found. Was it moved or renamed?',
+  quota: 'No storage space left.',
+  newerSchema: 'The data comes from a newer version of the app. Please update the app.',
+  other: 'Saving failed.',
 };

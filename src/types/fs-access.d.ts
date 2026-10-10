@@ -1,4 +1,4 @@
-// Ergänzungen zur File System Access API, die in lib.dom noch fehlen (Chromium-only).
+// Additions to the File System Access API that are still missing from lib.dom (Chromium only).
 type FsPermissionMode = 'read' | 'readwrite';
 
 interface FileSystemHandle {

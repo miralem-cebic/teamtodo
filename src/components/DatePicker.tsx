@@ -11,8 +11,8 @@ interface Props {
 }
 
 /**
- * Datumsauswahl: Eingabefeld (versteht „morgen“, „fr“, „12.10.“), Schnellauswahl, Monatskalender,
- * optionale Uhrzeit, „Datum entfernen“. ↑/↓ wählt in der Schnellauswahl, Enter übernimmt.
+ * Date picker: input field (understands "tomorrow", "fr", "12.10."), quick picks, month calendar,
+ * optional time, "Remove date". ↑/↓ selects in the quick picks, Enter confirms.
  */
 export function DatePicker({ value, time, onPick, onTime }: Props) {
   const t0 = today();
@@ -25,11 +25,11 @@ export function DatePicker({ value, time, onPick, onTime }: Props) {
   const parsed = parseDateInput(q);
 
   const quick: { label: string; v: ISODate | null }[] = [
-    { label: 'Heute', v: t0 },
-    { label: 'Morgen', v: addDays(t0, 1) },
-    { label: 'Nächste Woche', v: nextMonday() },
+    { label: 'Today', v: t0 },
+    { label: 'Tomorrow', v: addDays(t0, 1) },
+    { label: 'Next week', v: nextMonday() },
   ];
-  const options = parsed ? [{ label: fmtDue(parsed), v: parsed }] : [...quick, ...(value ? [{ label: 'Datum entfernen', v: null }] : [])];
+  const options = parsed ? [{ label: fmtDue(parsed), v: parsed }] : [...quick, ...(value ? [{ label: 'Remove date', v: null }] : [])];
 
   const days = useMemo(() => {
     const first = new Date(month);
@@ -48,8 +48,8 @@ export function DatePicker({ value, time, onPick, onTime }: Props) {
         className="pk-in dp-in"
         autoFocus
         value={q}
-        placeholder="z. B. morgen, fr, 12.10."
-        aria-label="Datum eingeben"
+        placeholder="e.g. tomorrow, fr, 12.10."
+        aria-label="Enter date"
         aria-invalid={!!q.trim() && !parsed}
         onChange={(e) => {
           setQ(e.target.value);
@@ -69,7 +69,7 @@ export function DatePicker({ value, time, onPick, onTime }: Props) {
           }
         }}
       />
-      {q.trim() && !parsed ? <p className="dp-hint">Datum nicht erkannt</p> : null}
+      {q.trim() && !parsed ? <p className="dp-hint">Date not recognized</p> : null}
       <div className="dp-quick" role="listbox" aria-label="Schnellauswahl">
         {options.map((o, i) => (
           <button
@@ -90,7 +90,7 @@ export function DatePicker({ value, time, onPick, onTime }: Props) {
           <Icon n="chevL" />
         </button>
         <span>{fmtMonth(month)}</span>
-        <button type="button" className="icon-btn" onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))} aria-label="Nächster Monat">
+        <button type="button" className="icon-btn" onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))} aria-label="Next month">
           <Icon n="chevR" />
         </button>
       </div>
@@ -125,7 +125,7 @@ export function DatePicker({ value, time, onPick, onTime }: Props) {
         )}
         {value && (
           <button type="button" className="link" onClick={() => onPick(null)}>
-            Datum entfernen
+            Remove date
           </button>
         )}
       </div>

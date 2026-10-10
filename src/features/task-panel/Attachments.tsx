@@ -6,7 +6,7 @@ import { classifyError, ERROR_TEXT } from '../../data/repository';
 import { newId, nowIso } from '../../data/schema';
 import type { Attachment, TaskState } from '../../data/types';
 
-// Anhänge liegen als echte Dateien in attachments/<taskId>/<dateiname>.
+// Attachments are stored as real files in attachments/<taskId>/<file name>.
 
 const urlCache = new Map<string, string>();
 const fmtSize = (b: number) => (b < 1024 ? `${b} B` : b < 1048576 ? `${Math.round(b / 1024)} KB` : `${(b / 1048576).toFixed(1)} MB`);
@@ -18,7 +18,7 @@ async function objectUrl(taskId: string, a: Attachment): Promise<string> {
   const hit = urlCache.get(key);
   if (hit) return hit;
   const repo = getRepo();
-  if (!repo) throw new Error('Kein Datenordner');
+  if (!repo) throw new Error('No data folder');
   const file = await repo.readAttachment(taskId, a.fileName);
   const url = URL.createObjectURL(file.type ? file : new Blob([file], { type: a.mimeType }));
   urlCache.set(key, url);
@@ -34,7 +34,7 @@ export async function addFiles(task: TaskState, files: FileList | File[]) {
       const fileName = await repo.writeAttachment(task.id, f.name, f);
       addAttachmentMeta(task.id, { id: newId(), fileName, size: f.size, mimeType: f.type || 'application/octet-stream', addedAt: nowIso(), addedBy: me });
     } catch (e) {
-      showToast(`„${f.name}“ konnte nicht gespeichert werden. ${ERROR_TEXT[classifyError(e)]}`);
+      showToast(`"${f.name}" could not be saved. ${ERROR_TEXT[classifyError(e)]}`);
     }
   }
 }
@@ -67,7 +67,7 @@ export function Attachments({ t }: { t: TaskState }) {
         link.click();
       }
     } catch (e) {
-      showToast(`Datei nicht gefunden. ${e instanceof DOMException ? 'Wurde sie im Ordner gelöscht oder ist sie noch nicht synchronisiert?' : ''}`);
+      showToast(`File not found. ${e instanceof DOMException ? 'Was it deleted from the folder, or has it not synced yet?' : ''}`);
     }
   };
 
@@ -89,7 +89,7 @@ export function Attachments({ t }: { t: TaskState }) {
     >
       {list.map((a) => (
         <div key={a.id} className="att">
-          <button type="button" className="att-open" onClick={() => void open(a)} title={opensInBrowser(a) ? 'Öffnen' : 'Herunterladen'}>
+          <button type="button" className="att-open" onClick={() => void open(a)} title={opensInBrowser(a) ? 'Open' : 'Download'}>
             <Thumb taskId={t.id} a={a} />
             <span className="att-b">
               <span className="att-n">{a.fileName}</span>
@@ -113,7 +113,7 @@ export function Attachments({ t }: { t: TaskState }) {
       />
       <button type="button" className="add-btn" onClick={() => input.current?.click()}>
         <Icon n="clip" s={14} />
-        Datei anhängen oder hierher ziehen
+        Attach a file or drag it here
       </button>
     </div>
   );

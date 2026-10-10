@@ -1,62 +1,62 @@
 import { Dialog } from '../../components/Dialog';
 
-const MOD = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘' : 'Strg';
+const MOD = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘' : 'Ctrl';
 const ALT = MOD === '⌘' ? '⌥' : 'Alt';
 
 export const KEYS: [string, [string, string][]][] = [
   [
-    'In einer Aufgabenzeile',
+    'In a task row',
     [
-      ['Enter', 'Speichern und neue Zeile darunter'],
-      ['Enter in leerer Zeile', 'Eingabe beenden'],
-      [`${MOD} + Enter`, 'Erledigt / wieder öffnen'],
-      ['↑ / ↓', 'Vorherige / nächste Aufgabe'],
-      [`${MOD} + Umschalt + ↑ / ↓`, 'Aufgabe verschieben'],
-      ['Tab / Umschalt + Tab', 'Zwischen Titel, Person, Datum, Status wechseln'],
-      ['Rücktaste in leerer Zeile', 'Zeile löschen'],
-      [`${ALT} + P`, 'Person wählen'],
+      ['Enter', 'Save and new row below'],
+      ['Enter in empty row', 'Leave input'],
+      [`${MOD} + Enter`, 'Complete / reopen'],
+      ['↑ / ↓', 'Previous / next task'],
+      [`${MOD} + Umschalt + ↑ / ↓`, 'Move task'],
+      ['Tab / Umschalt + Tab', 'Switch between title, person, date and status'],
+      ['Backspace in empty row', 'Delete row'],
+      [`${ALT} + P`, 'Choose person'],
       [`${ALT} + M`, 'Mir zuweisen'],
-      [`${ALT} + D`, 'Datum wählen'],
-      [`${ALT} + S`, 'Unteraufgabe anlegen'],
-      [`${MOD} + O`, 'Details öffnen'],
-      ['Esc', 'Eingabe verlassen, Zeile bleibt ausgewählt'],
+      [`${ALT} + D`, 'Choose date'],
+      [`${ALT} + S`, 'Create subtask'],
+      [`${MOD} + O`, 'Open details'],
+      ['Esc', 'Leave input, row stays selected'],
     ],
   ],
   [
-    'Ausgewählte Zeile (nach Esc)',
+    'Selected row (after Esc)',
     [
       ['↑ / ↓', 'Auswahl bewegen'],
-      ['Enter', 'Titel bearbeiten'],
-      ['Leertaste', 'Details öffnen'],
-      ['Entf', 'Aufgabe löschen (mit Rückgängig)'],
-      ['→ / ←', 'Unteraufgaben aus- / einklappen'],
+      ['Enter', 'Edit title'],
+      ['Space', 'Open details'],
+      ['Delete', 'Delete task (with undo)'],
+      ['→ / ←', 'Expand / collapse subtasks'],
     ],
   ],
   [
-    'Überall',
+    'Everywhere',
     [
-      ['N', 'Neue Aufgabe oben in der ersten Gruppe'],
-      ['/', 'Suche'],
-      ['G, dann M', 'Zu „Meine Aufgaben“'],
-      ['G, dann I', 'Zum Eingang'],
-      ['Esc', 'Details oder Dialog schließen'],
-      [`${MOD} + Z`, 'Rückgängig'],
-      ['?', 'Diese Übersicht'],
+      ['N', 'New task at the top of the first group'],
+      ['/', 'Search'],
+      ['G, dann M', 'Go to "My tasks"'],
+      ['G, dann I', 'Go to inbox'],
+      ['Esc', 'Close details or dialog'],
+      [`${MOD} + Z`, 'Undo'],
+      ['?', 'This overview'],
     ],
   ],
   [
     'Auswahlfelder',
     [
-      ['Tippen', 'Filtern (Datum: „morgen“, „fr“, „12.10.“)'],
-      ['↑ / ↓, Enter', 'Auswählen und übernehmen'],
-      ['Esc', 'Schließen, Fokus zurück aufs Feld'],
+      ['Type', 'Filter (date: "tomorrow", "fr", "12.10.")'],
+      ['↑ / ↓, Enter', 'Select and confirm'],
+      ['Esc', 'Close, focus back to the field'],
     ],
   ],
 ];
 
 export function KeysDialog({ onClose }: { onClose: () => void }) {
   return (
-    <Dialog title="Tastenkürzel" onClose={onClose}>
+    <Dialog title="Keyboard shortcuts" onClose={onClose}>
       <div className="keys">
         {KEYS.map(([h, rows]) => (
           <div key={h}>

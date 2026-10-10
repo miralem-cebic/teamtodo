@@ -1,6 +1,6 @@
-/* Komponenten – übernommen aus docs/referenz-prototyp/style.css, ergänzt um eigene Regeln am Ende */
-/* Farben – Basiswert in --c0, daraus --c (Vordergrund) und --cs (Fläche). Im Dunkelmodus abgeleitet.
-   (Im Prototyp verwies --c auf sich selbst; das verwirft der Browser im Dunkelmodus.) */
+/* Components – adapted from the prototype stylesheet, extended with our own rules at the end */
+/* Colors – base value in --c0, from it --c (foreground) and --cs (surface). Derived in dark mode.
+   (In the prototype, --c referred to itself; browsers discard that in dark mode.) */
 .c-teal{--c0:#0F7B6C;--cs0:#DDF1EC}.c-violet{--c0:#5B4BC4;--cs0:#ECE9FB}.c-amber{--c0:#A0620A;--cs0:#FAEFD9}
 .c-rose{--c0:#B63C5E;--cs0:#FBE7EE}.c-blue{--c0:#2A63BE;--cs0:#E4EDFB}.c-green{--c0:#3F7A1F;--cs0:#E7F2DD}.c-slate{--c0:#56606E;--cs0:#ECEEF1}
 :is(.c-teal,.c-violet,.c-amber,.c-rose,.c-blue,.c-green,.c-slate){--c:var(--c0);--cs:var(--cs0)}
@@ -129,7 +129,7 @@ button.meta:hover{background:var(--hover);color:var(--text)}
 .add-section:hover{background:var(--hover);color:var(--text)}
 .empty-state{padding:48px 0;color:var(--text-2);text-align:center}
 
-/* Felder */
+/* Fields */
 .fld{display:flex;align-items:center;gap:7px;width:100%;min-height:30px;padding:3px 6px;border-radius:5px;text-align:left;color:var(--text);min-width:0}
 .fld:hover{background:var(--hover)}
 .fld.empty{color:var(--text-3)}
@@ -147,7 +147,7 @@ button.meta:hover{background:var(--hover);color:var(--text)}
 .st-done{background:var(--accent-soft);color:var(--accent)}
 .pill:hover{filter:brightness(.97)}
 
-/* Popover, Menü, Picker */
+/* Popover, menu, pickers */
 .pop{position:fixed;z-index:50;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden;animation:pop .12s ease-out}
 @keyframes pop{from{opacity:0;transform:translateY(-3px)}}
 @media (prefers-reduced-motion:reduce){.pop{animation:none}}

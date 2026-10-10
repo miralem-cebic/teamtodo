@@ -2,7 +2,7 @@ import { addDays, diffDays, nextMonday, today } from '../lib/dates';
 import type { ID, Project, Section, Task, TaskState, TaskStatus, User } from '../data/types';
 import { STATUS_LABEL } from '../data/types';
 
-// Reine Funktionen: Sichtbarkeit, Hierarchie, Gruppierung, Filter, Sortierung.
+// Reine Funktionen: Sichtbarkeit, Hierarchie, Grouping, Filter, Sorting.
 
 export type View = { type: 'my' } | { type: 'inbox' } | { type: 'project'; id: ID };
 export type GroupBy = 'section' | 'due' | 'status' | 'assignee' | 'project' | 'none';
@@ -37,7 +37,7 @@ export function liveSections(p: Project | undefined): Section[] {
   return (p?.sections ?? []).filter((s) => !s.deletedAt).sort(byOrder);
 }
 
-/** Aufgabe ist sichtbar: nicht gelöscht, Projekt nicht gelöscht, keine gelöschte Hauptaufgabe. */
+/** Task is visible: not deleted, its project is not deleted, its parent task is not deleted. */
 export function isVisible(t: TaskState, tasks: Record<ID, TaskState>, deletedProjects: Set<ID>): boolean {
   let cur: TaskState | undefined = t;
   for (let guard = 0; cur && guard < 50; guard++) {
@@ -63,7 +63,7 @@ export function descendantIds(tasks: Record<ID, TaskState>, id: ID): ID[] {
   return out;
 }
 
-/** Sichtbare Aufgaben + Kinder je Hauptaufgabe (sortiert) */
+/** Visible tasks + children per parent task (sorted) */
 export function visibleTasks(tasks: Record<ID, TaskState>, projects: Project[]) {
   const deleted = new Set(projects.filter((p) => p.deletedAt).map((p) => p.id));
   const visible: TaskState[] = [];
@@ -78,7 +78,7 @@ export function visibleTasks(tasks: Record<ID, TaskState>, projects: Project[]) 
 }
 
 export type DueKey = 'overdue' | 'today' | 'soon' | 'later' | 'none' | 'past';
-/** `keep`: frisch erledigte überfällige Aufgaben bleiben in „Überfällig“ statt nach unten zu springen */
+/** `keep`: freshly completed overdue tasks stay in "Overdue" instead of jumping down */
 export function dueKey(t: Task, keep?: Set<ID>): DueKey {
   if (!t.dueDate) return 'none';
   const dd = diffDays(t.dueDate, today());
@@ -88,7 +88,7 @@ export function dueKey(t: Task, keep?: Set<ID>): DueKey {
   return 'later';
 }
 
-/** Was eine Gruppe bei neuen bzw. hineingezogenen Aufgaben setzt. `apply: null` = nicht befüllbar. */
+/** What a group sets on new or dragged-in tasks. `apply: null` = cannot be filled. */
 export type GroupPatch = Partial<Pick<Task, 'sectionId' | 'projectId' | 'assigneeId' | 'dueDate' | 'dueTime' | 'status' | 'completedAt'>>;
 
 export interface Group {
@@ -159,18 +159,18 @@ export function buildGroups(inp: BuildInput): Group[] {
     const ids = new Set(secs.map((x) => x.id));
     groups = secs.map((x) => ({ key: x.id, label: x.name, section: x, apply: { sectionId: x.id }, defaults: { ...baseDef, sectionId: x.id }, keep: true }));
     if (base.some((t) => !t.sectionId || !ids.has(t.sectionId))) {
-      groups.push({ key: '__none', label: 'Ohne Bereich', apply: { sectionId: null }, defaults: { ...baseDef, sectionId: null } });
+      groups.push({ key: '__none', label: 'No section', apply: { sectionId: null }, defaults: { ...baseDef, sectionId: null } });
     }
     keyOf = (t) => (t.sectionId && ids.has(t.sectionId) ? t.sectionId : '__none');
   } else if (g === 'due') {
     const later = addDays(nextMonday(), 7);
     groups = [
-      { key: 'overdue', label: 'Überfällig', tone: 'danger', apply: null, defaults: { ...baseDef, dueDate: t0 } },
-      { key: 'today', label: 'Heute', apply: { dueDate: t0 }, defaults: { ...baseDef, dueDate: t0 }, keep: true },
-      { key: 'soon', label: 'Demnächst', hint: 'nächste 7 Tage', apply: { dueDate: addDays(t0, 1) }, defaults: { ...baseDef, dueDate: addDays(t0, 1) }, keep: true },
-      { key: 'later', label: 'Später', apply: { dueDate: later }, defaults: { ...baseDef, dueDate: later }, keep: true },
-      { key: 'none', label: 'Ohne Datum', apply: { dueDate: null, dueTime: null }, defaults: { ...baseDef }, keep: true },
-      { key: 'past', label: 'Erledigt, Datum vergangen', apply: null, defaults: { ...baseDef } },
+      { key: 'overdue', label: 'Overdue', tone: 'danger', apply: null, defaults: { ...baseDef, dueDate: t0 } },
+      { key: 'today', label: 'Today', apply: { dueDate: t0 }, defaults: { ...baseDef, dueDate: t0 }, keep: true },
+      { key: 'soon', label: 'Upcoming', hint: 'next 7 days', apply: { dueDate: addDays(t0, 1) }, defaults: { ...baseDef, dueDate: addDays(t0, 1) }, keep: true },
+      { key: 'later', label: 'Later', apply: { dueDate: later }, defaults: { ...baseDef, dueDate: later }, keep: true },
+      { key: 'none', label: 'No date', apply: { dueDate: null, dueTime: null }, defaults: { ...baseDef }, keep: true },
+      { key: 'past', label: 'Done, date passed', apply: null, defaults: { ...baseDef } },
     ];
     keyOf = (t) => dueKey(t, inp.recentDone);
   } else if (g === 'status') {
@@ -183,13 +183,13 @@ export function buildGroups(inp: BuildInput): Group[] {
         defaults: { ...baseDef, status: k },
         keep: true,
       })),
-      { key: 'done', label: 'Erledigt', dot: 'st-done', apply: { completedAt: new Date().toISOString() }, defaults: { ...baseDef } },
+      { key: 'done', label: 'Done', dot: 'st-done', apply: { completedAt: new Date().toISOString() }, defaults: { ...baseDef } },
     ];
     keyOf = (t) => (t.completedAt ? 'done' : t.status);
   } else if (g === 'assignee') {
     groups = [
       ...inp.users.filter((u) => !u.deletedAt).map((u) => ({ key: u.id, label: u.name, user: u, apply: { assigneeId: u.id }, defaults: { ...baseDef, assigneeId: u.id } })),
-      { key: '__none', label: 'Nicht zugewiesen', apply: { assigneeId: null }, defaults: { ...baseDef, assigneeId: null }, keep: true },
+      { key: '__none', label: 'Unassigned', apply: { assigneeId: null }, defaults: { ...baseDef, assigneeId: null }, keep: true },
     ];
     keyOf = (t) => t.assigneeId ?? '__none';
   } else if (g === 'project') {
@@ -201,11 +201,11 @@ export function buildGroups(inp: BuildInput): Group[] {
           const apply = { projectId: p.id, sectionId: firstSection(p.id) };
           return { key: p.id, label: p.name, project: p, apply, defaults: { ...baseDef, ...apply }, keep: !p.archivedAt };
         }),
-      { key: '__none', label: 'Ohne Projekt', apply: { projectId: null, sectionId: null }, defaults: { ...baseDef, projectId: null, sectionId: null }, keep: true },
+      { key: '__none', label: 'No project', apply: { projectId: null, sectionId: null }, defaults: { ...baseDef, projectId: null, sectionId: null }, keep: true },
     ];
     keyOf = (t) => t.projectId ?? '__none';
   } else {
-    groups = [{ key: 'all', label: 'Alle Aufgaben', apply: {}, defaults: { ...baseDef }, keep: true }];
+    groups = [{ key: 'all', label: 'All tasks', apply: {}, defaults: { ...baseDef }, keep: true }];
     keyOf = () => 'all';
   }
 

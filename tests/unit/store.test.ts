@@ -18,8 +18,8 @@ beforeEach(() => {
 const groups = (view: View, extra = {}) =>
   buildGroups({ ...st(), view, settings: { ...defaultSettings(view), ...extra }, search: '', collapsed: {}, recentDone: st().recentDone });
 
-describe('Aufgaben', () => {
-  it('Entwurf wird erst mit Titel zur echten Aufgabe', () => {
+describe('Tasks', () => {
+  it('a draft becomes a real task only with a title', () => {
     const id = A.addTask({ assigneeId: me });
     expect(st().tasks[id]!.draft).toBe(true);
     A.updateTask(id, { title: 'Neu' });
@@ -27,13 +27,13 @@ describe('Aufgaben', () => {
     expect(st().tasks[id]!.fieldUpdatedAt.title).toBeTruthy();
   });
 
-  it('leere Entwürfe verschwinden', () => {
+  it('empty drafts disappear', () => {
     const id = A.addTask();
     A.removeIfEmptyDraft(id);
     expect(st().tasks[id]).toBeUndefined();
   });
 
-  it('Erledigen mit Rückgängig, bleibt bis Ansichtswechsel sichtbar', () => {
+  it('Erledigen mit Undo, bleibt bis Ansichtswechsel sichtbar', () => {
     const t = Object.values(st().tasks).find((x) => x.assigneeId === me && !x.completedAt && !x.parentId)!;
     A.toggleDone(t.id);
     expect(st().tasks[t.id]!.completedAt).toBeTruthy();
@@ -47,7 +47,7 @@ describe('Aufgaben', () => {
     expect(st().tasks[t.id]!.activity.map((a) => a.type)).toContain('completed');
   });
 
-  it('Löschen ist weich, umfasst Unteraufgaben und ist rückgängig zu machen', () => {
+  it('delete is soft, includes subtasks and can be undone', () => {
     const parent = Object.values(st().tasks).find((x) => Object.values(st().tasks).some((c) => c.parentId === x.id))!;
     const kids = Object.values(st().tasks).filter((c) => c.parentId === parent.id);
     A.deleteTask(parent.id);
@@ -58,7 +58,7 @@ describe('Aufgaben', () => {
     for (const k of kids) expect(st().tasks[k.id]!.deletedAt).toBeNull();
   });
 
-  it('Projektwechsel nimmt Unteraufgaben mit', () => {
+  it('changing the project takes subtasks along', () => {
     const parent = Object.values(st().tasks).find((x) => Object.values(st().tasks).some((c) => c.parentId === x.id))!;
     const other = st().projects.find((p) => p.id !== parent.projectId)!;
     A.updateTask(parent.id, { projectId: other.id, sectionId: other.sections[0]!.id });
@@ -66,8 +66,8 @@ describe('Aufgaben', () => {
   });
 });
 
-describe('Gruppierung', () => {
-  it('Meine Aufgaben nach Fälligkeit, Unteraufgaben eingeschlossen', () => {
+describe('Grouping', () => {
+  it('My tasks by due date, subtasks included', () => {
     const g = groups({ type: 'my' });
     expect(g.map((x) => x.key)).toEqual(['overdue', 'today', 'soon', 'later', 'none']);
     const all = g.flatMap((x) => x.tasks);
@@ -77,14 +77,14 @@ describe('Gruppierung', () => {
     expect(g.find((x) => x.key === 'today')!.defaults).toMatchObject({ assigneeId: me, dueDate: today() });
   });
 
-  it('Projekt nach Bereichen, nur Hauptaufgaben', () => {
+  it('project by sections, parent tasks only', () => {
     const p = st().projects[0]!;
     const g = groups({ type: 'project', id: p.id });
     expect(g.map((x) => x.label)).toEqual(p.sections.map((s) => s.name));
     expect(g.flatMap((x) => x.tasks).every((t) => !t.parentId)).toBe(true);
   });
 
-  it('gelöschter Bereich verschwindet samt Aufgaben, Rückgängig stellt beides her', () => {
+  it('a deleted section disappears with its tasks, undo restores both', () => {
     const p = st().projects[0]!;
     const sec = p.sections[0]!;
     const before = groups({ type: 'project', id: p.id }).find((x) => x.key === sec.id)!.tasks.length;
@@ -95,13 +95,13 @@ describe('Gruppierung', () => {
     expect(groups({ type: 'project', id: p.id }).find((x) => x.key === sec.id)!.tasks.length).toBe(before);
   });
 
-  it('gelöschte Projekte blenden ihre Aufgaben auch in „Meine Aufgaben“ aus', () => {
+  it('deleted projects also hide their tasks in "My tasks"', () => {
     const p = st().projects[0]!;
     A.deleteProject(p.id);
     expect(groups({ type: 'my' }).flatMap((x) => x.tasks).some((t) => t.projectId === p.id)).toBe(false);
   });
 
-  it('Fälligkeitsfilter Überfällig', () => {
+  it('due date filter Overdue', () => {
     const g = groups({ type: 'my' }, { due: 'overdue' });
     expect(g.flatMap((x) => x.tasks).every((t) => t.dueDate! < today())).toBe(true);
     expect(addDays(today(), 1) > today()).toBe(true);

@@ -1,4 +1,4 @@
-/* Ergänzungen zum Prototyp-CSS */
+/* Additions to the base CSS */
 
 /* Startbildschirme */
 .onb{min-height:100%;display:grid;place-items:center;padding:24px 16px;background:var(--bg)}
@@ -48,15 +48,15 @@
 .dp-hint{font-size:12px;color:var(--danger);margin:-6px 0 8px}
 .chip.hi{border-color:var(--accent);color:var(--text)}
 
-/* Icon-Buttons deaktiviert */
+/* Icon buttons disabled */
 .icon-btn:disabled{opacity:.35;cursor:default}
 
-/* Änderungen anderer Personen kurz sichtbar machen */
+/* Briefly highlight changes made by others */
 @keyframes flash{0%{background:var(--warn-soft)}100%{background:var(--surface)}}
 .row.flash,.card.flash{animation:flash 1.6s ease-out}
 @media (prefers-reduced-motion:reduce){.row.flash,.card.flash{animation:none;box-shadow:inset 3px 0 0 var(--warn)}}
 
-/* Eingang */
+/* Inbox */
 .badge-n{background:var(--accent);color:var(--on-accent)!important;border-radius:9px;padding:1px 7px;font-weight:600}
 .inbox{padding:12px 24px 80px;max-width:860px}
 .inbox-tools{display:flex;align-items:center;gap:8px;margin-bottom:10px}
@@ -74,7 +74,7 @@
 .inbox-task{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--text-2)}
 .inbox-snip{font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* Detailansicht: Follower, Anhänge, Kommentare */
+/* Detail panel: followers, attachments, comments */
 .followers{display:flex;align-items:center;gap:10px;margin:18px 0 4px;flex-wrap:wrap}
 .fol-list{display:flex;align-items:center;gap:4px;flex:1;flex-wrap:wrap}
 .fol{position:relative;border-radius:50%}
@@ -103,7 +103,7 @@
 .tb-reset{width:24px;height:24px;margin-left:-4px;color:var(--accent)}
 .card:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
-/* Daten und Sicherungen */
+/* Data and backups */
 .backups,.conflicts{list-style:none;margin:0;padding:0}
 .bk{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .bk-n{flex:1;min-width:180px}

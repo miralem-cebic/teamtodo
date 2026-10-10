@@ -8,16 +8,16 @@ import { DatePicker } from './DatePicker';
 import { Icon } from './Icon';
 import { Menu, Popover, usePop } from './Popover';
 
-// Inline-Felder einer Aufgabe. Jedes Feld ist ein Button, der ein Popover öffnet.
-// `data-field` erlaubt Tastenkürzeln (Alt+P, Alt+D), das Feld einer Zeile zu finden.
+// Inline fields of a task. Each field is a button that opens a popover.
+// `data-field` lets keyboard shortcuts (Alt+P, Alt+D) find the field of a row.
 
 export function assign(task: TaskState, id: ID | null) {
   const s = useApp.getState();
   const leavesMe = !!s.meId && task.assigneeId === s.meId && id !== s.meId;
-  // bleibt bis zum Verlassen der Ansicht in „Meine Aufgaben“ sichtbar
+  // stays visible in "My tasks" until the view is left
   if (leavesMe) s.recentDone.add(task.id);
   const name = s.users.find((u) => u.id === id)?.name;
-  updateTask(task.id, { assigneeId: id }, leavesMe ? { undo: name ? `${name} zugewiesen` : 'Zuweisung entfernt', toast: true } : { undo: 'Zuweisung geändert' });
+  updateTask(task.id, { assigneeId: id }, leavesMe ? { undo: name ? `Assigned to ${name}` : 'Assignment removed', toast: true } : { undo: 'Assignment changed' });
 }
 
 export function AssigneeField({ task, full }: { task: TaskState; full?: boolean }) {
@@ -26,7 +26,7 @@ export function AssigneeField({ task, full }: { task: TaskState; full?: boolean 
   return (
     <>
       <button type="button" data-field="assignee" className={'fld' + (u ? '' : ' empty')} onClick={p.open}
-        aria-label={u ? `Verantwortlich: ${u.name}` : 'Person zuweisen'} aria-haspopup="dialog">
+        aria-label={u ? `Assignee: ${u.name}` : 'Assign person'} aria-haspopup="dialog">
         {u ? (
           <>
             <Avatar user={u} />
@@ -40,7 +40,7 @@ export function AssigneeField({ task, full }: { task: TaskState; full?: boolean 
         )}
       </button>
       {p.anchor && (
-        <Popover anchor={p.anchor} onClose={p.close} label="Verantwortliche Person">
+        <Popover anchor={p.anchor} onClose={p.close} label="Assignee">
           <AssigneePicker value={task.assigneeId} onPick={(id) => { assign(task, id); p.close(true); }} />
         </Popover>
       )}
@@ -55,16 +55,16 @@ export function DueField({ task, full }: { task: TaskState; full?: boolean }) {
   return (
     <>
       <button type="button" data-field="due" className={'fld due' + (task.dueDate ? tone : ' empty')} onClick={p.open}
-        aria-label={task.dueDate ? `Fällig: ${fmtDue(task.dueDate, task.dueTime)}` : 'Fälligkeitsdatum setzen'} aria-haspopup="dialog">
-        {task.dueDate ? <span>{fmtDue(task.dueDate, task.dueTime)}</span> : <><Icon n="cal" s={15} />{full && <span>Kein Datum</span>}</>}
+        aria-label={task.dueDate ? `Due: ${fmtDue(task.dueDate, task.dueTime)}` : 'Set due date'} aria-haspopup="dialog">
+        {task.dueDate ? <span>{fmtDue(task.dueDate, task.dueTime)}</span> : <><Icon n="cal" s={15} />{full && <span>No date</span>}</>}
       </button>
       {p.anchor && (
-        <Popover anchor={p.anchor} onClose={p.close} width={280} label="Fälligkeitsdatum">
+        <Popover anchor={p.anchor} onClose={p.close} width={280} label="Due date">
           <DatePicker
             value={task.dueDate}
             time={task.dueTime}
             onPick={(v) => {
-              updateTask(task.id, v ? { dueDate: v } : { dueDate: null, dueTime: null }, { undo: 'Datum geändert' });
+              updateTask(task.id, v ? { dueDate: v } : { dueDate: null, dueTime: null }, { undo: 'Date changed' });
               p.close(true);
             }}
             onTime={(v) => updateTask(task.id, { dueTime: v })}
@@ -78,7 +78,7 @@ export function DueField({ task, full }: { task: TaskState; full?: boolean }) {
 export function StatusField({ task }: { task: TaskState }) {
   const p = usePop();
   const done = !!task.completedAt;
-  const label = done ? 'Erledigt' : STATUS_LABEL[task.status];
+  const label = done ? 'Done' : STATUS_LABEL[task.status];
   return (
     <>
       <button type="button" data-field="status" className={'pill st-' + (done ? 'done' : task.status)} onClick={p.open}
@@ -94,9 +94,9 @@ export function StatusField({ task }: { task: TaskState }) {
                 label: l,
                 dot: 'st-' + k,
                 active: !done && task.status === k,
-                onClick: () => updateTask(task.id, { status: k, completedAt: null }, { undo: 'Status geändert' }),
+                onClick: () => updateTask(task.id, { status: k, completedAt: null }, { undo: 'Status changed' }),
               })),
-              { label: 'Erledigt', dot: 'st-done', active: done, onClick: () => toggleDone(task.id, true) },
+              { label: 'Done', dot: 'st-done', active: done, onClick: () => toggleDone(task.id, true) },
             ]}
           />
         </Popover>
@@ -105,7 +105,7 @@ export function StatusField({ task }: { task: TaskState }) {
   );
 }
 
-/** Projekt (in „Meine Aufgaben“ mit Bereich als Zusatz) */
+/** Project (in "My tasks" with the section as addition) */
 export function ProjectField({ task, showSection = true }: { task: TaskState; showSection?: boolean }) {
   const projects = useApp((s) => s.projects);
   const p = usePop();
@@ -116,8 +116,8 @@ export function ProjectField({ task, showSection = true }: { task: TaskState; sh
   return (
     <>
       <button type="button" data-field="project" className={'fld' + (proj ? '' : ' empty')} onClick={locked ? undefined : p.open}
-        aria-disabled={locked || undefined} title={locked ? 'Unteraufgaben gehören zum Projekt der Hauptaufgabe' : undefined}
-        aria-label={proj ? `Projekt: ${proj.name}` : 'Projekt wählen'} aria-haspopup="menu">
+        aria-disabled={locked || undefined} title={locked ? 'Subtasks belong to the project of their parent task' : undefined}
+        aria-label={proj ? `Project: ${proj.name}` : 'Choose project'} aria-haspopup="menu">
         {proj ? (
           <>
             <span className={'sq c-' + proj.color} />
@@ -129,12 +129,12 @@ export function ProjectField({ task, showSection = true }: { task: TaskState; sh
         ) : (
           <>
             <Icon n="folder" s={15} />
-            <span>Kein Projekt</span>
+            <span>No project</span>
           </>
         )}
       </button>
       {p.anchor && !locked && (
-        <Popover anchor={p.anchor} onClose={p.close} width={240} label="Projekt">
+        <Popover anchor={p.anchor} onClose={p.close} width={240} label="Project">
           <Menu
             onClose={p.close}
             items={[
@@ -144,14 +144,14 @@ export function ProjectField({ task, showSection = true }: { task: TaskState; sh
                 active: pr.id === task.projectId,
                 onClick: () => {
                   if (pr.id === task.projectId) return;
-                  updateTask(task.id, { projectId: pr.id, sectionId: liveSections(pr)[0]?.id ?? null }, { undo: `Nach „${pr.name}“ verschoben`, toast: true });
+                  updateTask(task.id, { projectId: pr.id, sectionId: liveSections(pr)[0]?.id ?? null }, { undo: `Moved to "${pr.name}"`, toast: true });
                 },
               })),
               { sep: true as const },
               {
-                label: 'Kein Projekt',
+                label: 'No project',
                 active: !task.projectId,
-                onClick: () => task.projectId && updateTask(task.id, { projectId: null, sectionId: null }, { undo: 'Aus dem Projekt entfernt', toast: true }),
+                onClick: () => task.projectId && updateTask(task.id, { projectId: null, sectionId: null }, { undo: 'Removed from project', toast: true }),
               },
             ]}
           />
@@ -169,17 +169,17 @@ export function SectionField({ task }: { task: TaskState }) {
   return (
     <>
       <button type="button" data-field="section" className={'fld' + (sec ? '' : ' empty')} onClick={p.open}
-        aria-label={sec ? `Bereich: ${sec.name}` : 'Bereich wählen'} aria-haspopup="menu">
-        {sec ? <span className="fld-name">{sec.name}</span> : <span>Kein Bereich</span>}
+        aria-label={sec ? `Section: ${sec.name}` : 'Choose section'} aria-haspopup="menu">
+        {sec ? <span className="fld-name">{sec.name}</span> : <span>No section</span>}
       </button>
       {p.anchor && (
-        <Popover anchor={p.anchor} onClose={p.close} width={220} label="Bereich">
+        <Popover anchor={p.anchor} onClose={p.close} width={220} label="Section">
           <Menu
             onClose={p.close}
             items={secs.map((s) => ({
               label: s.name,
               active: s.id === task.sectionId,
-              onClick: () => s.id !== task.sectionId && updateTask(task.id, { sectionId: s.id }, { undo: `Nach „${s.name}“ verschoben`, toast: true }),
+              onClick: () => s.id !== task.sectionId && updateTask(task.id, { sectionId: s.id }, { undo: `Moved to "${s.name}"`, toast: true }),
             }))}
           />
         </Popover>

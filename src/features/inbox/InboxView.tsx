@@ -36,22 +36,22 @@ export function InboxView() {
     <div className="inbox">
       <div className="inbox-tools">
         <div className="seg" role="tablist" aria-label="Benachrichtigungen">
-          <button type="button" role="tab" aria-selected={!unreadOnly} className={unreadOnly ? '' : 'on'} onClick={() => usePrefs.setState({ inboxUnreadOnly: false })}>Alle</button>
+          <button type="button" role="tab" aria-selected={!unreadOnly} className={unreadOnly ? '' : 'on'} onClick={() => usePrefs.setState({ inboxUnreadOnly: false })}>All</button>
           <button type="button" role="tab" aria-selected={unreadOnly} className={unreadOnly ? 'on' : ''} onClick={() => usePrefs.setState({ inboxUnreadOnly: true })}>
-            Ungelesen{unread ? ` (${unread})` : ''}
+            Unread{unread ? ` (${unread})` : ''}
           </button>
         </div>
         <span className="sp" />
         {unread > 0 && (
           <button type="button" className="tb" onClick={markAllRead}>
             <Icon n="check" s={15} />
-            <span>Alle als gelesen markieren</span>
+            <span>Mark all as read</span>
           </button>
         )}
       </div>
       {!shown.length && (
         <div className="empty-state">
-          <p>{unreadOnly ? 'Alles gelesen.' : 'Hier erscheint, was andere dir zuweisen, wo sie dich erwähnen oder Aufgaben kommentieren, denen du folgst.'}</p>
+          <p>{unreadOnly ? 'All caught up.' : 'Here you see what others assign to you, where they mention you, or comment on tasks you follow.'}</p>
         </div>
       )}
       <ul className="inbox-list" aria-label="Benachrichtigungen">
@@ -68,18 +68,18 @@ export function InboxView() {
                   markRead([it.id]);
                   openPanel(it.taskId);
                 }}
-                aria-label={`${u?.name ?? 'Jemand'} ${it.text}: ${t?.title ?? ''}${unreadItem ? ' (ungelesen)' : ''}`}
+                aria-label={`${u?.name ?? 'Someone'} ${it.text}: ${t?.title ?? ''}${unreadItem ? ' (unread)' : ''}`}
               >
                 <span className="inbox-dot" aria-hidden="true" />
                 <Avatar user={u} size={30} />
                 <span className="inbox-b">
                   <span className="inbox-h">
-                    <strong>{u?.name ?? 'Jemand'}</strong> {it.text}
+                    <strong>{u?.name ?? 'Someone'}</strong> {it.text}
                     <span className="inbox-t">{fmtTimestamp(it.at)}</span>
                   </span>
                   <span className="inbox-task">
                     <Icon n={ICON[it.kind]} s={13} />
-                    {t?.title || 'Ohne Titel'}
+                    {t?.title || 'Untitled'}
                   </span>
                   {it.snippet && <span className="inbox-snip">{renderMentions(it.snippet, users)}</span>}
                 </span>

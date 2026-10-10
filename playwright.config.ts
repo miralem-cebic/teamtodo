@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
-// Ende-zu-Ende-Tests gegen den Produktions-Build unter file:// im installierten Chrome.
-// Der Datenordner wird im Testmodus (?e2e) im Speicher nachgebildet.
+// End-to-end tests against the production build via file:// in the installed Chrome.
+// In test mode (?e2e) the data folder is simulated in memory.
 export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 30_000,
@@ -11,7 +11,7 @@ export default defineConfig({
     channel: process.env.BROWSER_CHANNEL || 'chrome',
     headless: !process.env.HEADED,
     viewport: { width: 1400, height: 900 },
-    locale: 'de-DE',
+    locale: 'en-US',
     trace: 'retain-on-failure',
   },
 });

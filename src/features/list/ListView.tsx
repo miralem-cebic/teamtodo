@@ -30,12 +30,12 @@ export function ListView({ groups, view, settings, collapseKey, children }: Prop
   };
 
   return (
-    <div className={'list' + (third ? '' : ' no3')} role="grid" aria-label="Aufgaben">
+    <div className={'list' + (third ? '' : ' no3')} role="grid" aria-label="Tasks">
       <div className="lhead" role="row">
-        <div className="h-title" role="columnheader">Aufgabe</div>
-        <div className="c" role="columnheader">Verantwortlich</div>
-        <div className="c" role="columnheader">Fällig</div>
-        {third && <div className="c c-proj" role="columnheader">{third === 'project' ? 'Projekt' : 'Bereich'}</div>}
+        <div className="h-title" role="columnheader">Task</div>
+        <div className="c" role="columnheader">Assignee</div>
+        <div className="c" role="columnheader">Due</div>
+        {third && <div className="c c-proj" role="columnheader">{third === 'project' ? 'Project' : 'Section'}</div>}
         <div className="c c-status" role="columnheader">Status</div>
       </div>
       {groups.map((g) => (
@@ -66,7 +66,7 @@ export function ListView({ groups, view, settings, collapseKey, children }: Prop
                           }}
                         >
                           <Icon n="plus" s={14} />
-                          Unteraufgabe hinzufügen
+                          Add subtask
                         </button>
                       </div>
                     )}
@@ -77,7 +77,7 @@ export function ListView({ groups, view, settings, collapseKey, children }: Prop
                 <div className="row add-row">
                   <button type="button" className="add-btn" onClick={() => addAt(g)}>
                     <Icon n="plus" s={14} />
-                    Aufgabe hinzufügen
+                    Add task
                   </button>
                 </div>
               )}
@@ -86,21 +86,21 @@ export function ListView({ groups, view, settings, collapseKey, children }: Prop
         </GroupSection>
       ))}
       {view.type === 'project' && settings.group === 'section' && (
-        <button type="button" className="add-section" onClick={() => requestFocus(addSection(view.id, 'Neuer Bereich'), 'section')}>
+        <button type="button" className="add-section" onClick={() => requestFocus(addSection(view.id, 'New section'), 'section')}>
           <Icon n="plus" s={15} />
-          Bereich hinzufügen
+          Add section
         </button>
       )}
       {!groups.length && (
         <div className="empty-state">
-          <p>Keine Aufgaben passen zu deinen Filtern.</p>
+          <p>No tasks match your filters.</p>
         </div>
       )}
     </div>
   );
 }
 
-/** Gruppe als Ablageziel (Ablegen am Ende der Gruppe, auch wenn sie leer ist) */
+/** Group as drop target (dropping at the end of the group, even if it is empty) */
 function GroupSection({ g, children }: { g: Group; children: ReactNode }) {
   const drop = useDndGroup(g.key);
   return (
@@ -112,7 +112,7 @@ function GroupSection({ g, children }: { g: Group; children: ReactNode }) {
 
 function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseKey: string }) {
   const focusReq = useApp((s) => s.focusReq);
-  // Neu angelegter Bereich startet sofort im Bearbeitungsmodus (synchron, damit kein Tastendruck verloren geht)
+  // A newly created section starts in edit mode at once (synchronously, so that no keystroke is lost)
   const [editing, setEditing] = useState(() => {
     return !!g.section && peekFocus(useApp.getState().focusReq, g.section.id, 'section');
   });
@@ -121,7 +121,7 @@ function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseK
   useEffect(() => setName(g.label), [g.label]);
   const sectionId = g.section?.id;
   useEffect(() => {
-    // nur auf neue Fokus-Anfragen reagieren, nicht auf geänderte Bereichsdaten
+    // react only to new focus requests, not to changed section data
     if (sectionId && claimFocus(focusReq, sectionId, 'section')) setEditing(true);
   }, [focusReq, sectionId]);
 
@@ -136,7 +136,7 @@ function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseK
   return (
     <div ref={dnd.ref} className={'ghead' + (g.tone ? ' tone-' + g.tone : '') + (dnd.dragging ? ' dragging' : '') + (dnd.dropPos ? ' drop-' + dnd.dropPos : '')}>
       {g.section ? (
-        <span className="grip g-grip" {...dnd.handle} aria-label="Bereich ziehen" title="Bereich ziehen">
+        <span className="grip g-grip" {...dnd.handle} aria-label="Drag section" title="Drag section">
           <Icon n="grip" s={14} />
         </span>
       ) : (
@@ -157,7 +157,7 @@ function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseK
           onChange={(e) => setName(e.target.value)}
           onFocus={(e) => e.currentTarget.select()}
           onBlur={commit}
-          aria-label="Bereichsname"
+          aria-label="Section name"
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur();
             if (e.key === 'Escape') {
@@ -174,7 +174,7 @@ function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseK
       <span className="g-count">{g.tasks.length}</span>
       {g.section && projectId && (
         <>
-          <button type="button" className="icon-btn g-more" onClick={p.open} aria-label={`Optionen für Bereich ${g.label}`}>
+          <button type="button" className="icon-btn g-more" onClick={p.open} aria-label={`Options for section ${g.label}`}>
             <Icon n="dots" />
           </button>
           {p.anchor && (
@@ -184,13 +184,13 @@ function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseK
                 items={[
                   { label: 'Umbenennen', icon: 'edit', onClick: () => setEditing(true), keepFocus: true },
                   {
-                    label: 'Bereich darunter einfügen',
+                    label: 'Insert section below',
                     icon: 'plus',
-                    onClick: () => requestFocus(addSection(projectId, 'Neuer Bereich', g.section!.order), 'section'),
+                    onClick: () => requestFocus(addSection(projectId, 'New section', g.section!.order), 'section'),
                     keepFocus: true,
                   },
                   { sep: true },
-                  { label: 'Bereich löschen', icon: 'trash', danger: true, onClick: () => deleteSection(projectId, g.section!.id) },
+                  { label: 'Delete section', icon: 'trash', danger: true, onClick: () => deleteSection(projectId, g.section!.id) },
                 ]}
               />
             </Popover>

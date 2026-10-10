@@ -6,13 +6,13 @@ import type { Repository } from './repository';
 import type { ID, Snapshot, Task, TaskState } from './types';
 import { MERGEABLE_FIELDS } from './types';
 
-// Pflege des Datenordners: tägliche Komplettsicherung (14 behalten), endgültiges Aufräumen
-// gelöschter Einträge nach 30 Tagen, Wiederherstellen aus einer Sicherung.
+// Upkeep of the data folder: a daily full backup (14 are kept), final cleanup
+// of entries deleted more than 30 days ago, and restoring from a backup.
 
 export const KEEP_BACKUPS = 14;
 export const PURGE_AFTER_DAYS = 30;
 const DAILY = /^\d{4}-\d{2}-\d{2}$/;
-const PRE_RESTORE = /^vor-wiederherstellung-/;
+const PRE_RESTORE = /^before-restore-/;
 
 export function currentSnapshot(): Snapshot {
   const s = useApp.getState();
@@ -26,7 +26,7 @@ export function currentSnapshot(): Snapshot {
   };
 }
 
-/** Beim Start: einmal pro Tag sichern (wer zuerst kommt), alte Sicherungen entfernen */
+/** On start: back up once a day (whoever comes first), remove old backups */
 export async function dailyBackup(repo: Repository, force = false): Promise<string | null> {
   const ws = useApp.getState().workspace;
   if (!ws) return null;
@@ -42,7 +42,7 @@ export async function dailyBackup(repo: Repository, force = false): Promise<stri
   return day;
 }
 
-/** Einträge, die seit mehr als 30 Tagen gelöscht sind, endgültig entfernen */
+/** Permanently remove entries that have been deleted for more than 30 days */
 export async function purge(repo: Repository, now = Date.now()): Promise<number> {
   const s = useApp.getState();
   const ws = s.workspace;
@@ -63,7 +63,7 @@ export async function purge(repo: Repository, now = Date.now()): Promise<number>
   const remove: ID[] = Object.values(s.tasks).filter((t) => !t.draft && isDead(t)).map((t) => t.id);
   for (const id of remove) await repo.removeTask(id);
 
-  // entfernte Anhänge endgültig löschen
+  // permanently delete removed attachments
   const tasks = { ...s.tasks };
   for (const id of remove) delete tasks[id];
   for (const t of Object.values(tasks)) {
@@ -87,13 +87,13 @@ export async function purge(repo: Repository, now = Date.now()): Promise<number>
 }
 
 /**
- * Stellt eine Sicherung wieder her. Vorher wird der aktuelle Stand gesichert.
- * Wiederhergestellte Felder bekommen einen neuen Zeitstempel, damit sie beim Zusammenführen gewinnen;
- * Aufgaben, die es in der Sicherung nicht gab, werden (weich) gelöscht.
+ * Restores a backup. The current state is backed up first.
+ * Restored fields get a new timestamp so that they win when merging;
+ * tasks that do not exist in the backup are (softly) deleted.
  */
 export async function restoreBackup(repo: Repository, name: string) {
   const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
-  await repo.writeBackup(`vor-wiederherstellung-${stamp}`, currentSnapshot());
+  await repo.writeBackup(`before-restore-${stamp}`, currentSnapshot());
   const b = await repo.readBackup(name);
   const at = nowIso();
   const s = useApp.getState();
@@ -109,10 +109,10 @@ export async function restoreBackup(repo: Repository, name: string) {
     tasks[t.id] = { ...t, deletedAt: t.deletedAt ?? at, fieldUpdatedAt: { ...t.fieldUpdatedAt, deletedAt: at } };
   }
   const projects = b.projects.map((p) => ({ ...p, updatedAt: at, sections: p.sections.map((x) => ({ ...x, updatedAt: at })) }));
-  // Projekte, die nach der Sicherung angelegt wurden, als gelöscht markieren
+  // mark projects that were created after the backup as deleted
   for (const p of s.projects) if (!projects.some((x) => x.id === p.id)) projects.push({ ...p, deletedAt: p.deletedAt ?? at, updatedAt: at });
   useApp.setState({ tasks, projects, users: mergeUsers(s.users, b.users), panelId: null, undoStack: [] });
-  showToast(`Sicherung vom ${name} wiederhergestellt`);
+  showToast(`Backup from ${name} restored`);
 }
 
 function mergeComments(a: Task, b: Task) {

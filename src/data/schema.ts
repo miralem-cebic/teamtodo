@@ -42,7 +42,7 @@ export function makeSection(name: string, order: number): Section {
   return { id: newId(), name, order, updatedAt: nowIso(), deletedAt: null };
 }
 
-export function makeProject(name: string, color: Color, order: number, sectionNames: string[] = ['Aufgaben']): Project {
+export function makeProject(name: string, color: Color, order: number, sectionNames: string[] = ['Tasks']): Project {
   const at = nowIso();
   return {
     id: newId(),

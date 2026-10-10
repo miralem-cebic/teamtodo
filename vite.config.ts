@@ -2,8 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileProtocol } from './build/fileProtocol.ts';
 
-// Produktions-Build muss per Doppelklick (file://) in Chrome/Edge laufen:
-// ein einziges klassisches IIFE-Skript, relative Pfade, kein Code-Splitting.
+// The production build must run by double-clicking (file://) in Chrome/Edge:
+// a single classic IIFE script, relative paths, no code splitting.
 export default defineConfig({
   base: './',
   plugins: [react(), fileProtocol()],
@@ -11,7 +11,7 @@ export default defineConfig({
     target: 'chrome120',
     modulePreload: false,
     cssCodeSplit: false,
-    // Schriften als data:-URL einbetten, damit unter file:// kein Font-Request nötig ist
+    // embed fonts as data: URLs so that no font request is needed under file://
     assetsInlineLimit: (filePath) => (filePath.endsWith('.woff2') ? true : undefined),
     rollupOptions: {
       output: {

@@ -21,11 +21,11 @@ export function Followers({ t }: { t: TaskState }) {
             <span className="fol-x" aria-hidden="true"><Icon n="x" s={10} /></span>
           </button>
         ))}
-        <button type="button" className="icon-btn" onClick={p.open} aria-label="Follower hinzufügen">
+        <button type="button" className="icon-btn" onClick={p.open} aria-label="Add follower">
           <Icon n="plus" s={15} />
         </button>
         {p.anchor && (
-          <Popover anchor={p.anchor} onClose={p.close} label="Follower hinzufügen">
+          <Popover anchor={p.anchor} onClose={p.close} label="Add follower">
             <AssigneePicker
               value={null}
               onPick={(id) => {
@@ -38,7 +38,7 @@ export function Followers({ t }: { t: TaskState }) {
       </div>
       {meId && (
         <button type="button" className="btn sm" onClick={() => setFollowing(t.id, meId, !iFollow)} aria-pressed={iFollow}>
-          {iFollow ? 'Nicht mehr folgen' : 'Folgen'}
+          {iFollow ? 'Unfollow' : 'Follow'}
         </button>
       )}
     </div>

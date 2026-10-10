@@ -13,7 +13,7 @@ interface Props {
   ariaLabel: string;
 }
 
-/** Mehrzeiliges Textfeld, das mit dem Inhalt wächst. */
+/** Multi-line text field that grows with its content. */
 export function AutoText({ value, onChange, className, placeholder, onEnter, onKeyDown, onBlur, autoFocus, inputRef, ariaLabel }: Props) {
   const own = useRef<HTMLTextAreaElement>(null);
   const ref = inputRef ?? own;

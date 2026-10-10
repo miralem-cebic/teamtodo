@@ -7,9 +7,9 @@ import { activityText } from '../../lib/activityText';
 import { fmtTimestamp } from '../../lib/dates';
 import type { TaskState, User } from '../../data/types';
 
-const MOD = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘' : 'Strg';
+const MOD = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘' : 'Ctrl';
 
-/** @Name im Text hervorheben */
+/** Highlight @Name in the text */
 export function renderMentions(text: string, users: User[]): ReactNode {
   const names = users
     .map((u) => u.name)
@@ -33,10 +33,10 @@ export function Feed({ t }: { t: TaskState }) {
     <div className="feed">
       <div className="feed-tools">
         <button type="button" className="link" onClick={() => usePrefs.setState({ showActivity: !showActivity })}>
-          {showActivity ? 'Nur Kommentare zeigen' : 'Aktivität einblenden'}
+          {showActivity ? 'Show comments only' : 'Show activity'}
         </button>
       </div>
-      {!items.length && <p className="feed-empty">Noch keine Kommentare.</p>}
+      {!items.length && <p className="feed-empty">No comments yet.</p>}
       {items.map((it) => {
         if (it.kind === 'c') {
           const u = users.find((x) => x.id === it.c.userId);
@@ -45,10 +45,10 @@ export function Feed({ t }: { t: TaskState }) {
               <Avatar user={u} size={28} />
               <div className="cmt-b">
                 <div className="cmt-h">
-                  <strong>{u?.name ?? 'Unbekannt'}</strong>
+                  <strong>{u?.name ?? 'Unknown'}</strong>
                   <span>{fmtTimestamp(it.at)}</span>
                   {it.c.userId === meId && (
-                    <button type="button" className="icon-btn cmt-del" onClick={() => deleteComment(t.id, it.c.id)} aria-label="Kommentar löschen">
+                    <button type="button" className="icon-btn cmt-del" onClick={() => deleteComment(t.id, it.c.id)} aria-label="Delete comment">
                       <Icon n="trash" s={13} />
                     </button>
                   )}
@@ -63,7 +63,7 @@ export function Feed({ t }: { t: TaskState }) {
           <div key={it.id} className="act">
             <span className="act-dot" />
             <span>
-              {u?.name ?? 'Jemand'} {activityText(it.a, users)}
+              {u?.name ?? 'Someone'} {activityText(it.a, users)}
             </span>
             <span className="act-t">{fmtTimestamp(it.at)}</span>
           </div>
@@ -113,7 +113,7 @@ export function CommentBox({ t }: { t: TaskState }) {
       <Avatar user={me} size={28} />
       <div className="cbox-in">
         {sugg.length > 0 && (
-          <div className="msugg" role="listbox" aria-label="Person erwähnen">
+          <div className="msugg" role="listbox" aria-label="Mention person">
             {sugg.map((u, i) => (
               <button key={u.id} type="button" role="option" aria-selected={i === hi} className={'pk-it' + (i === hi ? ' hi' : '')}
                 onMouseDown={(e) => {
@@ -131,8 +131,8 @@ export function CommentBox({ t }: { t: TaskState }) {
           className="c-in"
           rows={1}
           value={v}
-          placeholder="Kommentar schreiben, mit @ erwähnen"
-          aria-label="Kommentar"
+          placeholder="Write a comment, mention someone with @"
+          aria-label="Comment"
           onChange={(e) => onChange(e.target.value)}
           onBlur={() => setTimeout(() => setM(null), 120)}
           onKeyDown={(e) => {

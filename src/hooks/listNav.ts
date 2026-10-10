@@ -1,5 +1,5 @@
-// DOM-Helfer für die Tastaturnavigation in Listen.
-// Zeilen tragen `data-row="<id>"` und `data-scope="list|panel"`, Titelfelder `data-title`.
+// DOM helpers for keyboard navigation in lists.
+// Rows carry `data-row="<id>"` and `data-scope="list|panel"`, title fields `data-title`.
 
 export type NavScope = 'list' | 'panel';
 
@@ -25,7 +25,7 @@ export function focusRow(row: HTMLElement | null | undefined) {
   row.scrollIntoView({ block: 'nearest' });
 }
 
-/** Nachbarzeile relativ zu `row` (dir −1/+1) im selben Bereich */
+/** Neighboring row relative to `row` (dir −1/+1) in the same section */
 export function neighbour(row: HTMLElement, dir: number): HTMLElement | null {
   const scope = (row.dataset.scope ?? 'list') as NavScope;
   const rows = rowsIn(scope);
