@@ -10,7 +10,7 @@ export function Check({ done, onToggle, small }: { done: boolean; onToggle: () =
         e.stopPropagation();
         onToggle();
       }}
-      aria-label={done ? 'Als nicht erledigt markieren' : 'Als erledigt markieren'}
+      aria-label={done ? 'Mark as not done' : 'Mark as done'}
       aria-pressed={done}
     >
       <Icon n="check" s={small ? 11 : 12} />

@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 import type { ID } from '../data/types';
+import { readStorage } from '../lib/storage';
 import { defaultSettings, type View, type ViewSettings } from './selectors';
 
-// Einstellungen pro Browser (nicht im geteilten Ordner): Ansicht, Gruppierung, Filter, eingeklappte Bereiche.
+// Settings per browser (not in the shared folder): view, grouping, filters, collapsed sections.
 
 const KEY = 'teamtodo.prefs.v1';
+const LEGACY_KEY = 'teamaufgaben.prefs.v1';
 const ME_KEY = (workspaceId: string) => `teamtodo.me.${workspaceId}`;
+const LEGACY_ME_KEY = (workspaceId: string) => `teamaufgaben.me.${workspaceId}`;
 
 export type Layout = 'list' | 'board' | 'calendar';
 
@@ -15,9 +18,9 @@ export interface Prefs {
   settings: Record<string, Partial<ViewSettings>>;
   collapsed: Record<string, Record<string, boolean>>;
   expanded: Record<ID, boolean>;
-  /** Aktivitäten im Verlauf der Detailansicht zeigen */
+  /** Show activity in the history of the detail panel */
   showActivity?: boolean;
-  /** Eingang: nur ungelesene */
+  /** Inbox: unread only */
   inboxUnreadOnly?: boolean;
 }
 
@@ -25,10 +28,10 @@ const fallback: Prefs = { view: { type: 'my' }, layout: {}, settings: {}, collap
 
 function read(): Prefs {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = readStorage(KEY, LEGACY_KEY);
     if (raw) return { ...fallback, ...(JSON.parse(raw) as Partial<Prefs>) };
   } catch {
-    /* localStorage nicht verfügbar */
+    /* localStorage not available */
   }
   return fallback;
 }
@@ -38,7 +41,7 @@ usePrefs.subscribe((p) => {
   try {
     localStorage.setItem(KEY, JSON.stringify(p));
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
 });
 
@@ -65,7 +68,7 @@ export const toggleExpanded = (id: ID, value?: boolean) =>
 
 export function loadMe(workspaceId: string): ID | null {
   try {
-    return localStorage.getItem(ME_KEY(workspaceId));
+    return readStorage(ME_KEY(workspaceId), LEGACY_ME_KEY(workspaceId));
   } catch {
     return null;
   }
@@ -75,6 +78,6 @@ export function saveMe(workspaceId: string, id: ID | null) {
     if (id) localStorage.setItem(ME_KEY(workspaceId), id);
     else localStorage.removeItem(ME_KEY(workspaceId));
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
 }

@@ -4,7 +4,7 @@ import { Icon } from '../../components/Icon';
 import { useApp } from '../../store/appStore';
 import { chooseUser, createUserAndChoose, forgetFolder, initialize, pickFolder, reconnect, useSession } from '../../app/session';
 
-/** Startbildschirme vor der eigentlichen App. */
+/** Start screens shown before the actual app. */
 export function Onboarding() {
   const s = useSession();
   return (
@@ -14,12 +14,12 @@ export function Onboarding() {
           <span className="logo" aria-hidden="true"><Icon n="check" s={14} /></span>
           teamtodo
         </div>
-        {s.phase === 'checking' || s.phase === 'loading' ? <p className="onb-text" role="status">Lädt …</p> : null}
+        {s.phase === 'checking' || s.phase === 'loading' ? <p className="onb-text" role="status">Loading …</p> : null}
         {s.phase === 'unsupported' && <Unsupported />}
         {s.phase === 'welcome' && <Welcome />}
-        {s.phase === 'reconnect' && <Reconnect name={s.dirName ?? 'Datenordner'} />}
+        {s.phase === 'reconnect' && <Reconnect name={s.dirName ?? 'data folder'} />}
         {s.phase === 'setup' && <Setup name={s.dirName ?? ''} notEmpty={s.dirNotEmpty} />}
-        {s.phase === 'failed' && <Failed message={s.error ?? 'Unbekannter Fehler.'} />}
+        {s.phase === 'failed' && <Failed message={s.error ?? 'Unknown error.'} />}
         {s.phase === 'who' && <Who />}
       </div>
     </main>
@@ -29,10 +29,10 @@ export function Onboarding() {
 function Unsupported() {
   return (
     <>
-      <h1>Bitte in Chrome oder Edge öffnen</h1>
+      <h1>Please open in Chrome or Edge</h1>
       <p className="onb-text">
-        Diese App speichert direkt in einen Ordner auf deinem Rechner. Das können nur aktuelle Versionen von Google Chrome und Microsoft Edge.
-        Öffne die Datei <code>index.html</code> dort per Rechtsklick → „Öffnen mit“.
+        This app saves directly into a folder on your computer. Only current versions of Google Chrome and Microsoft Edge can do that.
+        Open the file <code>index.html</code> there via right-click → "Open with".
       </p>
     </>
   );
@@ -43,11 +43,11 @@ function Welcome() {
     <>
       <h1>Willkommen</h1>
       <p className="onb-text">
-        Wähle den Ordner, in dem eure Aufgaben gespeichert werden, zum Beispiel einen geteilten OneDrive-Ordner. Alle im Team wählen denselben Ordner.
+        Choose the folder where your team's tasks are saved, for example a shared OneDrive folder. Everyone in the team chooses the same folder.
       </p>
       <button type="button" className="btn primary lg" onClick={() => void pickFolder()} autoFocus>
         <Icon n="folder" />
-        Datenordner wählen
+        Choose data folder
       </button>
     </>
   );
@@ -56,14 +56,14 @@ function Welcome() {
 function Reconnect({ name }: { name: string }) {
   return (
     <>
-      <h1>Willkommen zurück</h1>
-      <p className="onb-text">Der Browser fragt aus Sicherheitsgründen bei jedem Start einmal nach, ob die App auf den Ordner zugreifen darf.</p>
+      <h1>Welcome back</h1>
+      <p className="onb-text">For security reasons, the browser asks once on every start whether the app may access the folder.</p>
       <div className="onb-actions">
         <button type="button" className="btn primary lg" onClick={() => void reconnect()} autoFocus>
-          Weiter mit Ordner „{name}“
+          Continue with folder "{name}"
         </button>
         <button type="button" className="btn lg" onClick={() => void pickFolder()}>
-          Anderen Ordner wählen
+          Choose another folder
         </button>
       </div>
     </>
@@ -74,35 +74,35 @@ function Setup({ name, notEmpty }: { name: string; notEmpty: boolean }) {
   const [samples, setSamples] = useState(true);
   return (
     <>
-      <h1>Neuen Datenordner einrichten</h1>
+      <h1>Set up a new data folder</h1>
       {notEmpty ? (
         <p className="onb-text">
-          Der Ordner „{name}“ enthält bereits andere Dateien. Am besten legt die App darin einen eigenen Unterordner „teamtodo“ an.
+          The folder "{name}" already contains other files. The app should create its own subfolder "teamtodo" in it.
         </p>
       ) : (
-        <p className="onb-text">Der Ordner „{name}“ ist leer. Die App legt hier ihre Dateien an.</p>
+        <p className="onb-text">The folder "{name}" is empty. The app will create its files here.</p>
       )}
       <label className="onb-check">
         <input type="checkbox" checked={samples} onChange={(e) => setSamples(e.target.checked)} />
-        Mit Beispieldaten starten (Projekte, Aufgaben, Team)
+        Start with sample data (projects, tasks, team)
       </label>
       <div className="onb-actions">
         {notEmpty ? (
           <>
             <button type="button" className="btn primary lg" onClick={() => void initialize({ samples, subfolder: true })} autoFocus>
-              Unterordner „teamtodo“ anlegen
+              Create subfolder "teamtodo"
             </button>
             <button type="button" className="btn lg" onClick={() => void initialize({ samples, subfolder: false })}>
-              Trotzdem hier anlegen
+              Create here anyway
             </button>
           </>
         ) : (
           <button type="button" className="btn primary lg" onClick={() => void initialize({ samples, subfolder: false })} autoFocus>
-            Einrichten
+            Set up
           </button>
         )}
         <button type="button" className="btn lg" onClick={() => void pickFolder()}>
-          Anderen Ordner wählen
+          Choose another folder
         </button>
       </div>
     </>
@@ -112,14 +112,14 @@ function Setup({ name, notEmpty }: { name: string; notEmpty: boolean }) {
 function Failed({ message }: { message: string }) {
   return (
     <>
-      <h1>Das hat nicht geklappt</h1>
+      <h1>That didn't work</h1>
       <p className="onb-text err" role="alert">{message}</p>
       <div className="onb-actions">
         <button type="button" className="btn primary lg" onClick={() => void pickFolder()} autoFocus>
-          Ordner wählen
+          Choose folder
         </button>
         <button type="button" className="btn lg" onClick={() => void forgetFolder()}>
-          Von vorn beginnen
+          Start over
         </button>
       </div>
     </>
@@ -133,7 +133,7 @@ function Who() {
   return (
     <>
       <h1>Wer bist du?</h1>
-      <p className="onb-text">Die Auswahl gilt nur für diesen Browser. Du kannst sie später unten links ändern.</p>
+      <p className="onb-text">The choice only applies to this browser. You can change it later at the bottom left.</p>
       {users.length > 0 && (
         <ul className="onb-users" aria-label="Teammitglieder">
           {users.map((u, i) => (
@@ -154,11 +154,11 @@ function Who() {
           if (name.trim()) createUserAndChoose(name.trim());
         }}
       >
-        <label htmlFor="onb-name">{users.length ? 'Nicht dabei? Neu anlegen' : 'Dein Name'}</label>
+        <label htmlFor="onb-name">{users.length ? 'Not listed? Add new' : 'Your name'}</label>
         <div className="onb-row">
-          <input id="onb-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Vor- und Nachname" autoFocus={!users.length} />
+          <input id="onb-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="First and last name" autoFocus={!users.length} />
           <button type="submit" className="btn primary" disabled={!name.trim()}>
-            Anlegen
+            Create
           </button>
         </div>
       </form>

@@ -8,9 +8,9 @@ import { fmtDate } from '../../lib/dates';
 import { KEEP_BACKUPS } from '../../data/maintenance';
 
 const label = (name: string) => {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(name)) return `Tagessicherung ${fmtDate(name)}`;
-  const m = /^vor-wiederherstellung-(\d{4}-\d{2}-\d{2})-(\d{2})-(\d{2})/.exec(name);
-  return m ? `Vor Wiederherstellung, ${fmtDate(m[1]!)} ${m[2]}:${m[3]}` : name;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(name)) return `Daily backup ${fmtDate(name)}`;
+  const m = /^before-restore-(\d{4}-\d{2}-\d{2})-(\d{2})-(\d{2})/.exec(name);
+  return m ? `Before restore, ${fmtDate(m[1]!)} ${m[2]}:${m[3]}` : name;
 };
 const size = (b: number) => (b < 1048576 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1048576).toFixed(1)} MB`);
 
@@ -31,7 +31,7 @@ export function DataDialog({ onClose }: { onClose: () => void }) {
     try {
       await fn();
     } catch (e) {
-      showToast(`Das hat nicht geklappt: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(`That didn't work: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setBusy(false);
       void reload();
@@ -39,45 +39,45 @@ export function DataDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Dialog title="Daten und Sicherungen" onClose={onClose} wide>
+    <Dialog title="Data and backups" onClose={onClose} wide>
       <p className="d-text">
-        Datenordner: <strong>{dirName}</strong>. Jede Änderung wird sofort dort gespeichert. Einmal am Tag legt die App eine Komplettsicherung im Unterordner{' '}
-        <code>backups</code> an und behält die letzten {KEEP_BACKUPS}.
+        Data folder: <strong>{dirName}</strong>. Every change is saved there immediately. Once a day, the app creates a full backup in the subfolder{' '}
+        <code>backups</code> and keeps the last {KEEP_BACKUPS}.
       </p>
       <div className="d-row">
-        <button type="button" className="btn" disabled={busy} onClick={() => void run(async () => { await backupNow(); showToast('Sicherung angelegt'); })}>
+        <button type="button" className="btn" disabled={busy} onClick={() => void run(async () => { await backupNow(); showToast('Backup created'); })}>
           <Icon n="db" s={15} />
-          Jetzt sichern
+          Back up now
         </button>
         <button type="button" className="btn" disabled={busy} onClick={() => void run(async () => { await syncNow(); showToast('Abgeglichen'); })}>
           <Icon n="swap" s={15} />
-          Jetzt abgleichen
+          Sync now
         </button>
       </div>
 
-      <h3 className="d-h">Sicherungen</h3>
+      <h3 className="d-h">Backups</h3>
       {backups === null ? (
-        <p className="d-text">Lädt …</p>
+        <p className="d-text">Loading …</p>
       ) : !backups.length ? (
-        <p className="d-text">Noch keine Sicherung vorhanden.</p>
+        <p className="d-text">No backup yet.</p>
       ) : (
-        <ul className="backups" aria-label="Sicherungen">
+        <ul className="backups" aria-label="Backups">
           {backups.map((b) => (
             <li key={b.name} className="bk">
               <span className="bk-n">{label(b.name)}</span>
               <span className="bk-s">{size(b.size)}</span>
               {confirm === b.name ? (
                 <span className="bk-confirm" role="alert">
-                  Alles auf diesen Stand zurücksetzen? Der aktuelle Stand wird vorher gesichert.
+                  Reset everything to this state? The current state is backed up first.
                   <button type="button" className="btn sm primary" disabled={busy} autoFocus
                     onClick={() => void run(async () => { await restore(b.name); setConfirm(null); onClose(); })}>
-                    Wiederherstellen
+                    Restore
                   </button>
                   <button type="button" className="btn sm" onClick={() => setConfirm(null)}>Abbrechen</button>
                 </span>
               ) : (
-                <button type="button" className="btn sm" onClick={() => setConfirm(b.name)} aria-label={`${label(b.name)} wiederherstellen`}>
-                  Wiederherstellen …
+                <button type="button" className="btn sm" onClick={() => setConfirm(b.name)} aria-label={`${label(b.name)} restore`}>
+                  Restore …
                 </button>
               )}
             </li>
@@ -87,10 +87,10 @@ export function DataDialog({ onClose }: { onClose: () => void }) {
 
       {conflicts.length > 0 && (
         <>
-          <h3 className="d-h">OneDrive-Konfliktkopien</h3>
+          <h3 className="d-h">OneDrive conflict copies</h3>
           <p className="d-text">
-            Diese Dateien hat OneDrive angelegt, weil zwei Rechner dieselbe Datei gleichzeitig geändert haben. Die App ignoriert sie, ihre Änderungen sind
-            bereits zusammengeführt. Du kannst sie im Datenordner löschen.
+            OneDrive created these files because two computers changed the same file at the same time. The app ignores them, their changes are
+            already merged. You can delete them in the data folder.
           </p>
           <ul className="conflicts">
             {conflicts.map((c) => (

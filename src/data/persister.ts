@@ -3,12 +3,13 @@ import { classifyError, type Repository } from './repository';
 import { integrateProjects, integrateUsers, integrateWrittenTask } from './sync';
 import type { Snapshot } from './types';
 
-// Beobachtet den App-Zustand und schreibt geänderte Entitäten gebündelt (Debounce) in den Speicher.
-// Objekte, die aus dem Speicher kommen oder bereits geschrieben wurden, stehen in `clean`
-// und lösen keinen erneuten Schreibvorgang aus.
+// Watches the app state and writes changed entities to storage in batches (debounced).
+// Objects that come from storage or were already written are kept in `clean`
+// and do not trigger another write.
 
 export const DEBOUNCE_MS = 400;
 export const EMERGENCY_KEY = 'teamtodo.unsaved.v1';
+export const LEGACY_EMERGENCY_KEY = 'teamaufgaben.unsaved.v1'; // before the rename to teamtodo
 
 type Job = () => Promise<void>;
 
@@ -29,7 +30,7 @@ export class Persister {
     return this.clean.has(o);
   }
 
-  /** Bekannten Stand als „gespeichert“ markieren (nach Laden) */
+  /** Mark the known state as "saved" (after loading) */
   markClean(snap: Pick<Snapshot, 'users' | 'projects' | 'tasks'> & { workspace?: object | null }) {
     this.clean.add(snap.users);
     this.clean.add(snap.projects);
@@ -97,7 +98,7 @@ export class Persister {
   }
 
   private enqueue(key: string, job: Job) {
-    this.queue.set(key, job); // neuerer Stand ersetzt älteren
+    this.queue.set(key, job); // a newer version replaces an older one
     if (useApp.getState().save.state !== 'error') setSaveStatus({ state: 'saving' });
     this.schedule();
   }
@@ -107,7 +108,7 @@ export class Persister {
     this.timer = setTimeout(() => void this.flush(), DEBOUNCE_MS);
   }
 
-  /** Alle ausstehenden Schreibvorgänge ausführen. Fehlgeschlagene bleiben in der Warteschlange. */
+  /** Run all pending writes. Failed ones stay in the queue. */
   async flush(): Promise<void> {
     if (this.timer) {
       clearTimeout(this.timer);
@@ -130,7 +131,7 @@ export class Persister {
           this.failed = true;
           setSaveStatus({ state: 'error', kind: classifyError(e) });
           this.writeEmergencyCopy();
-          console.warn('Speichern fehlgeschlagen', key, e);
+          console.warn('Saving failed', key, e);
           return;
         }
       }
@@ -144,20 +145,20 @@ export class Persister {
     }
   }
 
-  /** Nach „Erneut verbinden“: Warteschlange erneut abarbeiten */
+  /** After "Reconnect": process the queue again */
   retry() {
     setSaveStatus({ state: 'saving' });
     return this.flush();
   }
 
-  /** Notfallkopie ungespeicherter Aufgaben im Browser, falls der Ordner nicht erreichbar ist */
+  /** Emergency copy of unsaved tasks in the browser, in case the folder cannot be reached */
   private writeEmergencyCopy() {
     try {
       const s = useApp.getState();
       const dirty = Object.values(s.tasks).filter((t) => !t.draft && !this.clean.has(t));
       localStorage.setItem(EMERGENCY_KEY, JSON.stringify({ at: new Date().toISOString(), workspaceId: s.workspace?.id, tasks: dirty }));
     } catch {
-      /* ignorieren */
+      /* ignore */
     }
   }
 
@@ -165,7 +166,7 @@ export class Persister {
     try {
       localStorage.removeItem(EMERGENCY_KEY);
     } catch {
-      /* ignorieren */
+      /* ignore */
     }
   }
 }

@@ -4,13 +4,13 @@ import type { Persister } from './persister';
 import type { ChangeSet, Repository } from './repository';
 import type { ID, Project, Task, TaskState, User } from './types';
 
-// Mehrbenutzer-Synchronisation: alle 10 Sekunden und beim Fensterfokus geänderte Dateien einlesen
-// und in den Zustand übernehmen. Eigene, noch nicht gespeicherte Änderungen werden feldweise zusammengeführt.
-// Eingabefelder behalten ihren Fokus, weil Zeilen stabile Schlüssel haben und nur Werte sich ändern.
+// Multi-user sync: every 10 seconds and on window focus, read the changed files
+// and apply them to the state. Own unsaved changes are merged field by field.
+// Input fields keep their focus, because rows have stable keys and only values change.
 
 export const POLL_MS = 10_000;
 
-/** Felder, deren Änderung durch andere kurz sichtbar gemacht wird */
+/** Fields whose change by someone else is briefly highlighted */
 const VISIBLE: (keyof Task)[] = ['title', 'assigneeId', 'dueDate', 'dueTime', 'status', 'completedAt', 'sectionId', 'projectId', 'order', 'comments', 'attachments'];
 const visiblyDifferent = (a: Task, b: Task) => VISIBLE.some((k) => !sameJson(a[k], b[k]));
 const stripDraft = ({ draft: _d, ...t }: TaskState): Task => t;
@@ -35,7 +35,7 @@ export function integrateTasks(p: Persister, remotes: Task[], removed: ID[] = []
       if (visiblyDifferent(local, r)) flash.push(r.id);
       changed = true;
     } else {
-      // eigene ungespeicherte Änderung: zusammenführen, bleibt „dirty“ und wird geschrieben
+      // own unsaved change: merge it, it stays "dirty" and is written
       const m = mergeTask(stripDraft(local), r);
       tasks[r.id] = local.draft ? { ...m, draft: true } : m;
       if (visiblyDifferent(local, m)) flash.push(r.id);
@@ -53,7 +53,7 @@ export function integrateTasks(p: Persister, remotes: Task[], removed: ID[] = []
   if (flash.length) flashRows(flash);
 }
 
-/** Nach eigenem Schreiben mit Zusammenführung: gespeicherten Stand übernehmen */
+/** After an own write with merge: take over the saved state */
 export function integrateWrittenTask(p: Persister, written: Task, stored: Task) {
   const s = useApp.getState();
   const cur = s.tasks[written.id];
@@ -62,7 +62,7 @@ export function integrateWrittenTask(p: Persister, written: Task, stored: Task) 
     p.markCleanObject(stored);
     useApp.setState({ tasks: { ...s.tasks, [stored.id]: stored } });
   } else {
-    // während des Schreibens weiter bearbeitet
+    // still being edited while writing
     useApp.setState({ tasks: { ...s.tasks, [stored.id]: { ...mergeTask(stripDraft(cur), stored) } } });
   }
   if (visiblyDifferent(written, stored)) flashRows([stored.id]);
@@ -126,7 +126,7 @@ export class SyncEngine {
     if (document.visibilityState === 'visible') void this.poll();
   };
 
-  /** Einmal abgleichen. Wartet auf laufende Schreibvorgänge, damit eigene Dateien nicht als fremd gelten. */
+  /** Sync once. Waits for running writes so that our own files are not treated as foreign. */
   async poll() {
     if (this.busy) return;
     this.busy = true;

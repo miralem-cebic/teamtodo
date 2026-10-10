@@ -5,7 +5,7 @@ import { sampleSnapshot } from '../../src/data/seed';
 import { SCHEMA_VERSION } from '../../src/data/schema';
 
 describe('FsRepository', () => {
-  it('legt Struktur an und liest sie vollständig zurück', async () => {
+  it('creates the structure and reads it back completely', async () => {
     const root = new MemDir('teamtodo');
     const repo = new FsRepository(root.asHandle());
     expect(await repo.isEmpty()).toBe(true);
@@ -22,7 +22,7 @@ describe('FsRepository', () => {
     for (const t of res.snapshot.tasks) expect(t.schemaVersion).toBe(SCHEMA_VERSION);
   });
 
-  it('erkennt OneDrive-Konfliktkopien und ignoriert Hilfsdateien', async () => {
+  it('detects OneDrive conflict copies and ignores helper files', async () => {
     const root = new MemDir('teamtodo');
     const repo = new FsRepository(root.asHandle());
     const snap = sampleSnapshot('teamtodo');
@@ -41,14 +41,14 @@ describe('FsRepository', () => {
     expect(res.conflictCopies.sort()).toEqual([`tasks/${t.id}-LAPTOP-123.json`, 'users-MacBook.json'].sort());
   });
 
-  it('meldet Dateien aus einer neueren Schema-Version', async () => {
+  it('reports files from a newer schema version', async () => {
     const root = new MemDir('T');
     const repo = new FsRepository(root.asHandle());
     const snap = sampleSnapshot('T');
     await repo.initialize(snap);
     const t = snap.tasks[0]!;
     await repo.saveTask({ ...t, schemaVersion: 99 } as typeof t);
-    // saveTask setzt die aktuelle Version – direkt überschreiben
+    // saveTask writes the current version – overwrite directly
     const fh = await (await root.getDirectoryHandle('tasks')).getFileHandle(`${t.id}.json`);
     const w = await fh.createWritable();
     await w.write(JSON.stringify({ ...t, schemaVersion: 99 }));
@@ -58,7 +58,7 @@ describe('FsRepository', () => {
     expect(res.issues).toHaveLength(1);
   });
 
-  it('schreibt Entwürfe ohne draft-Flag', async () => {
+  it('writes drafts without the draft flag', async () => {
     const root = new MemDir('T');
     const repo = new FsRepository(root.asHandle());
     const snap = sampleSnapshot('T');

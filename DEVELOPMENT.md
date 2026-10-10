@@ -87,7 +87,7 @@ src/
 
 - `dailyBackup`: if `workspace.lastBackupDate` is not today → write `backups/YYYY-MM-DD.json` (full state without attachments), and remove all but the 14 newest.
 - `purge`: runs at most once per day. Removes task files (including `attachments/<id>`) whose `deletedAt` (or that of their parent task or project) is older than 30 days, plus old sections, projects, and removed attachments.
-- `restoreBackup`: creates a backup first (`vor-wiederherstellung-…`), sets all fields with a new timestamp (so they win the merge), and soft-deletes tasks and projects that do not exist in the backup.
+- `restoreBackup`: creates a backup first (`before-restore-…`), sets all fields with a new timestamp (so they win the merge), and soft-deletes tasks and projects that do not exist in the backup.
 
 ### Drag and drop
 
@@ -105,6 +105,7 @@ src/
 - **Undo:** entries store the previous state of the affected tasks and projects. Undoing resets changed fields with a new timestamp; comments and activity are kept.
 - **Focus:** `requestFocus(id, scope)` + `claimFocus()`: each request takes effect exactly once (rows that move to another group do not steal focus again).
 - **Who am I:** stored per browser in `localStorage` (`teamtodo.me.<workspaceId>`), not in the shared folder.
+- **Renamed from Teamaufgaben:** settings in `localStorage`, the saved folder handle in IndexedDB, and the emergency copy are migrated from their `teamaufgaben` names on first read (`lib/storage.ts`, `data/fs/handleStore.ts`). An existing subfolder `Teamaufgaben` is used only if it contains a workspace (`app/session.ts`).
 
 ## Data format (schema version 1)
 
@@ -120,17 +121,17 @@ src/
 
 Types are defined in `src/data/types.ts`. Important task fields:
 
-| Field                    | Meaning                                                                                            |
-| ------------------------ | -------------------------------------------------------------------------------------------------- |
-| `parentId`               | Parent task (subtasks, multi-level)                                                                |
-| `projectId`, `sectionId` | Project and section; without a project, only visible in "Meine Aufgaben"; subtasks have no section |
-| `status`                 | `todo` / `doing` / `waiting`                                                                       |
-| `completedAt`            | Set = completed (status is kept so the task can be reopened)                                       |
-| `order`                  | Fractional index among siblings or within the section                                              |
-| `dueDate`, `dueTime`     | `YYYY-MM-DD`, optional `HH:MM`                                                                     |
-| `activity[]`             | Type and data (text is generated at display time)                                                  |
-| `fieldUpdatedAt`         | Timestamp per field for merging                                                                    |
-| `tags`, `recurrence`     | Reserved for later                                                                                 |
+| Field                    | Meaning                                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------- |
+| `parentId`               | Parent task (subtasks, multi-level)                                                          |
+| `projectId`, `sectionId` | Project and section; without a project, only visible in "My tasks"; subtasks have no section |
+| `status`                 | `todo` / `doing` / `waiting`                                                                 |
+| `completedAt`            | Set = completed (status is kept so the task can be reopened)                                 |
+| `order`                  | Fractional index among siblings or within the section                                        |
+| `dueDate`, `dueTime`     | `YYYY-MM-DD`, optional `HH:MM`                                                               |
+| `activity[]`             | Type and data (text is generated at display time)                                            |
+| `fieldUpdatedAt`         | Timestamp per field for merging                                                              |
+| `tags`, `recurrence`     | Reserved for later                                                                           |
 
 OneDrive conflict copies (file names that are not a UUID, for example `<uuid>-LAPTOP-1.json` or `users-MacBook.json`) are ignored and counted when loading. Helper files (`*.crswap`, `.DS_Store`, `~$…`) are skipped.
 

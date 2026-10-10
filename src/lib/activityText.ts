@@ -1,40 +1,40 @@
 import { STATUS_LABEL, type Activity, type TaskStatus, type User } from '../data/types';
 import { fmtDate } from './dates';
 
-/** Satz zur Aktivität (ohne Namen der handelnden Person) */
+/** Sentence describing an activity (without the name of the person who did it) */
 export function activityText(a: Activity, users: User[]): string {
   const d = a.data ?? {};
-  const name = (id?: string | null, fallback?: string | null) => users.find((u) => u.id === id)?.name ?? fallback ?? 'jemanden';
+  const name = (id?: string | null, fallback?: string | null) => users.find((u) => u.id === id)?.name ?? fallback ?? 'someone';
   switch (a.type) {
     case 'created':
-      return 'hat die Aufgabe erstellt';
+      return 'created the task';
     case 'assigned':
-      return `hat ${name(d.userId, d.name)} zugewiesen`;
+      return `assigned ${name(d.userId, d.name)}`;
     case 'unassigned':
-      return 'hat die Zuweisung entfernt';
+      return 'removed the assignment';
     case 'due':
-      return d.date ? `hat das Fälligkeitsdatum auf ${fmtDate(d.date)} gesetzt` : 'hat das Fälligkeitsdatum geändert';
+      return d.date ? `set the due date to ${fmtDate(d.date)}` : 'changed the due date';
     case 'dueRemoved':
-      return 'hat das Fälligkeitsdatum entfernt';
+      return 'removed the due date';
     case 'status':
-      return `hat den Status auf „${STATUS_LABEL[d.status as TaskStatus] ?? d.status}“ gesetzt`;
+      return `set the status to "${STATUS_LABEL[d.status as TaskStatus] ?? d.status}"`;
     case 'completed':
-      return 'hat die Aufgabe erledigt';
+      return 'completed the task';
     case 'reopened':
-      return 'hat die Aufgabe wieder geöffnet';
+      return 'reopened the task';
     case 'section':
-      return `hat die Aufgabe nach „${d.name ?? '?'}“ verschoben`;
+      return `moved the task to "${d.name ?? '?'}"`;
     case 'project':
-      return `hat die Aufgabe zu „${d.name ?? '?'}“ hinzugefügt`;
+      return `added the task to "${d.name ?? '?'}"`;
     case 'projectRemoved':
-      return 'hat die Aufgabe aus dem Projekt entfernt';
+      return 'removed the task from the project';
     case 'renamed':
-      return 'hat die Aufgabe umbenannt';
+      return 'renamed the task';
     case 'deleted':
-      return 'hat die Aufgabe gelöscht';
+      return 'deleted the task';
     case 'restored':
-      return 'hat die Aufgabe wiederhergestellt';
+      return 'restored the task';
     case 'attachment':
-      return `hat „${d.name ?? 'eine Datei'}“ angehängt`;
+      return `attached "${d.name ?? 'a file'}"`;
   }
 }

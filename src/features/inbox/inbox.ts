@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import type { ID, ISODateTime, TaskState, User } from '../../data/types';
 import { activityText } from '../../lib/activityText';
+import { readStorage } from '../../lib/storage';
 
-// Eingang: wird aus Aktivitäten und Kommentaren abgeleitet, nicht gespeichert.
-// Gelesen-Status pro Browser und Person in localStorage.
+// Inbox: derived from activity and comments, not stored.
+// Read status per browser and person, in localStorage.
 
 export type InboxKind = 'assigned' | 'mention' | 'comment' | 'completed';
 
@@ -29,15 +30,15 @@ export function deriveInbox(tasks: Record<ID, TaskState>, users: User[], meId: I
     for (const a of t.activity) {
       if (a.userId === meId || a.at < since) continue;
       if (a.type === 'assigned' && a.data?.userId === meId) {
-        out.push({ id: a.id, kind: 'assigned', taskId: t.id, userId: a.userId, at: a.at, text: 'hat dir eine Aufgabe zugewiesen' });
+        out.push({ id: a.id, kind: 'assigned', taskId: t.id, userId: a.userId, at: a.at, text: 'assigned you a task' });
       } else if (a.type === 'completed' && follows) {
         out.push({ id: a.id, kind: 'completed', taskId: t.id, userId: a.userId, at: a.at, text: activityText(a, users) });
       }
     }
     for (const c of t.comments) {
       if (c.userId === meId || c.deletedAt || c.at < since) continue;
-      if (c.mentions.includes(meId)) out.push({ id: c.id, kind: 'mention', taskId: t.id, userId: c.userId, at: c.at, text: 'hat dich erwähnt', snippet: c.text });
-      else if (follows) out.push({ id: c.id, kind: 'comment', taskId: t.id, userId: c.userId, at: c.at, text: 'hat kommentiert', snippet: c.text });
+      if (c.mentions.includes(meId)) out.push({ id: c.id, kind: 'mention', taskId: t.id, userId: c.userId, at: c.at, text: 'mentioned you', snippet: c.text });
+      else if (follows) out.push({ id: c.id, kind: 'comment', taskId: t.id, userId: c.userId, at: c.at, text: 'commented', snippet: c.text });
     }
   }
   return out.sort((a, b) => b.at.localeCompare(a.at));
@@ -50,6 +51,7 @@ interface ReadState {
 }
 
 const keyFor = (workspaceId: string, meId: string) => `teamtodo.inbox.${workspaceId}.${meId}`;
+const legacyKeyFor = (workspaceId: string, meId: string) => `teamaufgaben.inbox.${workspaceId}.${meId}`;
 
 export const useInboxRead = create<ReadState>()(() => ({ key: '', readBefore: '', read: new Set() }));
 
@@ -58,10 +60,10 @@ export function loadInboxRead(workspaceId: string, meId: string) {
   let readBefore = '';
   let read: string[] = [];
   try {
-    const raw = localStorage.getItem(key);
+    const raw = readStorage(key, legacyKeyFor(workspaceId, meId));
     if (raw) ({ readBefore = '', read = [] } = JSON.parse(raw) as { readBefore?: string; read?: string[] });
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
   useInboxRead.setState({ key, readBefore, read: new Set(read) });
 }
@@ -72,7 +74,7 @@ function persist() {
   try {
     localStorage.setItem(s.key, JSON.stringify({ readBefore: s.readBefore, read: [...s.read].slice(-500) }));
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
 }
 

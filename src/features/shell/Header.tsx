@@ -8,14 +8,14 @@ import { reconnectAndRetry, retrySave } from '../../app/session';
 import type { View } from '../../store/selectors';
 
 const COLOR_NAMES: Record<(typeof COLORS)[number], string> = {
-  teal: 'Petrol', violet: 'Violett', amber: 'Bernstein', rose: 'Rosé', blue: 'Blau', green: 'Grün', slate: 'Schiefer',
+  teal: 'Teal', violet: 'Violet', amber: 'Amber', rose: 'Rose', blue: 'Blue', green: 'Green', slate: 'Slate',
 };
 
 export function Header({ view, onBurger }: { view: View; onBurger: () => void }) {
   const project = useApp((s) => (view.type === 'project' ? s.projects.find((p) => p.id === view.id) : undefined));
   return (
     <header className="top">
-      <button type="button" className="icon-btn burger" onClick={onBurger} aria-label="Navigation öffnen">
+      <button type="button" className="icon-btn burger" onClick={onBurger} aria-label="Open navigation">
         <Icon n="menu" />
       </button>
       {project ? (
@@ -23,12 +23,12 @@ export function Header({ view, onBurger }: { view: View; onBurger: () => void })
       ) : view.type === 'inbox' ? (
         <div className="ttl">
           <span className="ttl-ic"><Icon n="bell" s={18} /></span>
-          <h1>Eingang</h1>
+          <h1>Inbox</h1>
         </div>
       ) : (
         <div className="ttl">
           <span className="ttl-ic"><Icon n="mine" s={18} /></span>
-          <h1>Meine Aufgaben</h1>
+          <h1>My tasks</h1>
         </div>
       )}
       <span className="sp" />
@@ -39,12 +39,12 @@ export function Header({ view, onBurger }: { view: View; onBurger: () => void })
 
 function SaveIndicator() {
   const save = useApp((s) => s.save);
-  if (save.state === 'saving') return <span className="save saving" role="status">Speichert …</span>;
+  if (save.state === 'saving') return <span className="save saving" role="status">Saving …</span>;
   if (save.state === 'saved')
     return (
       <span className="save saved" role="status">
         <Icon n="check" s={13} />
-        Gespeichert
+        Saved
       </span>
     );
   return (
@@ -52,9 +52,9 @@ function SaveIndicator() {
       <Icon n="alert" s={14} />
       {ERROR_TEXT[save.kind]}
       {save.kind === 'permission' ? (
-        <button type="button" className="btn sm" onClick={() => void reconnectAndRetry()}>Erneut verbinden</button>
+        <button type="button" className="btn sm" onClick={() => void reconnectAndRetry()}>Reconnect</button>
       ) : save.kind !== 'newerSchema' ? (
-        <button type="button" className="btn sm" onClick={() => void retrySave()}>Erneut versuchen</button>
+        <button type="button" className="btn sm" onClick={() => void retrySave()}>Try again</button>
       ) : null}
     </span>
   );
@@ -70,7 +70,7 @@ function ProjectTitle({ proj }: { proj: Project }) {
       <input
         className="ttl-in"
         value={v}
-        aria-label="Projektname"
+        aria-label="Project name"
         onChange={(e) => setV(e.target.value)}
         onBlur={() => {
           if (v.trim() && v.trim() !== proj.name) renameProject(proj.id, v.trim());
@@ -86,11 +86,11 @@ function ProjectTitle({ proj }: { proj: Project }) {
         }}
       />
       {proj.archivedAt && <span className="badge">Archiviert</span>}
-      <button type="button" className="icon-btn" onClick={p.open} aria-label="Projektoptionen">
+      <button type="button" className="icon-btn" onClick={p.open} aria-label="Project options">
         <Icon n="dots" />
       </button>
       {p.anchor && (
-        <Popover anchor={p.anchor} onClose={p.close} width={220} label="Projektoptionen">
+        <Popover anchor={p.anchor} onClose={p.close} width={220} label="Project options">
           <Menu
             onClose={p.close}
             items={[
@@ -98,9 +98,9 @@ function ProjectTitle({ proj }: { proj: Project }) {
               ...COLORS.map((c) => ({ label: COLOR_NAMES[c], dot: c, active: proj.color === c, onClick: () => setProjectColor(proj.id, c) })),
               { sep: true as const },
               proj.archivedAt
-                ? { label: 'Wiederherstellen', icon: 'archive' as const, onClick: () => archiveProject(proj.id, false) }
+                ? { label: 'Restore', icon: 'archive' as const, onClick: () => archiveProject(proj.id, false) }
                 : { label: 'Archivieren', icon: 'archive' as const, onClick: () => archiveProject(proj.id, true) },
-              { label: 'Projekt löschen', icon: 'trash' as const, danger: true, keepFocus: true, onClick: () => deleteProject(proj.id) },
+              { label: 'Delete project', icon: 'trash' as const, danger: true, keepFocus: true, onClick: () => deleteProject(proj.id) },
             ]}
           />
         </Popover>

@@ -21,9 +21,9 @@ import { moveSection, showToast, updateTask, useApp } from '../../store/appStore
 import { liveSections, orderBetween, type Group, type ViewSettings } from '../../store/selectors';
 import type { ID, TaskState } from '../../data/types';
 
-// Drag and Drop für Liste, Board, Bereiche und Unteraufgaben.
-// Kennungen: „t:<id>“ Aufgabe, „g:<key>“ Gruppenende/Spalte, „s:<id>“ Bereich.
-// Tastatur: Verschieben mit Strg/⌘+Umschalt+↑/↓, Umziehen über die Felder (Bereich, Datum …).
+// Drag and drop for list, board, sections and subtasks.
+// IDs: "t:<id>" task, "g:<key>" group end/column, "s:<id>" section.
+// Keyboard: move with Ctrl/⌘+Shift+↑/↓, change group via the fields (section, date …).
 
 export type DragData =
   | { type: 'task'; taskId: ID; groupKey: string }
@@ -40,8 +40,8 @@ interface DndUi {
 export const useDndUi = create<DndUi>()(() => ({ activeId: null, overId: null, pos: null, label: '' }));
 const reset = () => useDndUi.setState({ activeId: null, overId: null, pos: null, label: '' });
 
-// Für die Entscheidung „davor/danach“: echte Zeigerposition und aktuelle Lage des Ziels
-// (dnd-kit verrechnet beim automatischen Scrollen Verschiebungen, die hier stören würden).
+// For the decision "before/after": the real pointer position and the current position of the target
+// (dnd-kit includes auto-scroll offsets in its deltas, which would disturb this).
 const nodes = new Map<string, HTMLElement>();
 let pointerY = 0;
 if (typeof window !== 'undefined') {
@@ -49,7 +49,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('touchmove', (e) => (pointerY = e.touches[0]?.clientY ?? pointerY), { passive: true, capture: true });
 }
 
-/** Aufgaben- oder Bereichszeile: ziehbar über den Griff, gleichzeitig Ablageziel */
+/** Task or section row: draggable via the handle, and a drop target at the same time */
 export function useDndRow(id: string, data: DragData, disabled = false) {
   const drag = useDraggable({ id, data, disabled });
   const drop = useDroppable({ id, data, disabled });
@@ -93,7 +93,7 @@ const collision: CollisionDetection = (args) => {
   });
   const within = pointerWithin({ ...args, droppableContainers: containers });
   if (within.length) {
-    // Zeilen vor Gruppen bevorzugen
+    // prefer rows over groups
     const row = within.find((c) => !String(c.id).startsWith('g:'));
     return row ? [row] : within;
   }
@@ -104,7 +104,7 @@ interface Props {
   groups: Group[];
   settings: ViewSettings;
   children: ReactNode;
-  /** Unteraufgaben-Geschwister je Hauptaufgabe (für Sortieren in Liste und Panel) */
+  /** Subtask siblings per parent task (for sorting in list and panel) */
   childrenOf: Record<ID, TaskState[]>;
 }
 
@@ -123,7 +123,7 @@ export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
     useDndUi.setState({ activeId: String(e.active.id), label });
   };
 
-  // auch bei jeder Bewegung: dnd-kit meldet „over“ nur beim Wechsel des Ziels
+  // also on every move: dnd-kit only reports "over" when the target changes
   const onOver = (e: DragOverEvent | DragMoveEvent) => {
     const over = e.over;
     if (!over || over.id === e.active.id) {
@@ -159,7 +159,7 @@ export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
       if (!a2 || !o2 || a2.parentId !== o2.parentId) return;
       const list = (childrenOf[a2.parentId!] ?? []).filter((x) => x.id !== a.taskId);
       const i = list.findIndex((x) => x.id === o.taskId) + (pos === 'after' ? 1 : 0);
-      updateTask(a.taskId, { order: orderBetween(list[i - 1], list[i]) }, { undo: 'Verschoben' });
+      updateTask(a.taskId, { order: orderBetween(list[i - 1], list[i]) }, { undo: 'Moved' });
       return;
     }
 
@@ -171,19 +171,19 @@ export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
     const same = from.key === to.key;
     const manual = settings.sort === 'manual';
     if (same && !manual) {
-      showToast('Reihenfolge lässt sich nur bei manueller Sortierung ändern');
+      showToast('Order can only be changed with manual sorting');
       return;
     }
     if (!same && to.apply === null) {
-      showToast(`In „${to.label}“ kann nicht verschoben werden`);
+      showToast(`Cannot move into "${to.label}"`);
       return;
     }
     const list = to.tasks.filter((x) => x.id !== task.id);
     let i = o.type === 'task' ? list.findIndex((x) => x.id === o.taskId) + (pos === 'after' ? 1 : 0) : list.length;
     if (i < 0) i = list.length;
     const order = orderBetween(list[i - 1], list[i]);
-    if (same) updateTask(task.id, { order }, { undo: 'Verschoben' });
-    else updateTask(task.id, { ...to.apply, ...(manual ? { order } : {}) }, { undo: `Nach „${to.label}“ verschoben`, toast: true });
+    if (same) updateTask(task.id, { order }, { undo: 'Moved' });
+    else updateTask(task.id, { ...to.apply, ...(manual ? { order } : {}) }, { undo: `Moved to "${to.label}"`, toast: true });
   };
 
   return (
@@ -200,5 +200,5 @@ function Overlay() {
   const label = useDndUi((s) => s.label);
   const active = useDndUi((s) => s.activeId);
   if (!active) return null;
-  return <div className="drag-ghost">{label || 'Ohne Titel'}</div>;
+  return <div className="drag-ghost">{label || 'Untitled'}</div>;
 }

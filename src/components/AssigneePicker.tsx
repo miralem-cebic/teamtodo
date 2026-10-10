@@ -13,7 +13,7 @@ interface Item {
   none?: boolean;
 }
 
-/** Personenauswahl: „Mir zuweisen“ oben, Tippen filtert, unbekannter Name → neue Person. */
+/** Person picker: "Assign to me" at the top, typing filters, unknown name → new person. */
 export function AssigneePicker({ value, onPick }: { value: ID | null; onPick: (id: ID | null) => void }) {
   const users = useApp((s) => s.users);
   const meId = useApp((s) => s.meId);
@@ -24,8 +24,8 @@ export function AssigneePicker({ value, onPick }: { value: ID | null; onPick: (i
   const items: Item[] = [];
   if (!ql && meId && value !== meId) items.push({ k: 'me', label: 'Mir zuweisen', id: meId, me: true });
   live.filter((u) => u.name.toLowerCase().includes(ql)).forEach((u) => items.push({ k: u.id, label: u.name, id: u.id }));
-  if (ql && !live.some((u) => u.name.toLowerCase() === ql)) items.push({ k: 'new', label: `„${q.trim()}“ zum Team hinzufügen`, isNew: true });
-  if (!ql && value) items.push({ k: 'none', label: 'Zuweisung entfernen', id: null, none: true });
+  if (ql && !live.some((u) => u.name.toLowerCase() === ql)) items.push({ k: 'new', label: `Add "${q.trim()}" to the team`, isNew: true });
+  if (!ql && value) items.push({ k: 'none', label: 'Remove assignment', id: null, none: true });
 
   const pick = (it: Item) => onPick(it.isNew ? addUser(q.trim()) : (it.id ?? null));
   const userOf = (it: Item) => live.find((u) => u.id === it.id);
@@ -37,7 +37,7 @@ export function AssigneePicker({ value, onPick }: { value: ID | null; onPick: (i
         autoFocus
         placeholder="Name suchen"
         value={q}
-        aria-label="Person suchen"
+        aria-label="Search person"
         role="combobox"
         aria-expanded="true"
         aria-controls="pk-people"
@@ -59,7 +59,7 @@ export function AssigneePicker({ value, onPick }: { value: ID | null; onPick: (i
           }
         }}
       />
-      <div className="pk-list" role="listbox" id="pk-people" aria-label="Personen">
+      <div className="pk-list" role="listbox" id="pk-people" aria-label="People">
         {items.map((it, i) => (
           <button
             key={it.k}

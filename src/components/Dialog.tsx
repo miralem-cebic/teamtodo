@@ -24,7 +24,7 @@ export function Dialog({ title, onClose, children, wide }: { title: string; onCl
       <div ref={ref} tabIndex={-1} className={'dialog' + (wide ? ' wide' : '')} role="dialog" aria-modal="true" aria-label={title}>
         <div className="d-head">
           <h2>{title}</h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Schließen">
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
             <Icon n="x" />
           </button>
         </div>

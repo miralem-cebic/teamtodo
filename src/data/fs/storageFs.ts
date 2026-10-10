@@ -1,13 +1,13 @@
-// Nachbildung eines Ordners auf Basis von Web Storage (localStorage).
-// Nur für Ende-zu-Ende-Tests (?e2e): Zwei Browserfenster desselben Profils teilen sich
-// localStorage und damit diesen „Ordner“ – so lässt sich die Mehrbenutzer-Synchronisation testen.
+// Stand-in for a folder, based on Web Storage (localStorage).
+// For end-to-end tests only (?e2e): two browser windows of the same profile share
+// localStorage and therefore this "folder". This makes multi-user sync testable.
 
 interface Entry {
-  /** Inhalt als Text oder data:-URL (Binärdateien) */
+  /** Content as text or data: URL (binary files) */
   c: string;
   /** lastModified */
   m: number;
-  /** Inhalt ist data:-URL */
+  /** Content is a data: URL */
   b?: boolean;
   t?: string;
 }
@@ -41,7 +41,7 @@ class StorageFile {
 
   private read(): Entry {
     const raw = this.s.getItem(this.key);
-    if (!raw) throw new DOMException(`${this.name} nicht gefunden`, 'NotFoundError');
+    if (!raw) throw new DOMException(`${this.name} not found`, 'NotFoundError');
     return JSON.parse(raw) as Entry;
   }
 
@@ -85,7 +85,7 @@ export class StorageDir {
     private readonly s: Storage,
     private readonly ns: string,
     private readonly path = '',
-    readonly name = 'teamtodo-Test',
+    readonly name = 'teamtodo-test',
   ) {
     if (!path) s.setItem(`${ns}:d:`, '1');
   }
@@ -93,7 +93,7 @@ export class StorageDir {
   private fk = (p: string) => `${this.ns}:f:${p}`;
   private dk = (p: string) => `${this.ns}:d:${p}`;
 
-  /** Gibt es diesen Ordner schon (wurde er je angelegt)? */
+  /** Does this folder already exist (was it ever created)? */
   static exists(s: Storage, ns: string) {
     return s.getItem(`${ns}:d:`) !== null;
   }
@@ -105,7 +105,7 @@ export class StorageDir {
   async getFileHandle(name: string, opts?: { create?: boolean }) {
     const p = join(this.path, name);
     if (this.s.getItem(this.fk(p)) === null) {
-      if (!opts?.create) throw new DOMException(`${name} nicht gefunden`, 'NotFoundError');
+      if (!opts?.create) throw new DOMException(`${name} not found`, 'NotFoundError');
       this.s.setItem(this.fk(p), JSON.stringify({ c: '', m: Date.now() } satisfies Entry));
     }
     return new StorageFile(this.s, this.fk(p), name);
@@ -114,7 +114,7 @@ export class StorageDir {
   async getDirectoryHandle(name: string, opts?: { create?: boolean }) {
     const p = join(this.path, name);
     if (this.s.getItem(this.dk(p)) === null) {
-      if (!opts?.create) throw new DOMException(`${name} nicht gefunden`, 'NotFoundError');
+      if (!opts?.create) throw new DOMException(`${name} not found`, 'NotFoundError');
       this.s.setItem(this.dk(p), '1');
     }
     return new StorageDir(this.s, this.ns, p, name);
@@ -129,7 +129,7 @@ export class StorageDir {
         found = true;
       }
     }
-    if (!found) throw new DOMException(`${name} nicht gefunden`, 'NotFoundError');
+    if (!found) throw new DOMException(`${name} not found`, 'NotFoundError');
   }
 
   async *entries(): AsyncIterableIterator<[string, StorageFile | StorageDir]> {

@@ -9,7 +9,7 @@ const T2 = '2026-10-02T10:00:00.000Z';
 const base = () => makeTask({ id: 'x', title: 'Alt', createdBy: 'u1', createdAt: T0 });
 
 describe('mergeTask', () => {
-  it('gleichzeitige Änderungen an unterschiedlichen Feldern bleiben beide erhalten', () => {
+  it('simultaneous changes to different fields are both kept', () => {
     const b = base();
     const a = { ...b, title: 'Neu von A', fieldUpdatedAt: { title: T1 } };
     const r = { ...b, assigneeId: 'u2', dueDate: '2026-10-10', fieldUpdatedAt: { assigneeId: T2, dueDate: T2 } };
@@ -23,7 +23,7 @@ describe('mergeTask', () => {
     expect([m2.title, m2.assigneeId, m2.dueDate]).toEqual(['Neu von A', 'u2', '2026-10-10']);
   });
 
-  it('dasselbe Feld: die neuere Änderung gewinnt', () => {
+  it('same field: the newer change wins', () => {
     const b = base();
     const a = { ...b, title: 'A', fieldUpdatedAt: { title: T2 } };
     const r = { ...b, title: 'B', fieldUpdatedAt: { title: T1 } };
@@ -31,7 +31,7 @@ describe('mergeTask', () => {
     expect(mergeTask(r, a).title).toBe('A');
   });
 
-  it('Kommentare und Aktivitäten werden vereinigt, nicht überschrieben', () => {
+  it('comments and activity are merged, not overwritten', () => {
     const b = base();
     const a = { ...b, comments: [{ id: 'c1', userId: 'u1', text: 'eins', mentions: [], at: T1 }], activity: [{ id: 'a1', userId: 'u1', type: 'created' as const, at: T0 }] };
     const r = {
@@ -44,23 +44,23 @@ describe('mergeTask', () => {
     expect(m.activity.map((c) => c.id)).toEqual(['a1', 'a2']);
   });
 
-  it('entfernte Anhänge bleiben entfernt', () => {
+  it('removed attachments stay removed', () => {
     const b = base();
     const att = { id: 'f', fileName: 'a.pdf', size: 1, mimeType: 'application/pdf', addedAt: T0, addedBy: 'u1' };
     const m = mergeTask({ ...b, attachments: [att] }, { ...b, attachments: [{ ...att, removedAt: T1 }] });
     expect(m.attachments[0]!.removedAt).toBe(T1);
   });
 
-  it('Löschen auf der einen, Bearbeiten auf der anderen Seite: beides bleibt sichtbar im Ergebnis', () => {
+  it('delete on one side, edit on the other: both are visible in the result', () => {
     const b = base();
-    const m = mergeTask({ ...b, deletedAt: T2, fieldUpdatedAt: { deletedAt: T2 } }, { ...b, title: 'Später', fieldUpdatedAt: { title: T1 } });
+    const m = mergeTask({ ...b, deletedAt: T2, fieldUpdatedAt: { deletedAt: T2 } }, { ...b, title: 'Later', fieldUpdatedAt: { title: T1 } });
     expect(m.deletedAt).toBe(T2);
-    expect(m.title).toBe('Später');
+    expect(m.title).toBe('Later');
   });
 });
 
 describe('mergeProjects', () => {
-  it('neuer Bereich auf der einen, Umbenennung auf der anderen Seite', () => {
+  it('new section on one side, rename on the other', () => {
     const p = { ...makeProject('Alt', 'teal', 1, ['A']), updatedAt: T0 };
     const a = { ...p, name: 'Neu', updatedAt: T2 };
     const r = { ...p, sections: [...p.sections, { id: 's2', name: 'B', order: 2, updatedAt: T1 }] };
@@ -69,7 +69,7 @@ describe('mergeProjects', () => {
     expect(m!.sections.map((s) => s.name)).toEqual(['A', 'B']);
   });
 
-  it('Projekte, die nur auf einer Seite existieren, bleiben erhalten', () => {
+  it('projects that exist on only one side are kept', () => {
     const p1 = makeProject('Eins', 'teal', 1);
     const p2 = makeProject('Zwei', 'rose', 2);
     expect(mergeProjects([p1], [p2]).map((p) => p.name)).toEqual(['Eins', 'Zwei']);
@@ -77,7 +77,7 @@ describe('mergeProjects', () => {
 });
 
 describe('mergeUsers', () => {
-  it('vereinigt das Team', () => {
+  it('merges the team', () => {
     const a = makeUser('Pia', 'teal');
     const b = makeUser('Jonas', 'violet');
     expect(mergeUsers([a], [b]).map((u) => u.name)).toEqual(['Pia', 'Jonas']);

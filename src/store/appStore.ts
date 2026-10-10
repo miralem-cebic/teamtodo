@@ -5,8 +5,8 @@ import { MERGEABLE_FIELDS } from '../data/types';
 import type { StorageErrorKind } from '../data/repository';
 import { descendantIds } from './selectors';
 
-// Zentraler App-Zustand. Alle Änderungen laufen über die Aktionen unten:
-// sie wirken sofort (optimistisch), der Persister schreibt im Hintergrund.
+// Central app state. All changes go through the actions below:
+// they take effect immediately (optimistically), the persister writes in the background.
 
 export type SaveStatus = { state: 'saved' } | { state: 'saving' } | { state: 'error'; kind: StorageErrorKind };
 
@@ -36,17 +36,17 @@ export interface AppState {
   tasks: Record<ID, TaskState>;
   meId: ID | null;
 
-  // UI-Zustand, der von mehreren Ansichten geteilt wird
+  // UI state shared by several views
   panelId: ID | null;
   panelBack: ID[];
   panelFwd: ID[];
   focusReq: FocusRequest | null;
   toast: Toast | null;
-  /** Frisch erledigte oder weggegebene Aufgaben bleiben bis zum Verlassen der Ansicht sichtbar */
+  /** Freshly completed or handed-off tasks stay visible until the view is left */
   recentDone: Set<ID>;
   save: SaveStatus;
   undoStack: UndoEntry[];
-  /** Kürzlich von anderen geänderte Aufgaben (kurzes Aufleuchten) */
+  /** Recently changed tasks by others (briefly highlighted) */
   flash: Set<ID>;
 }
 
@@ -74,7 +74,7 @@ const set = useApp.setState;
 /* ---------- Hilfen ---------- */
 
 const short = (s: string) => {
-  const t = s.trim() || 'Ohne Titel';
+  const t = s.trim() || 'Untitled';
   return t.length > 40 ? t.slice(0, 38) + '…' : t;
 };
 const act = (type: ActivityType, data?: Activity['data']): Activity => ({
@@ -114,7 +114,7 @@ export function resetApp() {
 export const setMe = (id: ID | null) => set({ meId: id });
 export const setSaveStatus = (save: SaveStatus) => set({ save });
 
-/* ---------- Aufgaben ---------- */
+/* ---------- Tasks ---------- */
 
 export function addTask(fields: Partial<Task> = {}): ID {
   const t: TaskState = {
@@ -126,7 +126,7 @@ export function addTask(fields: Partial<Task> = {}): ID {
   if (t.assigneeId && t.assigneeId !== me) {
     t.activity.push(act('assigned', { userId: t.assigneeId, name: get().users.find((u) => u.id === t.assigneeId)?.name ?? null }));
   }
-  // Ersteller und verantwortliche Person folgen der Aufgabe automatisch
+  // The creator and the assignee follow the task automatically
   t.followerIds = [...new Set([...(me ? [me] : []), ...(t.assigneeId ? [t.assigneeId] : []), ...t.followerIds])];
   set((s) => ({ tasks: { ...s.tasks, [t.id]: t } }));
   return t.id;
@@ -134,7 +134,7 @@ export function addTask(fields: Partial<Task> = {}): ID {
 
 export type TaskPatch = Partial<Pick<Task, MergeableField>>;
 
-/** Wendet einen Patch an, protokolliert Aktivität und `fieldUpdatedAt`. Gibt die neue Aufgabe zurück. */
+/** Applies a patch, logs activity and `fieldUpdatedAt`. Returns the new task. */
 function applyPatch(t: TaskState, patch: TaskPatch, at: string): TaskState {
   const next: TaskState = { ...t, fieldUpdatedAt: { ...t.fieldUpdatedAt } };
   const log: Activity[] = [];
@@ -163,7 +163,7 @@ function applyPatch(t: TaskState, patch: TaskPatch, at: string): TaskState {
 }
 
 export interface UpdateOptions {
-  /** Rückgängig-Eintrag mit diesem Text, `toast` zeigt ihn an */
+  /** Undo entry with this text; `toast` shows it */
   undo?: string;
   toast?: boolean;
 }
@@ -174,7 +174,7 @@ export function updateTask(id: ID, patch: TaskPatch, opts: UpdateOptions = {}) {
   if (!t) return;
   const at = nowIso();
   const changed: Record<ID, TaskState> = { [id]: applyPatch(t, patch, at) };
-  // Unteraufgaben folgen ihrer Hauptaufgabe ins Projekt
+  // Subtasks follow their parent task into the project
   if ('projectId' in patch) {
     for (const d of descendantIds(s.tasks, id)) changed[d] = applyPatch(s.tasks[d]!, { projectId: patch.projectId ?? null }, at);
   }
@@ -183,7 +183,7 @@ export function updateTask(id: ID, patch: TaskPatch, opts: UpdateOptions = {}) {
   if (tracked && !t.draft) {
     const before: UndoEntry['tasks'] = {};
     for (const k of Object.keys(changed)) before[k] = s.tasks[k];
-    pushUndo({ label: opts.undo ?? 'Änderung', tasks: before }, !!opts.toast);
+    pushUndo({ label: opts.undo ?? 'Change', tasks: before }, !!opts.toast);
   }
   set({ tasks: { ...s.tasks, ...changed } });
 }
@@ -193,11 +193,11 @@ export function toggleDone(id: ID, value?: boolean) {
   if (!t) return;
   const done = value ?? !t.completedAt;
   if (done === !!t.completedAt) return;
-  updateTask(id, { completedAt: done ? nowIso() : null }, done ? { undo: `„${short(t.title)}“ erledigt`, toast: true } : { undo: 'Wieder geöffnet' });
+  updateTask(id, { completedAt: done ? nowIso() : null }, done ? { undo: `"${short(t.title)}" completed`, toast: true } : { undo: 'Reopened' });
   if (t.draft && done) set((s) => ({ tasks: { ...s.tasks, [id]: { ...s.tasks[id]!, draft: false } } }));
 }
 
-/** Weiches Löschen inkl. Unteraufgaben. Entwürfe werden direkt entfernt. */
+/** Soft delete including subtasks. Drafts are removed directly. */
 export function deleteTask(id: ID, opts: { silent?: boolean } = {}) {
   const s = get();
   const t = s.tasks[id];
@@ -213,7 +213,7 @@ export function deleteTask(id: ID, opts: { silent?: boolean } = {}) {
     else tasks[k] = { ...x, deletedAt: at, fieldUpdatedAt: { ...x.fieldUpdatedAt, deletedAt: at }, activity: [...x.activity, act('deleted')] };
   }
   set({ tasks, panelId: s.panelId && ids.includes(s.panelId) ? null : s.panelId });
-  if (!t.draft) pushUndo({ label: `„${short(t.title)}“ gelöscht`, tasks: before }, !opts.silent);
+  if (!t.draft) pushUndo({ label: `"${short(t.title)}" deleted`, tasks: before }, !opts.silent);
 }
 
 export function removeIfEmptyDraft(id: ID) {
@@ -225,7 +225,7 @@ export function removeIfEmptyDraft(id: ID) {
   set({ tasks });
 }
 
-/* ---------- Projekte und Bereiche ---------- */
+/* ---------- Projects and sections ---------- */
 
 function setProjects(fn: (projects: Project[]) => Project[], undo?: { label: string; toast: boolean }, taskBefore?: UndoEntry['tasks']) {
   const before = get().projects;
@@ -235,7 +235,7 @@ function setProjects(fn: (projects: Project[]) => Project[], undo?: { label: str
 
 const touch = (p: Project): Project => ({ ...p, updatedAt: nowIso() });
 const mapProject = (id: ID, fn: (p: Project) => Project) => (list: Project[]) => list.map((p) => (p.id === id ? touch(fn(p)) : p));
-/** Nur Bereiche ändern: Projekt-`updatedAt` bleibt, damit gleichzeitige Umbenennungen des Projekts nicht verloren gehen */
+/** Only change sections: the project's `updatedAt` stays, so that concurrent renames of the project are not lost */
 const mapSections = (id: ID, fn: (s: Section[]) => Section[]) => (list: Project[]) => list.map((p) => (p.id === id ? { ...p, sections: fn(p.sections) } : p));
 
 export function addProject(name: string): ID {
@@ -252,16 +252,16 @@ export function archiveProject(id: ID, archived: boolean) {
   const p = get().projects.find((x) => x.id === id);
   if (!p) return;
   setProjects(mapProject(id, (x) => ({ ...x, archivedAt: archived ? nowIso() : null })), {
-    label: archived ? `Projekt „${p.name}“ archiviert` : `Projekt „${p.name}“ wiederhergestellt`,
+    label: archived ? `Project "${p.name}" archived` : `Project "${p.name}" restored`,
     toast: true,
   });
 }
 
-/** Weiches Löschen: Projekt verschwindet samt Aufgaben aus allen Ansichten. Aufräumen nach 30 Tagen. */
+/** Soft delete: the project disappears with its tasks from all views. Cleaned up after 30 days. */
 export function deleteProject(id: ID) {
   const p = get().projects.find((x) => x.id === id);
   if (!p) return;
-  setProjects(mapProject(id, (x) => ({ ...x, deletedAt: nowIso() })), { label: `Projekt „${p.name}“ gelöscht`, toast: true });
+  setProjects(mapProject(id, (x) => ({ ...x, deletedAt: nowIso() })), { label: `Project "${p.name}" deleted`, toast: true });
 }
 
 export function addSection(projectId: ID, name: string, afterOrder?: number): ID {
@@ -285,10 +285,10 @@ export function renameSection(projectId: ID, sectionId: ID, name: string) {
 export function moveSection(projectId: ID, sectionId: ID, order: number) {
   const sec = get().projects.find((p) => p.id === projectId)?.sections.find((s) => s.id === sectionId);
   if (!sec) return;
-  setProjects(mapSections(projectId, (list) => list.map((s) => (s.id === sectionId ? { ...s, order, updatedAt: nowIso() } : s))), { label: `Bereich „${sec.name}“ verschoben`, toast: false });
+  setProjects(mapSections(projectId, (list) => list.map((s) => (s.id === sectionId ? { ...s, order, updatedAt: nowIso() } : s))), { label: `Section "${sec.name}" moved`, toast: false });
 }
 
-/** Löscht den Bereich und (weich) alle seine Aufgaben, mit Rückgängig. */
+/** Deletes the section and (softly) all its tasks, with undo. */
 export function deleteSection(projectId: ID, sectionId: ID) {
   const s = get();
   const sec = s.projects.find((p) => p.id === projectId)?.sections.find((x) => x.id === sectionId);
@@ -309,14 +309,14 @@ export function deleteSection(projectId: ID, sectionId: ID) {
   set({ tasks });
   setProjects(
     mapSections(projectId, (list) => list.map((x) => (x.id === sectionId ? { ...x, deletedAt: at, updatedAt: at } : x))),
-    { label: `Bereich „${sec.name}“ gelöscht`, toast: true },
+    { label: `Section "${sec.name}" deleted`, toast: true },
     before,
   );
 }
 
-/* ---------- Kommentare, Follower, Anhänge ---------- */
+/* ---------- Comments, followers, attachments ---------- */
 
-/** @Name im Text → User-IDs (längste Namen zuerst, damit „@Lena Hoffmann“ vor „@Lena“ greift) */
+/** @Name in the text → user IDs (longest names first, so that "@Lena Hoffmann" wins over "@Lena") */
 export function findMentions(text: string, users: User[]): ID[] {
   const lower = text.toLowerCase();
   return users
@@ -372,10 +372,10 @@ export function removeAttachment(taskId: ID, attachmentId: ID) {
   if (!t || !a) return;
   const before = t;
   patchTask(taskId, (x) => ({ ...x, attachments: x.attachments.map((y) => (y.id === attachmentId ? { ...y, removedAt: nowIso() } : y)) }));
-  pushUndo({ label: `„${a.fileName}“ entfernt`, tasks: { [taskId]: before } }, true);
+  pushUndo({ label: `"${a.fileName}" removed`, tasks: { [taskId]: before } }, true);
 }
 
-/* ---------- Personen ---------- */
+/* ---------- People ---------- */
 
 export function addUser(name: string): ID {
   const u = makeUser(name.trim(), pickColor(get().users.length));
@@ -383,7 +383,7 @@ export function addUser(name: string): ID {
   return u.id;
 }
 
-/* ---------- Rückgängig ---------- */
+/* ---------- Undo ---------- */
 
 export function undo() {
   const s = get();
@@ -401,7 +401,7 @@ export function undo() {
     for (const f of MERGEABLE_FIELDS) {
       if (cur && JSON.stringify(cur[f]) !== JSON.stringify(before[f])) fieldUpdatedAt[f] = at;
     }
-    // Kommentare und Aktivität werden nicht zurückgedreht
+    // Comments and activity are not rolled back
     tasks[id] = { ...before, fieldUpdatedAt, comments: cur?.comments ?? before.comments, activity: cur?.activity ?? before.activity };
     if (!before.completedAt) s.recentDone.delete(id);
   }
@@ -411,7 +411,7 @@ export function undo() {
     projects = s.projects.map((p) => {
       const b = prev.get(p.id);
       if (!b || b === p) return p;
-      // feldgenau zurücksetzen: Bereiche, die inzwischen (z. B. von anderen) dazukamen, bleiben erhalten
+      // reset exactly the changed fields; sections added in the meantime (e.g. by others) stay
       const fieldsChanged = (['name', 'color', 'order', 'archivedAt', 'deletedAt'] as const).some((k) => p[k] !== b[k]);
       const before = new Map(b.sections.map((x) => [x.id, x]));
       const sections = p.sections.map((x) => {
@@ -424,10 +424,10 @@ export function undo() {
     });
   }
   set({ tasks, projects, undoStack: s.undoStack.slice(0, -1) });
-  showToast('Rückgängig gemacht');
+  showToast('Undone');
 }
 
-/* ---------- Panel und Fokus ---------- */
+/* ---------- Panel and focus ---------- */
 
 export function openPanel(id: ID) {
   const s = get();
@@ -452,8 +452,8 @@ let focusHandled = 0;
 export const requestFocus = (id: ID, scope: FocusScope) => set({ focusReq: { id, scope, n: ++focusSeq } });
 
 /**
- * Jede Fokus-Anfrage wirkt genau einmal. Sonst würde eine Zeile, die z. B. nach einer Datumsänderung
- * in eine andere Gruppe umzieht und neu aufgebaut wird, den Fokus erneut an sich ziehen.
+ * Each focus request takes effect exactly once. Otherwise a row that, e.g. after a due date change,
+ * moves to another group and is rebuilt would pull the focus to itself again.
  */
 export function claimFocus(req: FocusRequest | null, id: ID, scope: FocusScope): boolean {
   if (!req || req.id !== id || req.scope !== scope || req.n <= focusHandled) return false;
@@ -461,7 +461,7 @@ export function claimFocus(req: FocusRequest | null, id: ID, scope: FocusScope):
   return true;
 }
 
-/** Wie claimFocus, ohne die Anfrage zu verbrauchen */
+/** Like claimFocus, but without consuming the request */
 export const peekFocus = (req: FocusRequest | null, id: ID, scope: FocusScope) => !!req && req.id === id && req.scope === scope && req.n > focusHandled;
 
 export const clearRecentDone = () => set({ recentDone: new Set() });

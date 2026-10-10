@@ -1,8 +1,8 @@
 import { SCHEMA_VERSION } from './schema';
 import type { ProjectsFile, Task, UsersFile, WorkspaceFile } from './types';
 
-// Migrationsschicht: Jede Datei wird beim Lesen auf SCHEMA_VERSION gehoben.
-// Neue Migration: Eintrag { from: n, up } in der passenden Liste ergänzen und SCHEMA_VERSION erhöhen.
+// Migration layer: every file is upgraded to SCHEMA_VERSION when it is read.
+// New migration: add an entry { from: n, up } to the matching list and increase SCHEMA_VERSION.
 
 export type FileKind = 'workspace' | 'users' | 'projects' | 'task';
 
@@ -24,27 +24,27 @@ export class NewerSchemaError extends Error {
     public readonly kind: FileKind,
     public readonly version: number,
   ) {
-    super(`Datei (${kind}) hat Schema-Version ${version}, diese App kennt nur bis ${SCHEMA_VERSION}.`);
+    super(`File (${kind}) has schema version ${version}, this app only knows up to ${SCHEMA_VERSION}.`);
   }
 }
 
 export class InvalidFileError extends Error {}
 
 export function migrate<T>(kind: FileKind, raw: unknown): T {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new InvalidFileError(`Ungültige ${kind}-Datei`);
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new InvalidFileError(`Invalid ${kind} file`);
   let doc = raw as Record<string, unknown>;
   let version = typeof doc.schemaVersion === 'number' ? doc.schemaVersion : 1;
   if (version > SCHEMA_VERSION) throw new NewerSchemaError(kind, version);
   while (version < SCHEMA_VERSION) {
     const step = MIGRATIONS[kind].find((m) => m.from === version);
-    if (!step) throw new InvalidFileError(`Keine Migration für ${kind} von Version ${version}`);
+    if (!step) throw new InvalidFileError(`No migration for ${kind} from version ${version}`);
     doc = step.up(doc);
     version += 1;
   }
   return normalize(kind, { ...doc, schemaVersion: SCHEMA_VERSION }) as T;
 }
 
-/** Fehlende optionale Felder ergänzen, damit der Rest der App sich darauf verlassen kann. */
+/** Fill in missing optional fields so that the rest of the app can rely on them. */
 function normalize(kind: FileKind, doc: Record<string, unknown>): unknown {
   switch (kind) {
     case 'task': {

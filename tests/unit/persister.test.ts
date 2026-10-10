@@ -28,21 +28,21 @@ beforeEach(async () => {
 const fileCount = async () => (await root.getDirectoryHandle('tasks')).children.size;
 
 describe('Persister', () => {
-  it('schreibt nur echte Aufgaben, keine leeren Entwürfe', async () => {
+  it('writes only real tasks, no empty drafts', async () => {
     const n = await fileCount();
     const id = A.addTask();
     await persister.flush();
     expect(await fileCount()).toBe(n);
-    A.updateTask(id, { title: 'Gespeichert' });
+    A.updateTask(id, { title: 'Saved' });
     await persister.flush();
     expect(await fileCount()).toBe(n + 1);
     const res = await repo.loadAll();
-    expect(res.snapshot.tasks.find((t) => t.id === id)?.title).toBe('Gespeichert');
+    expect(res.snapshot.tasks.find((t) => t.id === id)?.title).toBe('Saved');
     expect(A.useApp.getState().save.state).toBe('saved');
     persister.stop();
   });
 
-  it('überlebt Neuladen: Änderungen und Bereiche', async () => {
+  it('survives a reload: changes and sections', async () => {
     const t = Object.values(A.useApp.getState().tasks)[0]!;
     A.toggleDone(t.id);
     const p = A.useApp.getState().projects[0]!;
@@ -54,7 +54,7 @@ describe('Persister', () => {
     persister.stop();
   });
 
-  it('meldet Fehler und behält die Änderung für einen neuen Versuch', async () => {
+  it('reports errors and keeps the change for another attempt', async () => {
     const orig = repo.saveTask.bind(repo);
     let fail = true;
     repo.saveTask = async (t) => {
@@ -62,13 +62,13 @@ describe('Persister', () => {
       return orig(t);
     };
     const t = Object.values(A.useApp.getState().tasks)[0]!;
-    A.updateTask(t.id, { title: 'Nach Fehler' });
+    A.updateTask(t.id, { title: 'After error' });
     await persister.flush();
     expect(A.useApp.getState().save).toEqual({ state: 'error', kind: 'permission' });
     fail = false;
     await persister.retry();
     expect(A.useApp.getState().save.state).toBe('saved');
-    expect((await repo.loadAll()).snapshot.tasks.find((x) => x.id === t.id)?.title).toBe('Nach Fehler');
+    expect((await repo.loadAll()).snapshot.tasks.find((x) => x.id === t.id)?.title).toBe('After error');
     persister.stop();
   });
 });

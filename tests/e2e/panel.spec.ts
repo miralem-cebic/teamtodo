@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readTasks, startFresh } from './helpers';
 
-test('Detailansicht öffnen und schließen ohne Seitenwechsel und ohne Scroll-Verlust', async ({ page }) => {
+test('open and close the detail panel without page navigation and without losing scroll position', async ({ page }) => {
   await page.setViewportSize({ width: 1300, height: 520 });
   await startFresh(page);
   await page.getByRole('button', { name: /^Marketing/ }).click();
@@ -13,38 +13,38 @@ test('Detailansicht öffnen und schließen ohne Seitenwechsel und ohne Scroll-Ve
 
   const row = page.locator('[data-row]').filter({ hasText: '' }).nth(5);
   await row.hover();
-  await row.getByRole('button', { name: 'Details öffnen' }).click();
-  const panel = page.getByRole('complementary', { name: 'Aufgabendetails' });
+  await row.getByRole('button', { name: 'Open details' }).click();
+  const panel = page.getByRole('complementary', { name: 'Task details' });
   await expect(panel).toBeVisible();
   await expect(row).toHaveClass(/selected/);
   expect(await scroller.evaluate((el) => el.scrollTop)).toBe(before);
   expect(page.url()).toBe(url);
 
-  await panel.getByRole('button', { name: 'Details schließen' }).click();
+  await panel.getByRole('button', { name: 'Close details' }).click();
   await expect(panel).toHaveCount(0);
   expect(await scroller.evaluate((el) => el.scrollTop)).toBe(before);
   expect(page.url()).toBe(url);
 });
 
-test('Erledigen per Klick, Rückgängig über den Hinweis', async ({ page }) => {
+test('complete by click, undo via the notice', async ({ page }) => {
   await startFresh(page);
   const row = page.locator('[data-row]').first();
   const id = await row.getAttribute('data-row');
-  await row.getByRole('button', { name: 'Als erledigt markieren' }).click();
-  // bleibt sichtbar (abgehakt) bis zum Verlassen der Ansicht
+  await row.getByRole('button', { name: 'Mark as done' }).click();
+  // stays visible (checked) until the view is left
   await expect(row).toHaveClass(/done/);
-  await page.locator('.toast').getByRole('button', { name: 'Rückgängig' }).click();
+  await page.locator('.toast').getByRole('button', { name: 'Undo' }).click();
   await expect(row).not.toHaveClass(/done/);
   expect((await readTasks(page)).find((t) => t.id === id)!.completedAt).toBeNull();
 });
 
-test('Löschen über das Panel mit Strg/⌘+Z rückgängig', async ({ page }) => {
+test('delete via the panel, undo with Ctrl/⌘+Z', async ({ page }) => {
   await startFresh(page);
   const row = page.locator('[data-row]').first();
   const title = await row.getByRole('textbox').inputValue();
-  await row.getByRole('button', { name: 'Details öffnen' }).click();
-  await page.getByRole('button', { name: 'Weitere Aktionen' }).click();
-  await page.getByRole('menuitem', { name: 'Aufgabe löschen' }).click();
+  await row.getByRole('button', { name: 'Open details' }).click();
+  await page.getByRole('button', { name: 'More actions' }).click();
+  await page.getByRole('menuitem', { name: 'Delete task' }).click();
   await expect(page.locator(`input[value="${title}"]`)).toHaveCount(0);
   await page.locator('body').click({ position: { x: 5, y: 5 } });
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+KeyZ' : 'Control+KeyZ');

@@ -34,7 +34,7 @@ export function Workspace() {
     if (workspaceId && meId) loadInboxRead(workspaceId, meId);
   }, [workspaceId, meId]);
 
-  // Ansicht auf gelöschtes Projekt → zurück zu „Meine Aufgaben“
+  // view of a deleted project → back to "My tasks"
   let view: View = prefs.view;
   if (view.type === 'project' && !projects.some((p) => p.id === (view as { id: string }).id && !p.deletedAt)) view = { type: 'my' };
   const settings = settingsFor(prefs, view);
@@ -70,7 +70,7 @@ export function Workspace() {
     requestFocus(addTask({ ...g.defaults, order: first ? first.order - 1 : Date.now() }), 'list');
   }, [cKey, layout]);
 
-  // Globale Tastenkürzel (nur wenn kein Eingabefeld fokussiert ist)
+  // Global keyboard shortcuts (only when no input field is focused)
   useEffect(() => {
     let gPressed = 0;
     const h = (e: KeyboardEvent) => {

@@ -15,18 +15,18 @@ export interface TaskFile {
   deletedAt: string | null;
 }
 
-/** Frischer Start: Ordner wählen, mit Beispieldaten einrichten, als „Pia“ anmelden. */
+/** Fresh start: choose a folder, set up with sample data, sign in as "Pia". */
 export async function startFresh(page: Page, errors: string[] = []) {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   await page.goto(APP_URL);
-  await page.getByRole('button', { name: 'Datenordner wählen' }).click();
-  await page.getByRole('button', { name: 'Einrichten' }).click();
+  await page.getByRole('button', { name: 'Choose data folder' }).click();
+  await page.getByRole('button', { name: 'Set up' }).click();
   await page.getByRole('button', { name: 'Pia' }).click();
-  await expect(page.getByRole('heading', { name: 'Meine Aufgaben' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'My tasks' })).toBeVisible();
 }
 
-/** Ausstehende Schreibvorgänge abwarten und den Testordner (localStorage) als Pfad → Inhalt lesen */
+/** Wait for pending writes and read the test folder (localStorage) as path → content */
 export async function readFolder(page: Page): Promise<Record<string, string>> {
   await page.evaluate(() => (window as unknown as { __e2e: { flush: () => Promise<void> } }).__e2e.flush());
   return page.evaluate(() => {

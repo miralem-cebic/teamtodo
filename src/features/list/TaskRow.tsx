@@ -26,7 +26,7 @@ interface Props {
   task: TaskState;
   depth?: number;
   group?: Group;
-  /** Geschwister in Anzeige-Reihenfolge (für Enter-Kette und Verschieben) */
+  /** Siblings in display order (for the Enter chain and moving) */
   siblings: TaskState[];
   view: View;
   third: ThirdColumn;
@@ -56,7 +56,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
 
   const doneKids = kids.filter((k) => k.completedAt).length;
 
-  /** Neue Zeile direkt unter dieser */
+  /** New row directly below this one */
   const createAfter = () => {
     const i = siblings.findIndex((x) => x.id === task.id);
     const order = orderBetween(task, siblings[i + 1]);
@@ -84,7 +84,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
 
   const moveBy = (dir: -1 | 1) => {
     if (!manual) {
-      showToast('Verschieben geht nur bei manueller Sortierung');
+      showToast('Moving only works with manual sorting');
       return;
     }
     const i = siblings.findIndex((x) => x.id === task.id);
@@ -92,7 +92,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
     if (j < 0 || j >= siblings.length) return;
     const a = siblings[j]!;
     const b = siblings[j + dir];
-    updateTask(task.id, { order: dir < 0 ? orderBetween(b, a) : orderBetween(a, b) }, { undo: 'Verschoben' });
+    updateTask(task.id, { order: dir < 0 ? orderBetween(b, a) : orderBetween(a, b) }, { undo: 'Moved' });
   };
 
   const openField = (name: 'assignee' | 'due') => {
@@ -102,7 +102,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
     btn.click();
   };
 
-  /** Kürzel, die im Titelfeld und auf der ausgewählten Zeile gleich wirken */
+  /** Shortcuts that work the same in the title field and on the selected row */
   const common = (e: KeyboardEvent): boolean => {
     const mod = isMod(e);
     if (mod && e.key === 'Enter') toggleDone(task.id);
@@ -127,7 +127,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
     if (e.key === 'Enter') {
       e.preventDefault();
       if (!task.title.trim()) {
-        // leere neue Zeile: Eingabe beenden, Zeile verwerfen, vorherige Zeile auswählen
+        // empty new row: leave input, discard the row, select the previous row
         const prev = neighbour(row, -1);
         el.blur();
         removeIfEmptyDraft(task.id);
@@ -154,7 +154,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
     }
   };
 
-  /** Ausgewählte Zeile (Fokus auf der Zeile, nicht im Feld) */
+  /** Selected row (focus on the row, not in the field) */
   const onRowKey = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.target !== e.currentTarget || common(e)) return;
     const row = e.currentTarget;
@@ -205,7 +205,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
       }}
     >
       <div className="c-title" style={{ paddingLeft: depth ? 28 + depth * 22 : undefined }}>
-        <span className="grip" {...dnd.handle} aria-label="Ziehen zum Verschieben" title="Ziehen zum Verschieben">
+        <span className="grip" {...dnd.handle} aria-label="Drag to move" title="Drag to move">
           <Icon n="grip" s={14} />
         </span>
         {canExpand ? (
@@ -213,7 +213,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
             type="button"
             className={'caret' + (kids.length ? '' : ' hidden')}
             onClick={() => toggleExpanded(task.id)}
-            aria-label={expanded ? 'Unteraufgaben einklappen' : 'Unteraufgaben ausklappen'}
+            aria-label={expanded ? 'Collapse subtasks' : 'Expand subtasks'}
             aria-expanded={expanded}
             tabIndex={-1}
           >
@@ -223,39 +223,39 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
           depth === 0 && <span className="caret-sp" />
         )}
         <Check done={!!task.completedAt} onToggle={() => toggleDone(task.id)} small={depth > 0} />
-        <span className="tgrow" data-v={task.title || (depth ? 'Unteraufgabe' : 'Aufgabe')}>
+        <span className="tgrow" data-v={task.title || (depth ? 'Subtask' : 'Task')}>
           <input
             ref={inputRef}
             data-title
             className="t-in"
             value={task.title}
-            placeholder={depth ? 'Unteraufgabe' : 'Aufgabe'}
-            aria-label="Aufgabentitel"
+            placeholder={depth ? 'Subtask' : 'Task'}
+            aria-label="Task title"
             onChange={(e) => updateTask(task.id, { title: e.target.value })}
             onKeyDown={onTitleKey}
             onBlur={onBlur}
           />
         </span>
         {parent && depth === 0 && (
-          <button type="button" className="crumb" tabIndex={-1} onClick={() => openPanel(parent.id)} title="Hauptaufgabe öffnen">
+          <button type="button" className="crumb" tabIndex={-1} onClick={() => openPanel(parent.id)} title="Open parent task">
             <Icon n="sub" s={12} />
             <span>{parent.title}</span>
           </button>
         )}
         {kids.length > 0 && (
           <button type="button" className="meta" tabIndex={-1} onClick={() => (canExpand ? toggleExpanded(task.id) : openPanel(task.id))}
-            title={`${doneKids} von ${kids.length} Unteraufgaben erledigt`}>
+            title={`${doneKids} of ${kids.length} subtasks done`}>
             {doneKids}/{kids.length}
             <Icon n="sub" s={13} />
           </button>
         )}
         {task.comments.length > 0 && (
-          <span className="meta" title={`${task.comments.length} Kommentare`}>
+          <span className="meta" title={`${task.comments.length} comments`}>
             {task.comments.length}
             <Icon n="comment" s={13} />
           </span>
         )}
-        <button type="button" className="details" tabIndex={-1} onClick={() => openPanel(task.id)} aria-label="Details öffnen">
+        <button type="button" className="details" tabIndex={-1} onClick={() => openPanel(task.id)} aria-label="Open details">
           <span>Details</span>
           <Icon n="chevR" s={14} />
         </button>

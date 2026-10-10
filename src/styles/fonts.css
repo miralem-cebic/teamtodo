@@ -1,4 +1,4 @@
-/* Hanken Grotesk lokal (fontsource), im Build als data:-URL eingebettet */
+/* Hanken Grotesk locally (fontsource), embedded as a data: URL in the build */
 @import '@fontsource/hanken-grotesk/latin-400.css';
 @import '@fontsource/hanken-grotesk/latin-500.css';
 @import '@fontsource/hanken-grotesk/latin-600.css';

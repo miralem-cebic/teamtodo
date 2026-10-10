@@ -1,4 +1,4 @@
-// Speicherinterne Nachbildung von FileSystemDirectoryHandle für Unit-Tests.
+// In-memory stand-in for FileSystemDirectoryHandle, used by the unit tests.
 
 type Node = MemFile | MemDir;
 type Data = string | Blob | ArrayBuffer | ArrayBufferView;
@@ -25,7 +25,7 @@ export class MemFile {
       },
       close: async () => {
         this.content = new Blob(parts);
-        // lastModified muss bei schnellen Folgeschreibvorgängen streng steigen
+        // lastModified must strictly increase on quick consecutive writes
         this.lastModified = Math.max(Date.now(), this.lastModified + 1);
       },
       abort: async () => undefined,
@@ -49,8 +49,8 @@ export class MemDir {
   async getFileHandle(name: string, opts?: { create?: boolean }) {
     const n = this.children.get(name);
     if (n?.kind === 'file') return n;
-    if (n) throw new DOMException(`${name} ist ein Ordner`, 'TypeMismatchError');
-    if (!opts?.create) throw new DOMException(`${name} nicht gefunden`, 'NotFoundError');
+    if (n) throw new DOMException(`${name} is a folder`, 'TypeMismatchError');
+    if (!opts?.create) throw new DOMException(`${name} not found`, 'NotFoundError');
     const f = new MemFile(name);
     this.children.set(name, f);
     return f;
@@ -59,15 +59,15 @@ export class MemDir {
   async getDirectoryHandle(name: string, opts?: { create?: boolean }) {
     const n = this.children.get(name);
     if (n?.kind === 'directory') return n;
-    if (n) throw new DOMException(`${name} ist eine Datei`, 'TypeMismatchError');
-    if (!opts?.create) throw new DOMException(`${name} nicht gefunden`, 'NotFoundError');
+    if (n) throw new DOMException(`${name} is a file`, 'TypeMismatchError');
+    if (!opts?.create) throw new DOMException(`${name} not found`, 'NotFoundError');
     const d = new MemDir(name);
     this.children.set(name, d);
     return d;
   }
 
   async removeEntry(name: string, _opts?: { recursive?: boolean }) {
-    if (!this.children.delete(name)) throw new DOMException(`${name} nicht gefunden`, 'NotFoundError');
+    if (!this.children.delete(name)) throw new DOMException(`${name} not found`, 'NotFoundError');
   }
 
   async *entries(): AsyncIterableIterator<[string, Node]> {

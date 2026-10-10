@@ -8,8 +8,8 @@ import { diffDays, fmtDue, today } from '../../lib/dates';
 import type { ID, TaskState } from '../../data/types';
 import { useDndGroup, useDndRow } from '../dnd/TaskDnd';
 
-// Board: Spalten = aktuelle Gruppierung. Karten per Drag and Drop verschieben.
-// Tastatur: Tab/Pfeile zwischen Karten, Enter/Leertaste öffnet Details, Strg/⌘+Enter erledigt.
+// Board: Spalten = aktuelle Grouping. Karten per Drag and Drop verschieben.
+// Keyboard: Tab/arrows between cards, Enter/Space opens details, Ctrl/⌘+Enter completes.
 
 export function BoardView({ groups, view, children }: { groups: Group[]; view: View; children: Record<ID, TaskState[]> }) {
   return (
@@ -19,7 +19,7 @@ export function BoardView({ groups, view, children }: { groups: Group[]; view: V
       ))}
       {!groups.length && (
         <div className="empty-state">
-          <p>Keine Aufgaben passen zu deinen Filtern.</p>
+          <p>No tasks match your filters.</p>
         </div>
       )}
     </div>
@@ -53,7 +53,7 @@ function Card({ t, g, view, kids }: { t: TaskState; g: Group; view: View; kids: 
   const selected = useApp((s) => s.panelId === t.id);
   const flash = useApp((s) => s.flash.has(t.id));
   const dnd = useDndRow(`t:${t.id}`, { type: 'task', taskId: t.id, groupKey: g.key });
-  // die ganze Karte ist Griff
+  // the whole card is the handle
   const { ref: _activator, ...handleProps } = dnd.handle;
   const dd = t.dueDate ? diffDays(t.dueDate, today()) : null;
   const tone = isOverdue(t) ? ' overdue' : dd !== null && dd <= 1 && dd >= 0 && !t.completedAt ? ' soon' : '';
@@ -91,7 +91,7 @@ function Card({ t, g, view, kids }: { t: TaskState; g: Group; view: View; kids: 
       tabIndex={0}
       role="button"
       data-card={t.id}
-      aria-label={`${t.title || 'Ohne Titel'}${t.completedAt ? ', erledigt' : ''}`}
+      aria-label={`${t.title || 'Untitled'}${t.completedAt ? ', done' : ''}`}
       className={'card' + (selected ? ' selected' : '') + (t.completedAt ? ' done' : '') + (flash ? ' flash' : '') + (dnd.dragging ? ' dragging' : '') + (dnd.dropPos ? ' drop-' + dnd.dropPos : '')}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('button')) return;
@@ -101,7 +101,7 @@ function Card({ t, g, view, kids }: { t: TaskState; g: Group; view: View; kids: 
     >
       <div className="card-top">
         <Check done={!!t.completedAt} onToggle={() => toggleDone(t.id)} />
-        <span className="card-title">{t.title || 'Ohne Titel'}</span>
+        <span className="card-title">{t.title || 'Untitled'}</span>
       </div>
       {view.type !== 'project' && proj && (
         <div className="card-proj">
@@ -130,7 +130,7 @@ function Card({ t, g, view, kids }: { t: TaskState; g: Group; view: View; kids: 
   );
 }
 
-/** „Aufgabe hinzufügen“ am Spaltenende mit Enter-Kette */
+/** "Add task" at the end of the column, with Enter chain */
 function AddCard({ g }: { g: Group }) {
   const focusReq = useApp((s) => s.focusReq);
   const [open, setOpen] = useState(false);
@@ -147,7 +147,7 @@ function AddCard({ g }: { g: Group }) {
     return (
       <button type="button" className="add-card" onClick={() => setOpen(true)}>
         <Icon n="plus" s={14} />
-        Aufgabe hinzufügen
+        Add task
       </button>
     );
   return (
@@ -157,8 +157,8 @@ function AddCard({ g }: { g: Group }) {
         className="card-in"
         rows={2}
         value={v}
-        placeholder="Was ist zu tun?"
-        aria-label={`Neue Aufgabe in ${g.label}`}
+        placeholder="What needs to be done?"
+        aria-label={`New task in ${g.label}`}
         onChange={(e) => setV(e.target.value)}
         onBlur={() => !v.trim() && setOpen(false)}
         onKeyDown={(e) => {
@@ -176,7 +176,7 @@ function AddCard({ g }: { g: Group }) {
           }
         }}
       />
-      <div className="card-hint">Enter speichert, dann gleich die nächste</div>
+      <div className="card-hint">Enter saves, then the next one right away</div>
     </div>
   );
 }

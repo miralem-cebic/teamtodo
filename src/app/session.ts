@@ -4,7 +4,7 @@ import { clearDirHandle, loadDirHandle, saveDirHandle } from '../data/fs/handleS
 import { StorageDir } from '../data/fs/storageFs';
 import { ensureReadWrite } from '../data/fs/permission';
 import { checkSupport } from '../data/fs/support';
-import { EMERGENCY_KEY, Persister } from '../data/persister';
+import { EMERGENCY_KEY, LEGACY_EMERGENCY_KEY, Persister } from '../data/persister';
 import { dailyBackup, purge, restoreBackup } from '../data/maintenance';
 import { SyncEngine } from '../data/sync';
 import { classifyError, ERROR_TEXT, type LoadResult } from '../data/repository';
@@ -12,8 +12,9 @@ import { emptySnapshot, sampleSnapshot } from '../data/seed';
 import type { ID, Task } from '../data/types';
 import { addUser, loadSnapshot, resetApp, setMe, showToast, useApp } from '../store/appStore';
 import { loadMe, saveMe } from '../store/prefs';
+import { readStorage } from '../lib/storage';
 
-// Ablauf beim Start: Browser prüfen → Datenordner (gespeichert/neu) → Berechtigung → Laden → Person wählen → App.
+// Startup flow: check browser → data folder (saved/new) → permission → load → choose person → app.
 
 export type Phase =
   | 'checking'
@@ -29,7 +30,7 @@ export type Phase =
 interface SessionState {
   phase: Phase;
   dirName: string | null;
-  /** Gewählter Ordner ist nicht leer und enthält keinen Workspace */
+  /** The chosen folder is not empty and contains no workspace */
   dirNotEmpty: boolean;
   error: string | null;
   conflictCopies: string[];
@@ -51,12 +52,12 @@ let repo: FsRepository | null = null;
 let persister: Persister | null = null;
 let sync: SyncEngine | null = null;
 
-/* ---------- Testmodus: Datenordner in localStorage (für Playwright, ?e2e) ---------- */
+/* ---------- Test mode: data folder in localStorage (for Playwright, ?e2e) ---------- */
 
 const params = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
 const E2E = params.has('e2e');
 const E2E_NS = 'teamtodo.e2e';
-/** Abgleich-Intervall, im Testmodus per ?poll=ms verkürzbar */
+/** Sync interval, can be shortened in test mode with ?poll=ms */
 const POLL = E2E && params.get('poll') ? Number(params.get('poll')) : undefined;
 
 if (E2E) {
@@ -89,7 +90,7 @@ export async function boot() {
   }
 }
 
-/** Nutzergeste: Ordner wählen */
+/** User gesture: choose a folder */
 export async function pickFolder() {
   try {
     if (E2E) {
@@ -103,11 +104,11 @@ export async function pickFolder() {
     await openFolder();
   } catch (e) {
     if (e instanceof DOMException && e.name === 'AbortError') return;
-    set({ phase: 'failed', error: `Der Ordner konnte nicht geöffnet werden. ${ERROR_TEXT[classifyError(e)]}` });
+    set({ phase: 'failed', error: `The folder could not be opened. ${ERROR_TEXT[classifyError(e)]}` });
   }
 }
 
-/** Nutzergeste: Berechtigung für den gespeicherten Ordner erneuern */
+/** User gesture: renew the permission for the saved folder */
 export async function reconnect() {
   if (!handle) return set({ phase: 'welcome' });
   try {
@@ -142,12 +143,24 @@ async function openFolder() {
   }
 }
 
-/** Datenstruktur anlegen. `subfolder`: im gewählten Ordner einen Unterordner „teamtodo“ verwenden. */
+const SUBFOLDER = 'teamtodo';
+const LEGACY_SUBFOLDER = 'Teamaufgaben'; // folder name before the rename; used only if it holds a workspace
+
+/** The workspace folder inside the chosen folder: an existing one (also the legacy name), otherwise a new one */
+async function findWorkspaceFolder(parent: FileSystemDirectoryHandle): Promise<FileSystemDirectoryHandle> {
+  for (const name of [SUBFOLDER, LEGACY_SUBFOLDER]) {
+    const dir = await parent.getDirectoryHandle(name).catch(() => undefined);
+    if (dir && (await new FsRepository(dir).hasWorkspace())) return dir;
+  }
+  return parent.getDirectoryHandle(SUBFOLDER, { create: true });
+}
+
+/** Create the data structure. `subfolder`: use a subfolder "teamtodo" inside the chosen folder. */
 export async function initialize(opts: { samples: boolean; subfolder: boolean }) {
   if (!handle) return;
   try {
     if (opts.subfolder) {
-      handle = await handle.getDirectoryHandle('teamtodo', { create: true });
+      handle = await findWorkspaceFolder(handle);
       if (!E2E) await saveDirHandle(handle);
       set({ dirName: handle.name });
       repo = new FsRepository(handle);
@@ -157,7 +170,7 @@ export async function initialize(opts: { samples: boolean; subfolder: boolean })
     await repo!.initialize(opts.samples ? sampleSnapshot(name) : emptySnapshot(name));
     await load();
   } catch (e) {
-    set({ phase: 'failed', error: `Anlegen fehlgeschlagen. ${ERROR_TEXT[classifyError(e)]}` });
+    set({ phase: 'failed', error: `Setup failed. ${ERROR_TEXT[classifyError(e)]}` });
   }
 }
 
@@ -184,10 +197,10 @@ async function load() {
   } else set({ phase: 'who' });
 }
 
-/** Ungespeicherte Änderungen aus einer früheren Sitzung (Ordner war nicht erreichbar) zurückholen */
+/** Restore unsaved changes from an earlier session (the folder was not reachable then) */
 function recoverEmergencyCopy(workspaceId: ID) {
   try {
-    const raw = localStorage.getItem(EMERGENCY_KEY);
+    const raw = readStorage(EMERGENCY_KEY, LEGACY_EMERGENCY_KEY);
     if (!raw) return;
     const copy = JSON.parse(raw) as { workspaceId?: ID; tasks?: Task[] };
     if (copy.workspaceId !== workspaceId || !copy.tasks?.length) return;
@@ -196,9 +209,9 @@ function recoverEmergencyCopy(workspaceId: ID) {
     const take = copy.tasks.filter((t) => !cur[t.id] || newest(t) > newest(cur[t.id]!));
     if (!take.length) return;
     useApp.setState({ tasks: { ...cur, ...Object.fromEntries(take.map((t) => [t.id, t])) } });
-    showToast(`${take.length} ungespeicherte Änderungen wiederhergestellt`);
+    showToast(`${take.length} unsaved changes restored`);
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
 }
 
@@ -209,7 +222,7 @@ function stopEngines() {
   persister = null;
 }
 
-/** Tagessicherung und Aufräumen – Fehler hier dürfen die Arbeit nicht stören */
+/** Daily backup and cleanup. Errors here must not disturb the work. */
 async function maintenance() {
   if (!repo) return;
   try {
@@ -239,7 +252,7 @@ export function switchUser() {
 
 /* ---------- Laufzeit ---------- */
 
-/** Nach Speicherfehler „Erneut verbinden“ (Nutzergeste) */
+/** After a save error: "Reconnect" (user gesture) */
 export async function reconnectAndRetry() {
   if (!handle || !persister) return;
   try {
@@ -255,7 +268,7 @@ export function retrySave() {
 
 export const isE2E = () => E2E;
 
-/* ---------- Sicherungen, Anhänge ---------- */
+/* ---------- Backups, attachments ---------- */
 
 export const getRepo = () => repo;
 export const syncNow = () => sync?.poll();

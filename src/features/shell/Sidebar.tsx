@@ -51,19 +51,19 @@ export function Sidebar({ view, go, openKeys, openData }: Props) {
       </div>
       <button type="button" className={'nav' + (view.type === 'my' ? ' on' : '')} onClick={() => go({ type: 'my' })} aria-current={view.type === 'my' ? 'page' : undefined}>
         <Icon n="mine" />
-        <span>Meine Aufgaben</span>
+        <span>My tasks</span>
         <span className="n">{counts.my}</span>
       </button>
       <button type="button" className={'nav' + (view.type === 'inbox' ? ' on' : '')} onClick={() => go({ type: 'inbox' })} aria-current={view.type === 'inbox' ? 'page' : undefined}
-        aria-label={unread ? `Eingang, ${unread} ungelesen` : 'Eingang'}>
+        aria-label={unread ? `Inbox, ${unread} unread` : 'Inbox'}>
         <Icon n="bell" />
-        <span>Eingang</span>
+        <span>Inbox</span>
         {unread > 0 && <span className="n badge-n">{unread}</span>}
       </button>
 
       <div className="side-h">
-        <span>Projekte</span>
-        <button type="button" className="icon-btn" onClick={() => setAdding(true)} aria-label="Projekt hinzufügen">
+        <span>Projects</span>
+        <button type="button" className="icon-btn" onClick={() => setAdding(true)} aria-label="Add project">
           <Icon n="plus" s={15} />
         </button>
       </div>
@@ -80,8 +80,8 @@ export function Sidebar({ view, go, openKeys, openData }: Props) {
           <input
             autoFocus
             value={name}
-            placeholder="Projektname"
-            aria-label="Projektname"
+            placeholder="Project name"
+            aria-label="Project name"
             onChange={(e) => setName(e.target.value)}
             onBlur={() => {
               setAdding(false);
@@ -103,7 +103,7 @@ export function Sidebar({ view, go, openKeys, openData }: Props) {
           />
         </div>
       )}
-      {!active.length && !adding && <p className="side-empty">Noch keine Projekte.</p>}
+      {!active.length && !adding && <p className="side-empty">No projects yet.</p>}
       {archived.length > 0 && (
         <>
           <button type="button" className="side-h side-toggle" onClick={() => setShowArchived((v) => !v)} aria-expanded={showArchived}>
@@ -117,7 +117,7 @@ export function Sidebar({ view, go, openKeys, openData }: Props) {
                   <span className={'sq c-' + p.color} />
                   <span>{p.name}</span>
                 </button>
-                <button type="button" className="icon-btn" onClick={() => archiveProject(p.id, false)} aria-label={`${p.name} wiederherstellen`} title="Wiederherstellen">
+                <button type="button" className="icon-btn" onClick={() => archiveProject(p.id, false)} aria-label={`${p.name} restore`} title="Restore">
                   <Icon n="archive" s={14} />
                 </button>
               </div>
@@ -127,9 +127,9 @@ export function Sidebar({ view, go, openKeys, openData }: Props) {
 
       <span className="sp" />
       {conflicts > 0 && (
-        <p className="side-note" role="button" tabIndex={0} onClick={openData} onKeyDown={(e) => e.key === 'Enter' && openData()} title="Details unter „Daten und Sicherungen“">
+        <p className="side-note" role="button" tabIndex={0} onClick={openData} onKeyDown={(e) => e.key === 'Enter' && openData()} title='Details under "Data and backups"'>
           <Icon n="alert" s={14} />
-          {conflicts} Konfliktkopie{conflicts === 1 ? '' : 'n'} im Datenordner
+          {conflicts} conflict cop{conflicts === 1 ? 'y' : 'ies'} in the data folder
         </p>
       )}
       <div className="side-h"><span>Team</span></div>
@@ -140,17 +140,17 @@ export function Sidebar({ view, go, openKeys, openData }: Props) {
       </div>
       <button type="button" className="nav" onClick={openData}>
         <Icon n="db" />
-        <span>Daten und Sicherungen</span>
+        <span>Data and backups</span>
       </button>
       <button type="button" className="nav" onClick={openKeys}>
         <Icon n="key" />
-        <span>Tastenkürzel</span>
+        <span>Keyboard shortcuts</span>
         <kbd>?</kbd>
       </button>
-      <button type="button" className="me" onClick={up.open} aria-label="Person oder Ordner wechseln">
+      <button type="button" className="me" onClick={up.open} aria-label="Switch person or folder">
         <Avatar user={me} size={28} />
         <span>
-          <small>{dirName ? `Ordner „${dirName}“` : 'Angemeldet als'}</small>
+          <small>{dirName ? `Folder "${dirName}"` : 'Signed in as'}</small>
           {me?.name}
         </span>
         <Icon n="chevD" s={14} />
@@ -160,8 +160,8 @@ export function Sidebar({ view, go, openKeys, openData }: Props) {
           <Menu
             onClose={up.close}
             items={[
-              { label: 'Person wechseln', icon: 'swap', onClick: switchUser, keepFocus: true },
-              { label: 'Anderen Datenordner wählen', icon: 'folder', onClick: () => void forgetFolder(), keepFocus: true },
+              { label: 'Switch person', icon: 'swap', onClick: switchUser, keepFocus: true },
+              { label: 'Choose another data folder', icon: 'folder', onClick: () => void forgetFolder(), keepFocus: true },
             ]}
           />
         </Popover>
