@@ -114,7 +114,7 @@ export function ProjectField({ task, showSection = true }: { task: TaskState; sh
   const proj = projects.find((x) => x.id === task.projectId && !x.deletedAt);
   const sec = proj?.sections.find((x) => x.id === task.sectionId && !x.deletedAt);
   const locked = !!task.parentId;
-  const choices = projects.filter((x) => !x.deletedAt && !x.archivedAt).sort(byOrder);
+  const choices = projects.filter((x) => !x.deletedAt && !x.archivedAt && !x.template).sort(byOrder);
   return (
     <>
       <button type="button" data-field="project" className={'fld' + (proj ? '' : ' empty')} onClick={locked ? undefined : p.open}

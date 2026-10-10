@@ -20,6 +20,7 @@ export const keySections = (): [string, [string, string][]][] => [
       [`${ALT} + D`, t('keys.chooseDate')],
       [`${ALT} + S`, t('keys.createSubtask')],
       [`${MOD} + O`, t('keys.openDetails')],
+      [`${MOD} + K`, t('keys.makeLink')],
       ['Esc', t('keys.escStays')],
     ],
   ],

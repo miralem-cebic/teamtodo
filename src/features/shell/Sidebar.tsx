@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { Menu, Popover, usePop } from '../../components/Popover';
-import { addProject, archiveProject, showToast, useApp } from '../../store/appStore';
+import { archiveProject, showToast, useApp } from '../../store/appStore';
 import { byOrder, visibleTasks, type View } from '../../store/selectors';
 import { forgetFolder, switchUser, useSession } from '../../app/session';
 import { useInbox } from '../inbox/InboxView';
@@ -10,6 +10,7 @@ import { LANGS, LANG_NAMES, currentLang, t } from '../../i18n';
 import { PALETTES, setLanguage, setPalette, usePrefs } from '../../store/prefs';
 import { setNotificationsEnabled } from '../../lib/notifications';
 import { paletteLabel } from '../../lib/labels';
+import { NewProjectDialog } from '../templates/NewProjectDialog';
 
 interface Props {
   view: View;
@@ -27,7 +28,6 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
   const dirName = useSession((s) => s.dirName);
   const conflicts = useSession((s) => s.conflictCopies.length);
   const [adding, setAdding] = useState(false);
-  const [name, setName] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const up = usePop();
   const palette = usePrefs((s) => s.palette ?? 'standard');
@@ -46,7 +46,7 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
     return c;
   }, [tasks, projects, meId]);
 
-  const live = projects.filter((p) => !p.deletedAt).sort(byOrder);
+  const live = projects.filter((p) => !p.deletedAt && !p.template).sort(byOrder);
   const active = live.filter((p) => !p.archivedAt);
   const archived = live.filter((p) => p.archivedAt);
 
@@ -67,10 +67,14 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
         <span>{t('nav.inbox')}</span>
         {unread > 0 && <span className="n badge-n">{unread}</span>}
       </button>
+      <button type="button" className={'nav' + (view.type === 'templates' ? ' on' : '')} onClick={() => go({ type: 'templates' })} aria-current={view.type === 'templates' ? 'page' : undefined}>
+        <Icon n="copy" />
+        <span>{t('nav.templates')}</span>
+      </button>
 
       <div className="side-h">
         <span>{t('nav.projects')}</span>
-        <button type="button" className="icon-btn" onClick={() => setAdding(true)} aria-label={t('project.add')}>
+        <button type="button" className="icon-btn" onClick={() => setAdding(true)} aria-label={t('project.add')} title={t('project.add')}>
           <Icon n="plus" s={15} />
         </button>
       </div>
@@ -82,35 +86,7 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
           <span className="n">{counts[p.id] ?? 0}</span>
         </button>
       ))}
-      {adding && (
-        <div className="nav-add">
-          <input
-            autoFocus
-            value={name}
-            placeholder={t('project.name')}
-            aria-label={t('project.name')}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={() => {
-              setAdding(false);
-              setName('');
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && name.trim()) {
-                const id = addProject(name.trim());
-                setName('');
-                setAdding(false);
-                go({ type: 'project', id });
-              }
-              if (e.key === 'Escape') {
-                e.stopPropagation();
-                setAdding(false);
-                setName('');
-              }
-            }}
-          />
-        </div>
-      )}
-      {!active.length && !adding && <p className="side-empty">{t('side.noProjects')}</p>}
+      {!active.length && <p className="side-empty">{t('side.noProjects')}</p>}
       {archived.length > 0 && (
         <>
           <button type="button" className="side-h side-toggle" onClick={() => setShowArchived((v) => !v)} aria-expanded={showArchived}>
@@ -130,6 +106,16 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
               </div>
             ))}
         </>
+      )}
+
+      {adding && (
+        <NewProjectDialog
+          onClose={() => setAdding(false)}
+          onCreated={(id) => {
+            setAdding(false);
+            go({ type: 'project', id });
+          }}
+        />
       )}
 
       <span className="sp" />

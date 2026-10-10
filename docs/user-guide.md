@@ -93,6 +93,22 @@ Open the downloaded file, or attach it to an email. A task without a time become
 - **Attachments:** use **Attach a file**, or drag files into the **Attachments** area. The file is copied into the data folder (`attachments`). Click it to open.
 - **Followers** are notified about comments on a task. Whoever creates a task, is assigned to it, comments on it, or is mentioned in it follows it automatically.
 - **History:** **Comments and activity** shows who changed what and when. **Show comments only** hides the changes.
+- **Arrows** at the top of the detail panel go to the previous and next task in the list, in the order shown.
+
+### Links
+
+- A web address in a description or comment becomes a link by itself, for example `https://example.com/page`. Click it to open it in a new tab. Click elsewhere in a description to edit it.
+- To link a word, select it and press **Ctrl + K** (Mac: ⌘ + K). Enter the address, for example `example.com/page`, and press **Enter**. Without a selection, the address itself becomes the link.
+- Only `http` and `https` addresses are accepted.
+
+## Templates
+
+A template keeps the structure of a project: its sections, tasks, descriptions and subtasks. Assignments, due dates, status and comments are not kept.
+
+- **Save a project as a template:** open the project menu (⋯ next to the project name) and choose **Save as template**. Templates are listed under **Templates** in the navigation.
+- **New project from a template:** press **+** next to **Projects** and choose **Start from** a template, or use **New project** under **Templates**. Tasks are copied without assignments and due dates, so the project starts clean.
+- **Blank project:** choose **Blank project** in the same dialog.
+- **Manage templates** under **Templates**: rename a template by editing its name, or delete it (with undo). Templates do not appear in the project list or in any task view.
 
 ### Inbox
 
@@ -122,6 +138,7 @@ Press **?** to show the full list in the app.
 | Key                         | Action                                                                  |
 | --------------------------- | ----------------------------------------------------------------------- |
 | Enter                       | Save task, new row below                                                |
+| Ctrl/⌘ + K                  | Make the selected text in a description or comment a link               |
 | Ctrl/⌘ + Enter              | Complete / reopen                                                       |
 | ↑ / ↓                       | Previous / next task                                                    |
 | Ctrl/⌘ + Shift + ↑ / ↓      | Move task                                                               |

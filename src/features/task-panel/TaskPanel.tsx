@@ -11,7 +11,6 @@ import {
   closePanel,
   deleteTask,
   openPanel,
-  panelHistory,
   removeIfEmptyDraft,
   requestFocus,
   toggleDone,
@@ -32,11 +31,10 @@ const short = (s: string) => {
   return v.length > 40 ? v.slice(0, 38) + '…' : v;
 };
 
-export function TaskPanel({ id }: { id: ID }) {
+/** `order`: the tasks of the current list in display order; the arrows go to the previous and next one */
+export function TaskPanel({ id, order }: { id: ID; order: ID[] }) {
   const t = useApp((s) => s.tasks[id]);
   const parent = useApp((s) => (t?.parentId ? s.tasks[t.parentId] : undefined));
-  const canBack = useApp((s) => s.panelBack.length > 0);
-  const canFwd = useApp((s) => s.panelFwd.length > 0);
   const focusReq = useApp((s) => s.focusReq);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const p = usePop();
@@ -47,6 +45,9 @@ export function TaskPanel({ id }: { id: ID }) {
 
   if (!t || t.deletedAt) return null;
   const done = !!t.completedAt;
+  const idx = order.indexOf(id);
+  const prevId = idx > 0 ? order[idx - 1] : undefined;
+  const nextId = idx >= 0 && idx < order.length - 1 ? order[idx + 1] : undefined;
 
   return (
     <aside className="panel" aria-label={tr('panel.label')}>
@@ -56,10 +57,10 @@ export function TaskPanel({ id }: { id: ID }) {
           {done ? tr('status.done') : tr('panel.markDone')}
         </button>
         <span className="sp" />
-        <button type="button" className="icon-btn" onClick={() => panelHistory(-1)} disabled={!canBack} aria-label={tr('panel.back')}>
+        <button type="button" className="icon-btn" onClick={() => prevId && openPanel(prevId)} disabled={!prevId} aria-label={tr('panel.prevTask')} title={tr('panel.prevTask')}>
           <Icon n="chevL" />
         </button>
-        <button type="button" className="icon-btn" onClick={() => panelHistory(1)} disabled={!canFwd} aria-label={tr('panel.forward')}>
+        <button type="button" className="icon-btn" onClick={() => nextId && openPanel(nextId)} disabled={!nextId} aria-label={tr('panel.nextTask')} title={tr('panel.nextTask')}>
           <Icon n="chevR" />
         </button>
         <button type="button" className="icon-btn" onClick={p.open} aria-label={tr('panel.more')}>
@@ -115,6 +116,7 @@ export function TaskPanel({ id }: { id: ID }) {
         <h4 className="p-h">{tr('panel.description')}</h4>
         <AutoText
           className="p-desc"
+          rich
           value={t.description}
           onChange={(v) => updateTask(t.id, { description: v })}
           placeholder={tr('panel.descPlaceholder')}

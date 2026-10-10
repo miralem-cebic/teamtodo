@@ -5,7 +5,7 @@ import { t } from '../i18n';
 
 // Reine Funktionen: Sichtbarkeit, Hierarchie, Grouping, Filter, Sorting.
 
-export type View = { type: 'my' } | { type: 'inbox' } | { type: 'project'; id: ID };
+export type View = { type: 'my' } | { type: 'inbox' } | { type: 'templates' } | { type: 'project'; id: ID };
 export type GroupBy = 'section' | 'due' | 'status' | 'assignee' | 'project' | 'none';
 export type SortBy = 'manual' | 'due' | 'title' | 'assignee' | 'created';
 export type CompletedFilter = 'open' | 'all' | 'done';
@@ -38,6 +38,9 @@ export function liveSections(p: Project | undefined): Section[] {
   return (p?.sections ?? []).filter((s) => !s.deletedAt).sort(byOrder);
 }
 
+/** Projects whose tasks do not show in any view: deleted projects and templates (templates only hold a blueprint). */
+export const hiddenProjectIds = (projects: Project[]) => new Set(projects.filter((p) => p.deletedAt || p.template).map((p) => p.id));
+
 /** Task is visible: not deleted, its project is not deleted, its parent task is not deleted. */
 export function isVisible(t: TaskState, tasks: Record<ID, TaskState>, deletedProjects: Set<ID>): boolean {
   let cur: TaskState | undefined = t;
@@ -66,7 +69,7 @@ export function descendantIds(tasks: Record<ID, TaskState>, id: ID): ID[] {
 
 /** Visible tasks + children per parent task (sorted) */
 export function visibleTasks(tasks: Record<ID, TaskState>, projects: Project[]) {
-  const deleted = new Set(projects.filter((p) => p.deletedAt).map((p) => p.id));
+  const deleted = hiddenProjectIds(projects);
   const visible: TaskState[] = [];
   const children: Record<ID, TaskState[]> = {};
   for (const t of Object.values(tasks)) {
@@ -196,7 +199,7 @@ export function buildGroups(inp: BuildInput): Group[] {
   } else if (g === 'project') {
     groups = [
       ...inp.projects
-        .filter((p) => !p.deletedAt)
+        .filter((p) => !p.deletedAt && !p.template)
         .sort(byOrder)
         .map((p) => {
           const apply = { projectId: p.id, sectionId: firstSection(p.id) };

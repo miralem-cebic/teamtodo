@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon';
 import { Menu, Popover, usePop } from '../../components/Popover';
-import { archiveProject, deleteProject, renameProject, setProjectColor, useApp } from '../../store/appStore';
+import { archiveProject, deleteProject, renameProject, saveAsTemplate, setProjectColor, showToast, useApp } from '../../store/appStore';
 import { lastDueDate } from '../../lib/calendar';
 import { fmtDate } from '../../lib/dates';
 import { COLORS, type Project } from '../../data/types';
@@ -35,6 +35,11 @@ export function Header({ view, onBurger }: { view: View; onBurger: () => void })
         <div className="ttl">
           <span className="ttl-ic"><Icon n="bell" s={18} /></span>
           <h1>{t('nav.inbox')}</h1>
+        </div>
+      ) : view.type === 'templates' ? (
+        <div className="ttl">
+          <span className="ttl-ic"><Icon n="copy" s={18} /></span>
+          <h1>{t('nav.templates')}</h1>
         </div>
       ) : (
         <div className="ttl">
@@ -111,6 +116,7 @@ function ProjectTitle({ proj }: { proj: Project }) {
               proj.archivedAt
                 ? { label: t('project.restore'), icon: 'archive' as const, onClick: () => archiveProject(proj.id, false) }
                 : { label: t('project.archive'), icon: 'archive' as const, onClick: () => archiveProject(proj.id, true) },
+              { label: t('templates.saveAs'), icon: 'copy' as const, onClick: () => saveAsTemplate(proj.id, proj.name) && showToast(t('templates.saved', { name: proj.name })) },
               { label: t('project.delete'), icon: 'trash' as const, danger: true, keepFocus: true, onClick: () => deleteProject(proj.id) },
             ]}
           />

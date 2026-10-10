@@ -3,7 +3,7 @@ import { makeProject, makeSection, makeTask, makeUser, newId, nowIso, pickColor 
 import type { Activity, ActivityType, Attachment, Color, ID, MergeableField, Project, Section, Snapshot, Task, TaskState, User, WorkspaceFile } from '../data/types';
 import { MERGEABLE_FIELDS } from '../data/types';
 import type { StorageErrorKind } from '../data/repository';
-import { descendantIds } from './selectors';
+import { descendantIds, liveSections } from './selectors';
 import { t as tr } from '../i18n';
 
 // Central app state. All changes go through the actions below:
@@ -40,8 +40,6 @@ export interface AppState {
 
   // UI state shared by several views
   panelId: ID | null;
-  panelBack: ID[];
-  panelFwd: ID[];
   focusReq: FocusRequest | null;
   toast: Toast | null;
   /** Freshly completed or handed-off tasks stay visible until the view is left */
@@ -59,8 +57,6 @@ const initial: AppState = {
   tasks: {},
   meId: null,
   panelId: null,
-  panelBack: [],
-  panelFwd: [],
   focusReq: null,
   toast: null,
   recentDone: new Set(),
@@ -106,7 +102,7 @@ function pushUndo(entry: UndoEntry, toast: boolean) {
 export function loadSnapshot(snap: Snapshot) {
   const tasks: Record<ID, TaskState> = {};
   for (const t of snap.tasks) tasks[t.id] = t;
-  set({ workspace: snap.workspace, users: snap.users, projects: snap.projects, tasks, undoStack: [], panelId: null, panelBack: [], panelFwd: [] });
+  set({ workspace: snap.workspace, users: snap.users, projects: snap.projects, tasks, undoStack: [], panelId: null });
 }
 
 export function resetApp() {
@@ -316,6 +312,68 @@ export function deleteSection(projectId: ID, sectionId: ID) {
   );
 }
 
+/* ---------- Templates ---------- */
+
+/** Open tasks and subtasks of a project, including completed ones, as they are stored */
+const liveTasksOf = (projectId: ID): TaskState[] =>
+  Object.values(get().tasks).filter((t) => t.projectId === projectId && !t.deletedAt && !t.draft);
+
+/**
+ * Copies a task tree into another project. Only the structure is copied: title, description, order, subtask relation
+ * and section. Assignee, due date, status, followers, comments, attachments and activity are not copied.
+ */
+function copyTaskTree(src: TaskState[], projectId: ID, sectionMap: Map<ID, ID>): Record<ID, TaskState> {
+  const me = get().meId;
+  const ids = new Map(src.map((t) => [t.id, newId()] as const));
+  const out: Record<ID, TaskState> = {};
+  for (const t of src) {
+    const id = ids.get(t.id)!;
+    out[id] = {
+      ...makeTask({ createdBy: me ?? 'unbekannt', id, projectId, title: t.title, description: t.description, order: t.order }),
+      parentId: t.parentId ? (ids.get(t.parentId) ?? null) : null,
+      sectionId: t.parentId ? null : (sectionMap.get(t.sectionId ?? '') ?? null),
+      followerIds: me ? [me] : [],
+      activity: [act('created')],
+      draft: false,
+    };
+  }
+  return out;
+}
+
+/** Saves a project as a template: its sections and tasks (subtasks included), without the project in the project list. */
+export function saveAsTemplate(projectId: ID, name: string): ID | null {
+  const s = get();
+  const src = s.projects.find((p) => p.id === projectId && !p.deletedAt && !p.template);
+  if (!src || !name.trim()) return null;
+  const tpl: Project = { ...makeProject(name.trim(), src.color, Math.max(0, ...s.projects.map((x) => x.order)) + 1, []), template: true };
+  const sectionMap = new Map<ID, ID>();
+  tpl.sections = liveSections(src).map((sec) => {
+    const copy = makeSection(sec.name, sec.order);
+    sectionMap.set(sec.id, copy.id);
+    return copy;
+  });
+  const tasks = copyTaskTree(liveTasksOf(src.id), tpl.id, sectionMap);
+  set((st) => ({ projects: [...st.projects, tpl], tasks: { ...st.tasks, ...tasks } }));
+  return tpl.id;
+}
+
+/** Creates a project from a template. Sections and tasks are copied; due dates and assignments are not. */
+export function addProjectFromTemplate(templateId: ID, name: string): ID | null {
+  const s = get();
+  const tpl = s.projects.find((p) => p.id === templateId && p.template && !p.deletedAt);
+  if (!tpl || !name.trim()) return null;
+  const p = makeProject(name.trim(), pickColor(s.projects.length), Math.max(0, ...s.projects.map((x) => x.order)) + 1, []);
+  const sectionMap = new Map<ID, ID>();
+  p.sections = liveSections(tpl).map((sec) => {
+    const copy = makeSection(sec.name, sec.order);
+    sectionMap.set(sec.id, copy.id);
+    return copy;
+  });
+  const tasks = copyTaskTree(liveTasksOf(tpl.id), p.id, sectionMap);
+  set((st) => ({ projects: [...st.projects, p], tasks: { ...st.tasks, ...tasks } }));
+  return p.id;
+}
+
 /* ---------- Comments, followers, attachments ---------- */
 
 /** @Name in the text → user IDs (longest names first, so that "@Lena Hoffmann" wins over "@Lena") */
@@ -478,21 +536,10 @@ export function undo() {
 /* ---------- Panel and focus ---------- */
 
 export function openPanel(id: ID) {
-  const s = get();
-  if (s.panelId === id) return;
-  set({ panelId: id, panelBack: s.panelId ? [...s.panelBack.slice(-29), s.panelId] : s.panelBack, panelFwd: [] });
+  if (get().panelId !== id) set({ panelId: id });
 }
 export function closePanel() {
   set({ panelId: null });
-}
-export function panelHistory(dir: -1 | 1) {
-  const s = get();
-  const from = dir < 0 ? s.panelBack : s.panelFwd;
-  const target = [...from].reverse().find((id) => s.tasks[id] && !s.tasks[id]!.deletedAt);
-  if (!target || !s.panelId) return;
-  const rest = from.slice(0, from.lastIndexOf(target));
-  if (dir < 0) set({ panelId: target, panelBack: rest, panelFwd: [...s.panelFwd, s.panelId] });
-  else set({ panelId: target, panelFwd: rest, panelBack: [...s.panelBack, s.panelId] });
 }
 
 let focusSeq = 0;

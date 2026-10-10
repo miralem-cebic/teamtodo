@@ -19,6 +19,7 @@ import { InboxView } from '../inbox/InboxView';
 import { loadInboxRead } from '../inbox/inbox';
 import { CalendarView } from '../calendar/CalendarView';
 import { exportIcs } from '../calendar/exportIcs';
+import { TemplatesView } from '../templates/TemplatesView';
 import { today } from '../../lib/dates';
 
 export function Workspace() {
@@ -58,6 +59,8 @@ export function Workspace() {
   );
   const groupsRef = useRef(groups);
   groupsRef.current = groups;
+  /** Tasks in the order they are shown (collapsed groups excluded): the task panel's arrows follow it */
+  const listIds = useMemo(() => (view.type === 'inbox' || view.type === 'templates' ? [] : groups.filter((g) => !g.collapsed).flatMap((g) => g.tasks.map((x) => x.id))), [groups, view.type]);
   /** Open tasks of the view after filters: the calendar and the calendar export use them */
   const openTasks = useMemo(() => groups.flatMap((g) => g.tasks).filter((x) => !x.completedAt), [groups]);
   const viewName = useApp((s) => (view.type === 'project' ? s.projects.find((p) => p.id === (view as { id: string }).id)?.name : undefined));
@@ -140,9 +143,9 @@ export function Workspace() {
       <main className="main">
         <div className="content">
           <Header view={view} onBurger={() => setNavOpen(true)} />
-          {view.type === 'inbox' ? (
+          {view.type === 'inbox' || view.type === 'templates' ? (
             <div className="scroll" data-testid="list-scroll">
-              <InboxView />
+              {view.type === 'inbox' ? <InboxView /> : <TemplatesView onCreated={(id) => go({ type: 'project', id })} />}
             </div>
           ) : (
             <>
@@ -170,7 +173,7 @@ export function Workspace() {
             </>
           )}
         </div>
-        {panelId && <TaskPanel key={panelId} id={panelId} />}
+        {panelId && <TaskPanel key={panelId} id={panelId} order={listIds} />}
       </main>
       </TaskDnd>
       <ToastHost />

@@ -411,3 +411,29 @@ button.meta:hover{background:var(--hover);color:var(--text)}
   .cal-day .cal-chip.overdue{border:0;background:none}
   .cal-wd{font-size:10px;padding:5px 2px;text-align:center}
 }
+
+/* Links (lib/links.ts): clickable URLs in descriptions and comments, and the input for Ctrl/⌘ + K */
+.rich{white-space:pre-wrap;overflow-wrap:anywhere;cursor:text;min-height:76px}
+.rich:focus{outline:none}
+.rich a,.cmt-b a,.inbox-snip a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.link-bar{display:flex;align-items:center;gap:8px;margin-top:6px}
+.link-bar input{flex:1;min-width:0;height:32px;border:1px solid var(--accent);border-radius:var(--r);padding:0 9px;background:var(--surface)}
+.link-bar input[aria-invalid="true"]{border-color:var(--danger)}
+.link-err{font-size:12px;color:var(--danger);white-space:nowrap}
+
+/* Templates view and new-project dialog */
+.tpl-view .inbox-tools{align-items:flex-start}
+.tpl-intro{margin:0;flex:1;min-width:0}
+.tpl-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.tpl-row{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--line)}
+.tpl-name{flex:1;min-width:0;height:30px;border:1px solid transparent;border-radius:var(--r);padding:0 8px;background:transparent;font-weight:500}
+.tpl-name:hover{border-color:var(--line)}
+.tpl-name:focus{border-color:var(--accent);outline:none;background:var(--surface)}
+.tpl-meta{font-size:12px;color:var(--text-3);white-space:nowrap}
+.tpl-field{display:grid;gap:4px;margin:6px 0 12px;font-size:13px;color:var(--text-2)}
+.tpl-field input{height:34px;border:1px solid var(--line-2);border-radius:var(--r);padding:0 9px;background:var(--surface);color:var(--text)}
+.tpl-field input:focus{border-color:var(--accent);outline:none}
+.tpl-source{border:0;margin:0;padding:0;display:grid;gap:6px}
+.tpl-source legend{font-size:13px;color:var(--text-2);padding:0;margin-bottom:4px}
+.tpl-opt{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.tpl-hint{margin:4px 0 0;font-size:12px}

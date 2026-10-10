@@ -102,6 +102,8 @@ src/
 - **Drafts:** new empty rows have `draft: true` and are never written. A file is created only once the row has a title.
 - **Soft delete:** `deletedAt` is set instead of deleting the file (tasks, sections, projects). Removed permanently after 30 days (`maintenance.ts`).
 - **`fieldUpdatedAt`:** every change to a mergeable field sets that field's timestamp. This is the basis of the field-level merge.
+- **Templates:** a template is a project with `template: true` in `projects.json`. It is excluded from the project list and from all task views (`hiddenProjectIds` in `store/selectors.ts`). Its tasks are the blueprint: `saveAsTemplate` and `addProjectFromTemplate` copy the structure (`copyTaskTree`) without assignees, due dates, followers, comments or status.
+- **Links:** text is stored as typed. `lib/links.ts` finds bare `http(s)://` and `www.` addresses and `[label](https://…)` links; `components/RichText.tsx` renders them. Only http and https are accepted.
 - **Undo:** entries store the previous state of the affected tasks and projects. Undoing resets changed fields with a new timestamp; comments and activity are kept.
 - **Focus:** `requestFocus(id, scope)` + `claimFocus()`: each request takes effect exactly once (rows that move to another group do not steal focus again).
 - **Who am I:** stored per browser in `localStorage` (`teamtodo.me.<workspaceId>`), not in the shared folder.
