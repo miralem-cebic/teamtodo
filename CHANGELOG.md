@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Interface translations: German, French, Spanish, and Italian in addition to English. The app starts in your browser's language. Change it under **Language** in the account menu at the bottom left.
 - Pastel color themes: Light blue, Light green, Pink, Lavender, and Peach. Choose one under **Theme** in the account menu. Dark mode works with each theme.
 - Browser notifications (opt-in, **Notifications** in the account menu) when a teammate assigns you a task, when one of your tasks is due today, or when it is due within an hour.
+- Calendar view: a month overview of the open tasks by due date (weeks start on Monday), with a list of tasks without a date. Switch with **Calendar** in the toolbar or press **C**. The project header shows the latest due date of its open tasks.
+- Calendar export: save a task, or all open tasks of the current view, as a calendar file (`.ics`) for Outlook, Apple Calendar, or Google Calendar. Open the file or attach it to an email. Timed tasks are written in UTC.
 
 ## [0.1.1] - 2026-10-10
 

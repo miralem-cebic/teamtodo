@@ -357,6 +357,21 @@ const MESSAGES_SRC = {
   "notify.off": ["Notifications are off.", "Benachrichtigungen sind deaktiviert.", "Notifications désactivées.", "Notificaciones desactivadas.", "Notifiche disattivate."],
   "notify.denied": ["Notifications are blocked by the browser. Allow them for this site in the browser settings.", "Der Browser blockiert Benachrichtigungen. Erlaube sie für diese Seite in den Browser-Einstellungen.", "Le navigateur bloque les notifications. Autorisez-les pour ce site dans ses paramètres.", "El navegador bloquea las notificaciones. Permítelas para este sitio en la configuración del navegador.", "Il browser blocca le notifiche. Consentile per questo sito nelle impostazioni del browser."],
   "notify.unsupported": ["This browser does not support notifications.", "Dieser Browser unterstützt keine Benachrichtigungen.", "Ce navigateur ne prend pas en charge les notifications.", "Este navegador no admite notificaciones.", "Questo browser non supporta le notifiche."],
+  "view.calendar": ["Calendar", "Kalender", "Calendrier", "Calendario", "Calendario"],
+  "toolbar.calendarTitle": ["Calendar (C)", "Kalender (C)", "Calendrier (C)", "Calendario (C)", "Calendario (C)"],
+  "cal.today": ["Today", "Heute", "Aujourd’hui", "Hoy", "Oggi"],
+  "cal.prev": ["Previous month", "Vorheriger Monat", "Mois précédent", "Mes anterior", "Mese precedente"],
+  "cal.next": ["Next month", "Nächster Monat", "Mois suivant", "Mes siguiente", "Mese successivo"],
+  "cal.noDate": ["Without due date", "Ohne Fälligkeitsdatum", "Sans échéance", "Sin fecha de vencimiento", "Senza scadenza"],
+  "cal.allDated": ["Every open task has a due date.", "Jede offene Aufgabe hat ein Fälligkeitsdatum.", "Chaque tâche ouverte a une échéance.", "Todas las tareas abiertas tienen fecha.", "Ogni attività aperta ha una scadenza."],
+  "cal.addOn": ["New task due {date}", "Neue Aufgabe fällig am {date}", "Nouvelle tâche due le {date}", "Nueva tarea para el {date}", "Nuova attività per il {date}"],
+  "project.lastDue": ["Last due: {date}", "Letzte Fälligkeit: {date}", "Dernière échéance : {date}", "Último vencimiento: {date}", "Ultima scadenza: {date}"],
+  "ics.addToCalendar": ["Export to calendar (.ics)", "In Kalender exportieren (.ics)", "Exporter vers le calendrier (.ics)", "Exportar al calendario (.ics)", "Esporta nel calendario (.ics)"],
+  "ics.exportView": ["Calendar export", "Kalenderexport", "Export calendrier", "Exportar calendario", "Esporta calendario"],
+  "ics.exportViewTitle": ["Export the open tasks of this view as a calendar file (.ics)", "Offene Aufgaben dieser Ansicht als Kalenderdatei (.ics) exportieren", "Exporter les tâches ouvertes de cette vue dans un fichier de calendrier (.ics)", "Exportar las tareas abiertas de esta vista como archivo de calendario (.ics)", "Esporta le attività aperte di questa vista come file di calendario (.ics)"],
+  "ics.noDates": ["None of these open tasks has a due date, so there is nothing to export.", "Keine dieser offenen Aufgaben hat ein Fälligkeitsdatum, es gibt nichts zu exportieren.", "Aucune de ces tâches ouvertes n’a d’échéance : rien à exporter.", "Ninguna de estas tareas abiertas tiene fecha, no hay nada que exportar.", "Nessuna di queste attività aperte ha una scadenza: niente da esportare."],
+  "ics.exported": ["Calendar file created with {n} events. Open it to add them to your calendar.", "Kalenderdatei mit {n} Terminen erstellt. Öffne sie, um sie in deinen Kalender zu übernehmen.", "Fichier de calendrier créé avec {n} événements. Ouvrez-le pour les ajouter à votre calendrier.", "Archivo de calendario creado con {n} eventos. Ábrelo para añadirlos a tu calendario.", "File di calendario creato con {n} eventi. Aprilo per aggiungerli al tuo calendario."],
+  "ics.exportedSkipped": ["Calendar file created with {n} events. {skipped} tasks without a due date were skipped.", "Kalenderdatei mit {n} Terminen erstellt. {skipped} Aufgaben ohne Fälligkeitsdatum wurden übersprungen.", "Fichier de calendrier créé avec {n} événements. {skipped} tâches sans échéance ont été ignorées.", "Archivo de calendario creado con {n} eventos. Se omitieron {skipped} tareas sin fecha.", "File di calendario creato con {n} eventi. {skipped} attività senza scadenza sono state saltate."],
   // @@ADD@@
 } satisfies Record<string, Tr>;
 
