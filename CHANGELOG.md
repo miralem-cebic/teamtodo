@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-10
+
 ### Added
 
 - Links in descriptions and comments: a web address (`https://…`) is clickable by itself. Select text and press Ctrl/⌘ + K to turn it into a link. Only `http` and `https` links are accepted.
