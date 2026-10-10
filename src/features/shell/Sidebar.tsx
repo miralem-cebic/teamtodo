@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { Menu, Popover, usePop } from '../../components/Popover';
-import { addProject, archiveProject, useApp } from '../../store/appStore';
+import { addProject, archiveProject, showToast, useApp } from '../../store/appStore';
 import { byOrder, visibleTasks, type View } from '../../store/selectors';
 import { forgetFolder, switchUser, useSession } from '../../app/session';
 import { useInbox } from '../inbox/InboxView';
 import { LANGS, LANG_NAMES, currentLang, t } from '../../i18n';
 import { PALETTES, setLanguage, setPalette, usePrefs } from '../../store/prefs';
+import { setNotificationsEnabled } from '../../lib/notifications';
 import { paletteLabel } from '../../lib/labels';
 
 interface Props {
@@ -30,6 +31,7 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
   const [showArchived, setShowArchived] = useState(false);
   const up = usePop();
   const palette = usePrefs((s) => s.palette ?? 'standard');
+  const notifications = usePrefs((s) => !!s.notifications);
   const me = users.find((u) => u.id === meId);
   const { unread } = useInbox();
 
@@ -178,6 +180,14 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
               { sep: true as const },
               { head: t('theme.title') },
               ...PALETTES.map((p) => ({ label: paletteLabel(p), dot: `pal-${p}`, active: palette === p, onClick: () => setPalette(p), keepFocus: true })),
+              { sep: true as const },
+              {
+                label: t('notify.menu'),
+                icon: 'bell' as const,
+                active: notifications,
+                keepFocus: true,
+                onClick: () => void setNotificationsEnabled(!notifications).then((r) => showToast(t(`notify.${r}`))),
+              },
             ]}
           />
         </Popover>

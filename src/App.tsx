@@ -4,6 +4,7 @@ import { currentLang } from './i18n';
 import { Onboarding } from './features/onboarding/Onboarding';
 import { Workspace } from './features/workspace/Workspace';
 import { usePrefs } from './store/prefs';
+import { startNotifications } from './lib/notifications';
 
 export function App() {
   const phase = useSession((s) => s.phase);
@@ -12,6 +13,7 @@ export function App() {
   const palette = usePrefs((s) => s.palette ?? 'standard');
   useEffect(() => {
     void boot();
+    return startNotifications();
   }, []);
   useEffect(() => {
     document.documentElement.lang = currentLang();

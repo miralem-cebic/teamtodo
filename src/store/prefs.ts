@@ -31,6 +31,8 @@ export interface Prefs {
   language?: Lang;
   /** Color palette; unset means "standard" */
   palette?: Palette;
+  /** Browser notifications for assigned tasks and due dates (the browser permission is separate) */
+  notifications?: boolean;
 }
 
 const fallback: Prefs = { view: { type: 'my' }, layout: {}, settings: {}, collapsed: {}, expanded: {} };
@@ -63,6 +65,7 @@ export function settingsFor(p: Prefs, v: View): ViewSettings {
 export const setView = (view: View) => usePrefs.setState({ view });
 export const setLanguage = (language: Lang) => usePrefs.setState({ language });
 export const setPalette = (palette: Palette) => usePrefs.setState({ palette });
+export const setNotifications = (notifications: boolean) => usePrefs.setState({ notifications });
 export const setLayout = (v: View, layout: Layout) => usePrefs.setState((p) => ({ layout: { ...p.layout, [viewKey(v)]: layout } }));
 export const patchSettings = (v: View, patch: Partial<ViewSettings>) =>
   usePrefs.setState((p) => ({ settings: { ...p.settings, [viewKey(v)]: { ...settingsFor(p, v), ...patch } } }));

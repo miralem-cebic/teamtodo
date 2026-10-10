@@ -348,6 +348,15 @@ const MESSAGES_SRC = {
   "theme.pink": ["Pink", "Rosa", "Rose", "Rosa", "Rosa"],
   "theme.lavender": ["Lavender", "Lavendel", "Lavande", "Lavanda", "Lavanda"],
   "theme.peach": ["Peach", "Pfirsich", "Pêche", "Melocotón", "Pesca"],
+  "notify.menu": ["Notifications", "Benachrichtigungen", "Notifications", "Notificaciones", "Notifiche"],
+  "notify.assignedTitle": ["Task assigned to you", "Dir wurde eine Aufgabe zugewiesen", "Une tâche vous a été assignée", "Te han asignado una tarea", "Ti è stata assegnata un’attività"],
+  "notify.assignedBody": ["{name} assigned you “{title}”", "{name} hat dir „{title}“ zugewiesen", "{name} vous a assigné « {title} »", "{name} te asignó «{title}»", "{name} ti ha assegnato «{title}»"],
+  "notify.dueTitle": ["Due today", "Heute fällig", "À échéance aujourd’hui", "Vence hoy", "Scade oggi"],
+  "notify.dueSoonTitle": ["Due at {time}", "Fällig um {time}", "Échéance à {time}", "Vence a las {time}", "Scade alle {time}"],
+  "notify.on": ["Notifications are on.", "Benachrichtigungen sind aktiviert.", "Notifications activées.", "Notificaciones activadas.", "Notifiche attivate."],
+  "notify.off": ["Notifications are off.", "Benachrichtigungen sind deaktiviert.", "Notifications désactivées.", "Notificaciones desactivadas.", "Notifiche disattivate."],
+  "notify.denied": ["Notifications are blocked by the browser. Allow them for this site in the browser settings.", "Der Browser blockiert Benachrichtigungen. Erlaube sie für diese Seite in den Browser-Einstellungen.", "Le navigateur bloque les notifications. Autorisez-les pour ce site dans ses paramètres.", "El navegador bloquea las notificaciones. Permítelas para este sitio en la configuración del navegador.", "Il browser blocca le notifiche. Consentile per questo sito nelle impostazioni del browser."],
+  "notify.unsupported": ["This browser does not support notifications.", "Dieser Browser unterstützt keine Benachrichtigungen.", "Ce navigateur ne prend pas en charge les notifications.", "Este navegador no admite notificaciones.", "Questo browser non supporta le notifiche."],
   // @@ADD@@
 } satisfies Record<string, Tr>;
 
