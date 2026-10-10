@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Interface translations: German, French, Spanish, and Italian in addition to English. The app starts in your browser's language. Change it under **Language** in the account menu at the bottom left.
+- Pastel color themes: Light blue, Light green, Pink, Lavender, and Peach. Choose one under **Theme** in the account menu. Dark mode works with each theme.
 
 ## [0.1.1] - 2026-10-10
 

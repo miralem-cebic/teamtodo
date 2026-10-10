@@ -1,6 +1,7 @@
 import { t, type MessageKey } from '../i18n';
 import type { TaskStatus } from '../data/types';
 import type { StorageErrorKind } from '../data/repository';
+import type { Palette } from '../store/prefs';
 
 // Labels that depend on the UI language. Call them at render time, not at module load.
 
@@ -24,3 +25,14 @@ const ERROR_KEY: Record<StorageErrorKind, MessageKey> = {
 };
 
 export const errorText = (kind: StorageErrorKind): string => t(ERROR_KEY[kind]);
+
+const PALETTE_KEY: Record<Palette, MessageKey> = {
+  standard: 'theme.standard',
+  blue: 'theme.blue',
+  green: 'theme.green',
+  pink: 'theme.pink',
+  lavender: 'theme.lavender',
+  peach: 'theme.peach',
+};
+
+export const paletteLabel = (p: Palette): string => t(PALETTE_KEY[p]);

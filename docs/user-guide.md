@@ -14,6 +14,10 @@ Tip: bookmark the opened page to get there faster next time.
 
 The app is available in **English**, **Deutsch**, **Français**, **Español** and **Italiano**. It starts in the language of your browser (English if it is not one of these). To change it, click your name at the bottom left, then choose a language under **Language**. The choice is saved in this browser only.
 
+## Theme
+
+For a softer look, choose a pastel theme in the same menu, under **Theme**: **Light blue**, **Light green**, **Pink**, **Lavender** or **Peach**. **Standard** is the default. Dark mode follows your computer's setting. The choice is saved in this browser only.
+
 ## Connecting the data folder
 
 On first start, the app asks for the **data folder**. This is the folder where your team's tasks are stored.

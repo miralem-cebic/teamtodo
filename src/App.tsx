@@ -9,11 +9,15 @@ export function App() {
   const phase = useSession((s) => s.phase);
   // Remounting the workspace on a language change re-renders every text at once
   const lang = usePrefs((s) => s.language ?? 'auto');
+  const palette = usePrefs((s) => s.palette ?? 'standard');
   useEffect(() => {
     void boot();
   }, []);
   useEffect(() => {
     document.documentElement.lang = currentLang();
   }, [lang]);
+  useEffect(() => {
+    document.documentElement.dataset.palette = palette;
+  }, [palette]);
   return phase === 'ready' ? <Workspace key={lang} /> : <Onboarding />;
 }

@@ -341,6 +341,13 @@ const MESSAGES_SRC = {
   "panel.openDetails": ["Open details", "Details öffnen", "Ouvrir les détails", "Abrir detalles", "Apri dettagli"],
   "check.undone": ["Mark as not done", "Als nicht erledigt markieren", "Marquer comme non terminée", "Marcar como no completada", "Segna come non completata"],
   "section.new": ["New section", "Neuer Abschnitt", "Nouvelle section", "Nueva sección", "Nuova sezione"],
+  "theme.title": ["Theme", "Farbschema", "Thème", "Tema", "Tema"],
+  "theme.standard": ["Standard", "Standard", "Standard", "Estándar", "Standard"],
+  "theme.blue": ["Light blue", "Hellblau", "Bleu clair", "Azul claro", "Azzurro"],
+  "theme.green": ["Light green", "Hellgrün", "Vert clair", "Verde claro", "Verde chiaro"],
+  "theme.pink": ["Pink", "Rosa", "Rose", "Rosa", "Rosa"],
+  "theme.lavender": ["Lavender", "Lavendel", "Lavande", "Lavanda", "Lavanda"],
+  "theme.peach": ["Peach", "Pfirsich", "Pêche", "Melocotón", "Pesca"],
   // @@ADD@@
 } satisfies Record<string, Tr>;
 

@@ -7,7 +7,8 @@ import { byOrder, visibleTasks, type View } from '../../store/selectors';
 import { forgetFolder, switchUser, useSession } from '../../app/session';
 import { useInbox } from '../inbox/InboxView';
 import { LANGS, LANG_NAMES, currentLang, t } from '../../i18n';
-import { setLanguage } from '../../store/prefs';
+import { PALETTES, setLanguage, setPalette, usePrefs } from '../../store/prefs';
+import { paletteLabel } from '../../lib/labels';
 
 interface Props {
   view: View;
@@ -28,6 +29,7 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
   const [name, setName] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const up = usePop();
+  const palette = usePrefs((s) => s.palette ?? 'standard');
   const me = users.find((u) => u.id === meId);
   const { unread } = useInbox();
 
@@ -173,6 +175,9 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
               { sep: true as const },
               { head: t('nav.language') },
               ...LANGS.map((l) => ({ label: LANG_NAMES[l], active: currentLang() === l, onClick: () => setLanguage(l), keepFocus: true })),
+              { sep: true as const },
+              { head: t('theme.title') },
+              ...PALETTES.map((p) => ({ label: paletteLabel(p), dot: `pal-${p}`, active: palette === p, onClick: () => setPalette(p), keepFocus: true })),
             ]}
           />
         </Popover>
