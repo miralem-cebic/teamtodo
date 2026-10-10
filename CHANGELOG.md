@@ -6,10 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-10
+
 ### Added
 
 - Team management: rename people, remove them (their open tasks become unassigned, with undo), and restore removed people. Open it with the edit icon next to **Team** in the sidebar.
 - User guide: screenshots of the list and board views.
+- README: app icon and screenshot collage.
 
 ## [0.1.0] - 2026-10-10
 
