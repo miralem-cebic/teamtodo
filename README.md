@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/icon.png" alt="teamtodo icon" width="96" height="96" />
+</p>
+
 # teamtodo
 
 [![CI](https://github.com/miralem-cebic/teamtodo/actions/workflows/ci.yml/badge.svg)](https://github.com/miralem-cebic/teamtodo/actions/workflows/ci.yml)
@@ -9,8 +13,9 @@
 
 It runs entirely in the browser and needs no server. All data is stored as plain files in a shared folder, for example on OneDrive or SharePoint, so your team keeps full control over its data.
 
-<!-- TODO: add a screenshot at docs/screenshot.png and uncomment the line below -->
-<!-- ![teamtodo screenshot](docs/screenshot.png) -->
+<p align="center">
+  <img src="docs/collage.png" alt="teamtodo in use: list view with sections and subtasks, and board view with one column per section" width="100%" />
+</p>
 
 ## Highlights
 
