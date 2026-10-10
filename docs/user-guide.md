@@ -38,6 +38,8 @@ On later starts the app shows **"Continue with folder …"**. One click is enoug
 - **Sections:** inside a project, sections group tasks. Add one with **Add section** below the last section. Rename it by double-clicking the name.
 - **My tasks** shows everything assigned to you, across all projects, sorted by due date.
 
+![List view of a project with sections, subtasks, assignees, due dates and status](screenshot.png)
+
 ### Moving tasks with drag and drop
 
 When you hover over a row, a handle (⋮⋮) appears on its left edge. Drag it to move a task within a section or into another section. Sections are moved by the handle next to their name; subtasks work the same way in the detail panel. Dragging a task onto **Today** in **My tasks** sets its date to today. Nothing can be dropped onto **Overdue**.
@@ -49,6 +51,8 @@ When you hover over a row, a handle (⋮⋮) appears on its left edge. Drag it t
 - **Sort** by due date, title, person, or creation date. Ordering by dragging is only available with **Manual**.
 - **Group** by section, person, due date, status, or project.
 - **Open tasks / All tasks / Completed tasks** shows or hides completed tasks.
+
+![Board view of a project with one column per section and task cards](screenshot2.png)
 
 ### Comments, attachments, followers
 

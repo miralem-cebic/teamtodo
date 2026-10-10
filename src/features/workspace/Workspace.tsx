@@ -9,6 +9,7 @@ import { ListView } from '../list/ListView';
 import { Header } from '../shell/Header';
 import { Toolbar } from '../shell/Toolbar';
 import { DataDialog } from '../shell/DataDialog';
+import { TeamDialog } from '../team/TeamDialog';
 import { BoardView } from '../board/BoardView';
 import { TaskDnd } from '../dnd/TaskDnd';
 import { Sidebar } from '../shell/Sidebar';
@@ -28,6 +29,7 @@ export function Workspace() {
   const [navOpen, setNavOpen] = useState(false);
   const [keysOpen, setKeysOpen] = useState(false);
   const [dataOpen, setDataOpen] = useState(false);
+  const [teamOpen, setTeamOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const workspaceId = useApp((s) => s.workspace?.id);
   useEffect(() => {
@@ -119,7 +121,7 @@ export function Workspace() {
 
   return (
     <div className={'app' + (navOpen ? ' nav-open' : '') + (panelId ? ' has-panel' : '')}>
-      <Sidebar view={view} go={go} openKeys={() => setKeysOpen(true)} openData={() => setDataOpen(true)} />
+      <Sidebar view={view} go={go} openKeys={() => setKeysOpen(true)} openData={() => setDataOpen(true)} openTeam={() => setTeamOpen(true)} />
       {navOpen && <div className="scrim" onClick={() => setNavOpen(false)} />}
       <TaskDnd groups={groups} settings={settings} childrenOf={children}>
       <main className="main">
@@ -148,6 +150,7 @@ export function Workspace() {
       <ToastHost />
       {keysOpen && <KeysDialog onClose={() => setKeysOpen(false)} />}
       {dataOpen && <DataDialog onClose={() => setDataOpen(false)} />}
+      {teamOpen && <TeamDialog onClose={() => setTeamOpen(false)} />}
     </div>
   );
 }
