@@ -345,3 +345,16 @@ button.meta:hover{background:var(--hover);color:var(--text)}
   .grip,.details,.g-more,.s-open{opacity:1}
   .row .fld.empty>*,.srow .fld.empty>*{opacity:.7}
 }
+
+/* Team dialog */
+.tm-in{flex:1;min-width:0;height:32px;padding:0 10px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--surface);color:var(--text)}
+.tm-in[aria-invalid="true"]{border-color:var(--danger)}
+.tm-hint{color:var(--danger);margin:6px 0 0}
+.tm-list{list-style:none;margin:12px 0 0;padding:0}
+.tm-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
+.tm-row:last-child{border-bottom:0}
+.tm-name{flex:1;min-width:0;height:28px;padding:0 6px;border:1px solid transparent;border-radius:var(--r);background:transparent;color:var(--text);font:inherit}
+.tm-name:hover,.tm-name:focus{border-color:var(--line-2);background:var(--surface)}
+.tm-meta{color:var(--text-3);font-size:12px;white-space:nowrap}
+.tm-confirm{display:flex;gap:6px}
+.tm-gone .tm-name{color:var(--text-3);text-decoration:line-through}

@@ -107,3 +107,52 @@ describe('Grouping', () => {
     expect(addDays(today(), 1) > today()).toBe(true);
   });
 });
+
+describe('Team', () => {
+  it('removing a person unassigns their open tasks, subtasks included, and keeps completed ones', () => {
+    const other = A.addUser('Gast');
+    const open = A.addTask({ title: 'Offen', assigneeId: other });
+    const sub = A.addTask({ title: 'Unteraufgabe', assigneeId: other, parentId: open });
+    const done = A.addTask({ title: 'Erledigt', assigneeId: other, completedAt: '2026-10-01T10:00:00.000Z' });
+    const mine = A.addTask({ title: 'Meins', assigneeId: me });
+
+    expect(A.deleteUser(other)).toBe(2);
+
+    expect(st().users.find((u) => u.id === other)!.deletedAt).toBeTruthy();
+    expect(st().tasks[open]!.assigneeId).toBeNull();
+    expect(st().tasks[sub]!.assigneeId).toBeNull();
+    expect(st().tasks[done]!.assigneeId).toBe(other);
+    expect(st().tasks[mine]!.assigneeId).toBe(me);
+    expect(st().tasks[open]!.activity.at(-1)?.type).toBe('unassigned');
+  });
+
+  it('the person who is logged in cannot be removed', () => {
+    expect(A.deleteUser(me)).toBe(0);
+    expect(st().users.find((u) => u.id === me)!.deletedAt).toBeFalsy();
+  });
+
+  it('undo brings the person and their assignments back', () => {
+    const other = A.addUser('Gast');
+    const id = A.addTask({ title: 'Offen', assigneeId: other });
+    A.deleteUser(other);
+    A.undo();
+    expect(st().users.find((u) => u.id === other)!.deletedAt).toBeFalsy();
+    expect(st().tasks[id]!.assigneeId).toBe(other);
+  });
+
+  it('a removed person can be restored, without getting the old tasks back', () => {
+    const other = A.addUser('Gast');
+    const id = A.addTask({ title: 'Offen', assigneeId: other });
+    A.deleteUser(other);
+    A.restoreUser(other);
+    expect(st().users.find((u) => u.id === other)!.deletedAt).toBeNull();
+    expect(st().tasks[id]!.assigneeId).toBeNull();
+  });
+
+  it('renaming trims the name and ignores empty names', () => {
+    A.renameUser(me, '  Neu  ');
+    expect(st().users.find((u) => u.id === me)!.name).toBe('Neu');
+    A.renameUser(me, '   ');
+    expect(st().users.find((u) => u.id === me)!.name).toBe('Neu');
+  });
+});

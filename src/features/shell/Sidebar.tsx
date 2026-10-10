@@ -12,9 +12,10 @@ interface Props {
   go: (v: View) => void;
   openKeys: () => void;
   openData: () => void;
+  openTeam: () => void;
 }
 
-export function Sidebar({ view, go, openKeys, openData }: Props) {
+export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
   const tasks = useApp((s) => s.tasks);
   const projects = useApp((s) => s.projects);
   const users = useApp((s) => s.users);
@@ -132,7 +133,12 @@ export function Sidebar({ view, go, openKeys, openData }: Props) {
           {conflicts} conflict cop{conflicts === 1 ? 'y' : 'ies'} in the data folder
         </p>
       )}
-      <div className="side-h"><span>Team</span></div>
+      <div className="side-h">
+        <span>Team</span>
+        <button type="button" className="icon-btn" onClick={openTeam} aria-label="Manage team" title="Manage team">
+          <Icon n="edit" s={14} />
+        </button>
+      </div>
       <div className="team">
         {users.filter((u) => !u.deletedAt).map((u) => (
           <Avatar key={u.id} user={u} size={26} />

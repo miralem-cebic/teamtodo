@@ -27,6 +27,7 @@ interface UndoEntry {
   label: string;
   tasks: Record<ID, TaskState | undefined>;
   projects?: Project[];
+  users?: Record<ID, User | undefined>;
 }
 
 export interface AppState {
@@ -383,6 +384,46 @@ export function addUser(name: string): ID {
   return u.id;
 }
 
+export function renameUser(id: ID, name: string) {
+  const trimmed = name.trim();
+  const u = get().users.find((x) => x.id === id);
+  if (!u || !trimmed || trimmed === u.name) return;
+  set((s) => ({ users: s.users.map((x) => (x.id === id ? { ...x, name: trimmed, updatedAt: nowIso() } : x)) }));
+}
+
+/**
+ * Removes a person (soft delete, the history stays). Their open tasks, subtasks included, become unassigned.
+ * Completed tasks keep their assignee. Returns the number of tasks that were unassigned.
+ * The person who is logged in on this browser cannot be removed.
+ */
+export function deleteUser(id: ID): number {
+  const s = get();
+  const u = s.users.find((x) => x.id === id);
+  if (!u || u.deletedAt || id === s.meId) return 0;
+  const at = nowIso();
+  const before: UndoEntry['tasks'] = {};
+  const tasks = { ...s.tasks };
+  const open = Object.values(s.tasks).filter((t) => t.assigneeId === id && !t.deletedAt && !t.completedAt);
+  for (const t of open) {
+    before[t.id] = t;
+    tasks[t.id] = applyPatch(t, { assigneeId: null }, at);
+  }
+  set({
+    tasks,
+    users: s.users.map((x) => (x.id === id ? { ...x, deletedAt: at, updatedAt: at } : x)),
+  });
+  pushUndo({ label: `"${u.name}" removed from the team`, tasks: before, users: { [id]: u } }, true);
+  return open.length;
+}
+
+/** Brings a removed person back. Tasks that were unassigned at removal stay unassigned. */
+export function restoreUser(id: ID) {
+  const u = get().users.find((x) => x.id === id);
+  if (!u?.deletedAt) return;
+  set((s) => ({ users: s.users.map((x) => (x.id === id ? { ...x, deletedAt: null, updatedAt: nowIso() } : x)) }));
+  showToast(`"${u.name}" is back in the team`);
+}
+
 /* ---------- Undo ---------- */
 
 export function undo() {
@@ -423,7 +464,13 @@ export function undo() {
         : { ...p, sections };
     });
   }
-  set({ tasks, projects, undoStack: s.undoStack.slice(0, -1) });
+  let users = s.users;
+  if (entry.users) {
+    const prev = entry.users;
+    // Restored with a new timestamp, so that the restore also wins against the removal in other browsers
+    users = s.users.map((x) => (x.id in prev ? { ...prev[x.id]!, updatedAt: at } : x));
+  }
+  set({ tasks, projects, users, undoStack: s.undoStack.slice(0, -1) });
   showToast('Undone');
 }
 
