@@ -76,10 +76,3 @@ export function classifyError(e: unknown): StorageErrorKind {
   return 'other';
 }
 
-export const ERROR_TEXT: Record<StorageErrorKind, string> = {
-  permission: 'No access to the folder.',
-  notFound: 'Data folder not found. Was it moved or renamed?',
-  quota: 'No storage space left.',
-  newerSchema: 'The data comes from a newer version of the app. Please update the app.',
-  other: 'Saving failed.',
-};

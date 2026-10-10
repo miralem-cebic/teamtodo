@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { addDays, fmtDate, fmtDue, fmtMonth, fromIsoDate, nextMonday, parseDateInput, toIsoDate, today } from '../lib/dates';
 import type { ISODate } from '../data/types';
 import { Icon } from './Icon';
+import { fmt, t } from '../i18n';
 
 interface Props {
   value: ISODate | null;
@@ -25,11 +26,11 @@ export function DatePicker({ value, time, onPick, onTime }: Props) {
   const parsed = parseDateInput(q);
 
   const quick: { label: string; v: ISODate | null }[] = [
-    { label: 'Today', v: t0 },
-    { label: 'Tomorrow', v: addDays(t0, 1) },
-    { label: 'Next week', v: nextMonday() },
+    { label: t('due.today'), v: t0 },
+    { label: t('due.tomorrow'), v: addDays(t0, 1) },
+    { label: t('date.nextWeek'), v: nextMonday() },
   ];
-  const options = parsed ? [{ label: fmtDue(parsed), v: parsed }] : [...quick, ...(value ? [{ label: 'Remove date', v: null }] : [])];
+  const options = parsed ? [{ label: fmtDue(parsed), v: parsed }] : [...quick, ...(value ? [{ label: t('date.remove'), v: null }] : [])];
 
   const days = useMemo(() => {
     const first = new Date(month);
@@ -49,7 +50,7 @@ export function DatePicker({ value, time, onPick, onTime }: Props) {
         autoFocus
         value={q}
         placeholder="e.g. tomorrow, fr, 12.10."
-        aria-label="Enter date"
+        aria-label={t('date.enter')}
         aria-invalid={!!q.trim() && !parsed}
         onChange={(e) => {
           setQ(e.target.value);
@@ -69,8 +70,8 @@ export function DatePicker({ value, time, onPick, onTime }: Props) {
           }
         }}
       />
-      {q.trim() && !parsed ? <p className="dp-hint">Date not recognized</p> : null}
-      <div className="dp-quick" role="listbox" aria-label="Schnellauswahl">
+      {q.trim() && !parsed ? <p className="dp-hint">{t('date.notRecognized')}</p> : null}
+      <div className="dp-quick" role="listbox" aria-label={t('date.quick')}>
         {options.map((o, i) => (
           <button
             key={o.label}
@@ -86,16 +87,16 @@ export function DatePicker({ value, time, onPick, onTime }: Props) {
         ))}
       </div>
       <div className="dp-head">
-        <button type="button" className="icon-btn" onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))} aria-label="Vorheriger Monat">
+        <button type="button" className="icon-btn" onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))} aria-label={t('date.prevMonth')}>
           <Icon n="chevL" />
         </button>
         <span>{fmtMonth(month)}</span>
-        <button type="button" className="icon-btn" onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))} aria-label="Next month">
+        <button type="button" className="icon-btn" onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))} aria-label={t('date.nextMonth')}>
           <Icon n="chevR" />
         </button>
       </div>
       <div className="dp-grid">
-        {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((w) => (
+        {Array.from({ length: 7 }, (_, i) => fmt(new Date(2024, 0, 1 + i), 'EEEEEE')).map((w) => (
           <span key={w} className="dp-wd">{w}</span>
         ))}
         {days.map((d) => {
@@ -118,14 +119,14 @@ export function DatePicker({ value, time, onPick, onTime }: Props) {
         {value ? (
           <label className="dp-time">
             <Icon n="status" s={14} />
-            <input type="time" value={time ?? ''} onChange={(e) => onTime(e.target.value || null)} aria-label="Uhrzeit" />
+            <input type="time" value={time ?? ''} onChange={(e) => onTime(e.target.value || null)} aria-label={t('date.time')} />
           </label>
         ) : (
           <span />
         )}
         {value && (
           <button type="button" className="link" onClick={() => onPick(null)}>
-            Remove date
+            {t('date.remove')}
           </button>
         )}
       </div>

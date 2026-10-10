@@ -2,10 +2,14 @@ import { useMemo, useState } from 'react';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { Menu, Popover, usePop } from '../../components/Popover';
-import { addProject, archiveProject, useApp } from '../../store/appStore';
+import { addProject, archiveProject, showToast, useApp } from '../../store/appStore';
 import { byOrder, visibleTasks, type View } from '../../store/selectors';
 import { forgetFolder, switchUser, useSession } from '../../app/session';
 import { useInbox } from '../inbox/InboxView';
+import { LANGS, LANG_NAMES, currentLang, t } from '../../i18n';
+import { PALETTES, setLanguage, setPalette, usePrefs } from '../../store/prefs';
+import { setNotificationsEnabled } from '../../lib/notifications';
+import { paletteLabel } from '../../lib/labels';
 
 interface Props {
   view: View;
@@ -26,6 +30,8 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
   const [name, setName] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const up = usePop();
+  const palette = usePrefs((s) => s.palette ?? 'standard');
+  const notifications = usePrefs((s) => !!s.notifications);
   const me = users.find((u) => u.id === meId);
   const { unread } = useInbox();
 
@@ -45,26 +51,26 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
   const archived = live.filter((p) => p.archivedAt);
 
   return (
-    <nav className="side" aria-label="Navigation">
+    <nav className="side" aria-label={t('nav.label')}>
       <div className="brand">
         <span className="logo" aria-hidden="true"><Icon n="check" s={14} /></span>
         teamtodo
       </div>
       <button type="button" className={'nav' + (view.type === 'my' ? ' on' : '')} onClick={() => go({ type: 'my' })} aria-current={view.type === 'my' ? 'page' : undefined}>
         <Icon n="mine" />
-        <span>My tasks</span>
+        <span>{t('nav.myTasks')}</span>
         <span className="n">{counts.my}</span>
       </button>
       <button type="button" className={'nav' + (view.type === 'inbox' ? ' on' : '')} onClick={() => go({ type: 'inbox' })} aria-current={view.type === 'inbox' ? 'page' : undefined}
-        aria-label={unread ? `Inbox, ${unread} unread` : 'Inbox'}>
+        aria-label={unread ? t('nav.inboxUnread', { n: unread }) : t('nav.inbox')}>
         <Icon n="bell" />
-        <span>Inbox</span>
+        <span>{t('nav.inbox')}</span>
         {unread > 0 && <span className="n badge-n">{unread}</span>}
       </button>
 
       <div className="side-h">
-        <span>Projects</span>
-        <button type="button" className="icon-btn" onClick={() => setAdding(true)} aria-label="Add project">
+        <span>{t('nav.projects')}</span>
+        <button type="button" className="icon-btn" onClick={() => setAdding(true)} aria-label={t('project.add')}>
           <Icon n="plus" s={15} />
         </button>
       </div>
@@ -81,8 +87,8 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
           <input
             autoFocus
             value={name}
-            placeholder="Project name"
-            aria-label="Project name"
+            placeholder={t('project.name')}
+            aria-label={t('project.name')}
             onChange={(e) => setName(e.target.value)}
             onBlur={() => {
               setAdding(false);
@@ -104,11 +110,11 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
           />
         </div>
       )}
-      {!active.length && !adding && <p className="side-empty">No projects yet.</p>}
+      {!active.length && !adding && <p className="side-empty">{t('side.noProjects')}</p>}
       {archived.length > 0 && (
         <>
           <button type="button" className="side-h side-toggle" onClick={() => setShowArchived((v) => !v)} aria-expanded={showArchived}>
-            <span>Archiv ({archived.length})</span>
+            <span>{t('side.archive', { n: archived.length })}</span>
             <Icon n={showArchived ? 'chevD' : 'chevR'} s={14} />
           </button>
           {showArchived &&
@@ -118,7 +124,7 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
                   <span className={'sq c-' + p.color} />
                   <span>{p.name}</span>
                 </button>
-                <button type="button" className="icon-btn" onClick={() => archiveProject(p.id, false)} aria-label={`${p.name} restore`} title="Restore">
+                <button type="button" className="icon-btn" onClick={() => archiveProject(p.id, false)} aria-label={t('project.restoreNamed', { name: p.name })} title={t('project.restore')}>
                   <Icon n="archive" s={14} />
                 </button>
               </div>
@@ -128,14 +134,14 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
 
       <span className="sp" />
       {conflicts > 0 && (
-        <p className="side-note" role="button" tabIndex={0} onClick={openData} onKeyDown={(e) => e.key === 'Enter' && openData()} title='Details under "Data and backups"'>
+        <p className="side-note" role="button" tabIndex={0} onClick={openData} onKeyDown={(e) => e.key === 'Enter' && openData()} title={t('side.conflictHint')}>
           <Icon n="alert" s={14} />
-          {conflicts} conflict cop{conflicts === 1 ? 'y' : 'ies'} in the data folder
+          {conflicts === 1 ? t('side.conflict1') : t('side.conflictN', { n: conflicts })}
         </p>
       )}
       <div className="side-h">
-        <span>Team</span>
-        <button type="button" className="icon-btn" onClick={openTeam} aria-label="Manage team" title="Manage team">
+        <span>{t('team.title')}</span>
+        <button type="button" className="icon-btn" onClick={openTeam} aria-label={t('team.manage')} title={t('team.manage')}>
           <Icon n="edit" s={14} />
         </button>
       </div>
@@ -146,28 +152,42 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
       </div>
       <button type="button" className="nav" onClick={openData}>
         <Icon n="db" />
-        <span>Data and backups</span>
+        <span>{t('nav.data')}</span>
       </button>
       <button type="button" className="nav" onClick={openKeys}>
         <Icon n="key" />
-        <span>Keyboard shortcuts</span>
+        <span>{t('nav.shortcuts')}</span>
         <kbd>?</kbd>
       </button>
-      <button type="button" className="me" onClick={up.open} aria-label="Switch person or folder">
+      <button type="button" className="me" onClick={up.open} aria-label={t('nav.switchAria')}>
         <Avatar user={me} size={28} />
         <span>
-          <small>{dirName ? `Folder "${dirName}"` : 'Signed in as'}</small>
+          <small>{dirName ? t('nav.folder', { name: dirName }) : t('nav.signedIn')}</small>
           {me?.name}
         </span>
         <Icon n="chevD" s={14} />
       </button>
       {up.anchor && (
-        <Popover anchor={up.anchor} onClose={up.close} width={240} label="Konto">
+        <Popover anchor={up.anchor} onClose={up.close} width={240} label={t('nav.account')}>
           <Menu
             onClose={up.close}
             items={[
-              { label: 'Switch person', icon: 'swap', onClick: switchUser, keepFocus: true },
-              { label: 'Choose another data folder', icon: 'folder', onClick: () => void forgetFolder(), keepFocus: true },
+              { label: t('nav.switchPerson'), icon: 'swap', onClick: switchUser, keepFocus: true },
+              { label: t('nav.chooseFolder'), icon: 'folder', onClick: () => void forgetFolder(), keepFocus: true },
+              { sep: true as const },
+              { head: t('nav.language') },
+              ...LANGS.map((l) => ({ label: LANG_NAMES[l], active: currentLang() === l, onClick: () => setLanguage(l), keepFocus: true })),
+              { sep: true as const },
+              { head: t('theme.title') },
+              ...PALETTES.map((p) => ({ label: paletteLabel(p), dot: `pal-${p}`, active: palette === p, onClick: () => setPalette(p), keepFocus: true })),
+              { sep: true as const },
+              {
+                label: t('notify.menu'),
+                icon: 'bell' as const,
+                active: notifications,
+                keepFocus: true,
+                onClick: () => void setNotificationsEnabled(!notifications).then((r) => showToast(t(`notify.${r}`))),
+              },
             ]}
           />
         </Popover>

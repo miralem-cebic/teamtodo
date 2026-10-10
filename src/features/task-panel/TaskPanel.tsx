@@ -22,12 +22,13 @@ import { orderBetween, visibleTasks } from '../../store/selectors';
 import type { ID, TaskState } from '../../data/types';
 import { Attachments } from './Attachments';
 import { CommentBox, Feed } from './Feed';
+import { t as tr } from '../../i18n';
 import { Followers } from './Followers';
 import { useDndRow } from '../dnd/TaskDnd';
 
 const short = (s: string) => {
-  const t = s.trim() || 'Untitled';
-  return t.length > 40 ? t.slice(0, 38) + '…' : t;
+  const v = s.trim() || tr('task.untitled');
+  return v.length > 40 ? v.slice(0, 38) + '…' : v;
 };
 
 export function TaskPanel({ id }: { id: ID }) {
@@ -47,28 +48,28 @@ export function TaskPanel({ id }: { id: ID }) {
   const done = !!t.completedAt;
 
   return (
-    <aside className="panel" aria-label="Task details">
+    <aside className="panel" aria-label={tr('panel.label')}>
       <div className="p-top">
         <button type="button" className={'done-btn' + (done ? ' on' : '')} onClick={() => toggleDone(t.id)} aria-pressed={done}>
           <Icon n="check" s={14} />
-          {done ? 'Done' : 'Mark as done'}
+          {done ? tr('status.done') : tr('panel.markDone')}
         </button>
         <span className="sp" />
-        <button type="button" className="icon-btn" onClick={() => panelHistory(-1)} disabled={!canBack} aria-label="Back to previous task">
+        <button type="button" className="icon-btn" onClick={() => panelHistory(-1)} disabled={!canBack} aria-label={tr('panel.back')}>
           <Icon n="chevL" />
         </button>
-        <button type="button" className="icon-btn" onClick={() => panelHistory(1)} disabled={!canFwd} aria-label="Forward to next task">
+        <button type="button" className="icon-btn" onClick={() => panelHistory(1)} disabled={!canFwd} aria-label={tr('panel.forward')}>
           <Icon n="chevR" />
         </button>
-        <button type="button" className="icon-btn" onClick={p.open} aria-label="More actions">
+        <button type="button" className="icon-btn" onClick={p.open} aria-label={tr('panel.more')}>
           <Icon n="dots" />
         </button>
         {p.anchor && (
-          <Popover anchor={p.anchor} onClose={p.close} width={200} label="Aktionen">
-            <Menu onClose={p.close} items={[{ label: 'Delete task', icon: 'trash', danger: true, keepFocus: true, onClick: () => deleteTask(t.id) }]} />
+          <Popover anchor={p.anchor} onClose={p.close} width={200} label={tr('panel.actions')}>
+            <Menu onClose={p.close} items={[{ label: tr('task.delete'), icon: 'trash', danger: true, keepFocus: true, onClick: () => deleteTask(t.id) }]} />
           </Popover>
         )}
-        <button type="button" className="icon-btn" onClick={closePanel} aria-label="Close details">
+        <button type="button" className="icon-btn" onClick={closePanel} aria-label={tr('panel.close')}>
           <Icon n="x" />
         </button>
       </div>
@@ -83,40 +84,40 @@ export function TaskPanel({ id }: { id: ID }) {
           inputRef={titleRef}
           className="p-title"
           value={t.title}
-          placeholder="Task title"
-          ariaLabel="Task title"
+          placeholder={tr('task.title')}
+          ariaLabel={tr('task.title')}
           onChange={(v) => updateTask(t.id, { title: v })}
           onEnter={(e) => e.currentTarget.blur()}
         />
         <div className="fields">
-          <span className="f-l">Assignee</span>
+          <span className="f-l">{tr('group.assignee')}</span>
           <div><AssigneeField task={t} full /></div>
-          <span className="f-l">Due</span>
+          <span className="f-l">{tr('panel.due')}</span>
           <div><DueField task={t} full /></div>
-          <span className="f-l">Project</span>
+          <span className="f-l">{tr('group.project')}</span>
           <div><ProjectField task={t} showSection={false} /></div>
           {t.projectId && !t.parentId && (
             <>
-              <span className="f-l">Section</span>
+              <span className="f-l">{tr('group.section')}</span>
               <div><SectionField task={t} /></div>
             </>
           )}
-          <span className="f-l">Status</span>
+          <span className="f-l">{tr('group.status')}</span>
           <div><StatusField task={t} /></div>
         </div>
-        <h4 className="p-h">Beschreibung</h4>
+        <h4 className="p-h">{tr('panel.description')}</h4>
         <AutoText
           className="p-desc"
           value={t.description}
           onChange={(v) => updateTask(t.id, { description: v })}
-          placeholder="What is it about? Context, links and agreements"
-          ariaLabel="Beschreibung"
+          placeholder={tr('panel.descPlaceholder')}
+          ariaLabel={tr('panel.description')}
         />
-        <h4 className="p-h">Subtasks</h4>
+        <h4 className="p-h">{tr('panel.subtasks')}</h4>
         <SubtaskList parent={t} />
-        <h4 className="p-h">Attachments</h4>
-        <Attachments t={t} />
-        <h4 className="p-h">Comments and activity</h4>
+        <h4 className="p-h">{tr('panel.attachments')}</h4>
+        <Attachments task={t} />
+        <h4 className="p-h">{tr('panel.feed')}</h4>
         <Feed t={t} />
         <Followers t={t} />
       </div>
@@ -138,9 +139,9 @@ function SubtaskList({ parent }: { parent: TaskState }) {
   return (
     <div className="subs">
       {subs.length > 0 && (
-        <div className="progress" aria-label={`${done} of ${subs.length} done`}>
+        <div className="progress" aria-label={tr('panel.progress', { done, total: subs.length })}>
           <div className="bar"><div style={{ width: `${(done / subs.length) * 100}%` }} /></div>
-          <span>{done} of {subs.length} done</span>
+          <span>{tr('panel.progress', { done, total: subs.length })}</span>
         </div>
       )}
       {subs.map((s) => (
@@ -148,7 +149,7 @@ function SubtaskList({ parent }: { parent: TaskState }) {
       ))}
       <button type="button" className="add-btn" onClick={addAtEnd}>
         <Icon n="plus" s={14} />
-        Add subtask
+        {tr('panel.addSubtask')}
       </button>
     </div>
   );
@@ -172,7 +173,7 @@ function SubRow({ t, parent, siblings, kids }: { t: TaskState; parent: TaskState
     const a = siblings[i + dir];
     if (!a) return;
     const b = siblings[i + 2 * dir];
-    updateTask(t.id, { order: dir < 0 ? orderBetween(b, a) : orderBetween(a, b) }, { undo: 'Moved' });
+    updateTask(t.id, { order: dir < 0 ? orderBetween(b, a) : orderBetween(a, b) }, { undo: tr('undo.moved') });
   };
 
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -239,7 +240,7 @@ function SubRow({ t, parent, siblings, kids }: { t: TaskState; parent: TaskState
           focusRow(neighbour(e.currentTarget, e.key === 'ArrowUp' ? -1 : 1));
         }
       }}>
-      <span className="grip" {...dnd.handle} aria-label="Drag to move" title="Drag to move">
+      <span className="grip" {...dnd.handle} aria-label={tr('panel.drag')} title={tr('panel.drag')}>
         <Icon n="grip" s={13} />
       </span>
       <Check done={!!t.completedAt} onToggle={() => toggleDone(t.id)} small />
@@ -248,8 +249,8 @@ function SubRow({ t, parent, siblings, kids }: { t: TaskState; parent: TaskState
         data-title
         className="s-in"
         value={t.title}
-        placeholder="Subtask"
-        aria-label="Subtask"
+        placeholder={tr('panel.subtask')}
+        aria-label={tr('panel.subtask')}
         onChange={(e) => updateTask(t.id, { title: e.target.value })}
         onKeyDown={onKey}
         onBlur={() => {
@@ -266,7 +267,7 @@ function SubRow({ t, parent, siblings, kids }: { t: TaskState; parent: TaskState
         <AssigneeField task={t} />
         <DueField task={t} />
       </div>
-      <button type="button" className="icon-btn s-open" tabIndex={-1} onClick={() => openPanel(t.id)} aria-label="Open subtask">
+      <button type="button" className="icon-btn s-open" tabIndex={-1} onClick={() => openPanel(t.id)} aria-label={tr('panel.openSubtask')}>
         <Icon n="chevR" s={14} />
       </button>
     </div>

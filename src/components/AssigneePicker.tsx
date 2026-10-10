@@ -3,6 +3,7 @@ import { addUser, useApp } from '../store/appStore';
 import type { ID } from '../data/types';
 import { Avatar } from './Avatar';
 import { Icon } from './Icon';
+import { t } from '../i18n';
 
 interface Item {
   k: string;
@@ -22,10 +23,10 @@ export function AssigneePicker({ value, onPick }: { value: ID | null; onPick: (i
   const live = users.filter((u) => !u.deletedAt);
   const ql = q.trim().toLowerCase();
   const items: Item[] = [];
-  if (!ql && meId && value !== meId) items.push({ k: 'me', label: 'Mir zuweisen', id: meId, me: true });
+  if (!ql && meId && value !== meId) items.push({ k: 'me', label: t('assignee.toMe'), id: meId, me: true });
   live.filter((u) => u.name.toLowerCase().includes(ql)).forEach((u) => items.push({ k: u.id, label: u.name, id: u.id }));
-  if (ql && !live.some((u) => u.name.toLowerCase() === ql)) items.push({ k: 'new', label: `Add "${q.trim()}" to the team`, isNew: true });
-  if (!ql && value) items.push({ k: 'none', label: 'Remove assignment', id: null, none: true });
+  if (ql && !live.some((u) => u.name.toLowerCase() === ql)) items.push({ k: 'new', label: t('assignee.addNew', { name: q.trim() }), isNew: true });
+  if (!ql && value) items.push({ k: 'none', label: t('assignee.remove'), id: null, none: true });
 
   const pick = (it: Item) => onPick(it.isNew ? addUser(q.trim()) : (it.id ?? null));
   const userOf = (it: Item) => live.find((u) => u.id === it.id);
@@ -35,9 +36,9 @@ export function AssigneePicker({ value, onPick }: { value: ID | null; onPick: (i
       <input
         className="pk-in"
         autoFocus
-        placeholder="Name suchen"
+        placeholder={t('assignee.search')}
         value={q}
-        aria-label="Search person"
+        aria-label={t('assignee.searchAria')}
         role="combobox"
         aria-expanded="true"
         aria-controls="pk-people"
@@ -74,7 +75,7 @@ export function AssigneePicker({ value, onPick }: { value: ID | null; onPick: (i
           >
             {userOf(it) ? <Avatar user={userOf(it)} /> : <span className="av ghost"><Icon n={it.none ? 'x' : 'plus'} s={12} /></span>}
             <span>{it.label}</span>
-            {it.me && <span className="pk-hint">Ich</span>}
+            {it.me && <span className="pk-hint">{t('filter.me')}</span>}
           </button>
         ))}
       </div>

@@ -1,0 +1,30 @@
+/* Pastel color palettes. Chosen under "Theme" in the account menu (stored per browser).
+   Each palette overrides the color tokens of tokens.css; the default look needs no palette.
+   Generated from the palette table; text colors stay as in tokens.css. */
+/* Light blue */
+:root[data-palette="blue"]{--bg:#F1F7FC;--surface-2:#F7FBFE;--hover:#E6F0F9;--line:#DCE7F1;--line-2:#C5D6E5;--sel:#DDEEFA;--sel-line:#9CC8E6;--accent:#2F6F9F;--accent-2:#245878;--accent-soft:#DDEEFA;--on-accent:#FFFFFF;--info:#2F6F9F;--info-soft:#DDEEFA;--muted-soft:#E6EEF5;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"])[data-palette="blue"]{--bg:#111A22;--surface:#17212B;--surface-2:#1C2935;--hover:#213241;--line:#263747;--line-2:#33495C;--sel:#1B3346;--sel-line:#2E5A78;--accent:#8CC8EE;--accent-2:#B2DCF5;--accent-soft:#1B3346;--on-accent:#0B1620;--info:#8CC8EE;--info-soft:#1B3346;--muted-soft:#223446;}}
+:root[data-theme="dark"][data-palette="blue"]{--bg:#111A22;--surface:#17212B;--surface-2:#1C2935;--hover:#213241;--line:#263747;--line-2:#33495C;--sel:#1B3346;--sel-line:#2E5A78;--accent:#8CC8EE;--accent-2:#B2DCF5;--accent-soft:#1B3346;--on-accent:#0B1620;--info:#8CC8EE;--info-soft:#1B3346;--muted-soft:#223446;}
+/* Light green */
+:root[data-palette="green"]{--bg:#F2F9F4;--surface-2:#F8FCF9;--hover:#E7F4EA;--line:#DCEBE0;--line-2:#C4DCCB;--sel:#E0F3E6;--sel-line:#A3D6B3;--accent:#2E7D4F;--accent-2:#22613C;--accent-soft:#E0F3E6;--on-accent:#FFFFFF;--info:#2E7D4F;--info-soft:#E0F3E6;--muted-soft:#E8F1EA;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"])[data-palette="green"]{--bg:#101A13;--surface:#16221A;--surface-2:#1B2A20;--hover:#213427;--line:#263D2E;--line-2:#345341;--sel:#1A3524;--sel-line:#2F5E40;--accent:#8DD9A8;--accent-2:#B3EBC8;--accent-soft:#1A3524;--on-accent:#0B1A10;--info:#8DD9A8;--info-soft:#1A3524;--muted-soft:#213027;}}
+:root[data-theme="dark"][data-palette="green"]{--bg:#101A13;--surface:#16221A;--surface-2:#1B2A20;--hover:#213427;--line:#263D2E;--line-2:#345341;--sel:#1A3524;--sel-line:#2F5E40;--accent:#8DD9A8;--accent-2:#B3EBC8;--accent-soft:#1A3524;--on-accent:#0B1A10;--info:#8DD9A8;--info-soft:#1A3524;--muted-soft:#213027;}
+/* Pink */
+:root[data-palette="pink"]{--bg:#FDF4F7;--surface-2:#FEF9FB;--hover:#FBE9F0;--line:#F1DCE5;--line-2:#E2C2D0;--sel:#FBE3EC;--sel-line:#EFB3C8;--accent:#B0457A;--accent-2:#8E3461;--accent-soft:#FBE3EC;--on-accent:#FFFFFF;--info:#B0457A;--info-soft:#FBE3EC;--muted-soft:#F6EAF0;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"])[data-palette="pink"]{--bg:#1A1117;--surface:#211720;--surface-2:#281C27;--hover:#30212F;--line:#3A2A37;--line-2:#4D3847;--sel:#3A2233;--sel-line:#6B3D58;--accent:#F2A7C6;--accent-2:#F9CCDE;--accent-soft:#3A2233;--on-accent:#220F19;--info:#F2A7C6;--info-soft:#3A2233;--muted-soft:#2E2129;}}
+:root[data-theme="dark"][data-palette="pink"]{--bg:#1A1117;--surface:#211720;--surface-2:#281C27;--hover:#30212F;--line:#3A2A37;--line-2:#4D3847;--sel:#3A2233;--sel-line:#6B3D58;--accent:#F2A7C6;--accent-2:#F9CCDE;--accent-soft:#3A2233;--on-accent:#220F19;--info:#F2A7C6;--info-soft:#3A2233;--muted-soft:#2E2129;}
+/* Lavender */
+:root[data-palette="lavender"]{--bg:#F6F3FC;--surface-2:#FBFAFE;--hover:#EEE9F8;--line:#E4DDF2;--line-2:#CFC4E6;--sel:#E9E2F8;--sel-line:#C0AEE3;--accent:#6B4BB0;--accent-2:#553A92;--accent-soft:#E9E2F8;--on-accent:#FFFFFF;--info:#6B4BB0;--info-soft:#E9E2F8;--muted-soft:#EEEAF5;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"])[data-palette="lavender"]{--bg:#15121C;--surface:#1C1826;--surface-2:#221E2F;--hover:#2A2539;--line:#332D45;--line-2:#443C5A;--sel:#2C2545;--sel-line:#4F4375;--accent:#BBA6F0;--accent-2:#D6C9F7;--accent-soft:#2C2545;--on-accent:#130E22;--info:#BBA6F0;--info-soft:#2C2545;--muted-soft:#292437;}}
+:root[data-theme="dark"][data-palette="lavender"]{--bg:#15121C;--surface:#1C1826;--surface-2:#221E2F;--hover:#2A2539;--line:#332D45;--line-2:#443C5A;--sel:#2C2545;--sel-line:#4F4375;--accent:#BBA6F0;--accent-2:#D6C9F7;--accent-soft:#2C2545;--on-accent:#130E22;--info:#BBA6F0;--info-soft:#2C2545;--muted-soft:#292437;}
+/* Peach */
+:root[data-palette="peach"]{--bg:#FDF6F0;--surface-2:#FFFAF6;--hover:#FCEEE3;--line:#F2E2D5;--line-2:#E4CAB4;--sel:#FCE8DA;--sel-line:#F0BE9A;--accent:#A9571F;--accent-2:#84420F;--accent-soft:#FCE8DA;--on-accent:#FFFFFF;--info:#A9571F;--info-soft:#FCE8DA;--muted-soft:#F5ECE5;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"])[data-palette="peach"]{--bg:#1A130E;--surface:#221A14;--surface-2:#2A2119;--hover:#33281F;--line:#3E3127;--line-2:#533F30;--sel:#3B2A1C;--sel-line:#6E4D33;--accent:#F5B98A;--accent-2:#FAD3B5;--accent-soft:#3B2A1C;--on-accent:#22140A;--info:#F5B98A;--info-soft:#3B2A1C;--muted-soft:#30261E;}}
+:root[data-theme="dark"][data-palette="peach"]{--bg:#1A130E;--surface:#221A14;--surface-2:#2A2119;--hover:#33281F;--line:#3E3127;--line-2:#533F30;--sel:#3B2A1C;--sel-line:#6E4D33;--accent:#F5B98A;--accent-2:#FAD3B5;--accent-soft:#3B2A1C;--on-accent:#22140A;--info:#F5B98A;--info-soft:#3B2A1C;--muted-soft:#30261E;}
+/* Swatches in the theme menu */
+.c-pal-standard{--c:#0D7A69}
+.c-pal-blue{--c:#9CC8E6}
+.c-pal-green{--c:#A3D6B3}
+.c-pal-pink{--c:#EFB3C8}
+.c-pal-lavender{--c:#C0AEE3}
+.c-pal-peach{--c:#F0BE9A}

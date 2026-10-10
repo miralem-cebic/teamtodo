@@ -1,64 +1,65 @@
 import { Dialog } from '../../components/Dialog';
+import { t } from '../../i18n';
 
 const MOD = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘' : 'Ctrl';
 const ALT = MOD === '⌘' ? '⌥' : 'Alt';
 
-export const KEYS: [string, [string, string][]][] = [
+export const keySections = (): [string, [string, string][]][] => [
   [
-    'In a task row',
+    t('keys.inRow'),
     [
-      ['Enter', 'Save and new row below'],
-      ['Enter in empty row', 'Leave input'],
-      [`${MOD} + Enter`, 'Complete / reopen'],
-      ['↑ / ↓', 'Previous / next task'],
-      [`${MOD} + Umschalt + ↑ / ↓`, 'Move task'],
-      ['Tab / Umschalt + Tab', 'Switch between title, person, date and status'],
-      ['Backspace in empty row', 'Delete row'],
-      [`${ALT} + P`, 'Choose person'],
-      [`${ALT} + M`, 'Mir zuweisen'],
-      [`${ALT} + D`, 'Choose date'],
-      [`${ALT} + S`, 'Create subtask'],
-      [`${MOD} + O`, 'Open details'],
-      ['Esc', 'Leave input, row stays selected'],
+      ['Enter', t('keys.saveNewRow')],
+      [t('keys.enterEmpty'), t('keys.leaveInput')],
+      [`${MOD} + Enter`, t('keys.complete')],
+      ['↑ / ↓', t('keys.prevNext')],
+      [`${MOD} + ${t('keys.shift')} + ↑ / ↓`, t('keys.moveTask')],
+      [`Tab / ${t('keys.shift')} + Tab`, t('keys.switchFields')],
+      [t('keys.backspaceEmpty'), t('keys.deleteRow')],
+      [`${ALT} + P`, t('keys.choosePerson')],
+      [`${ALT} + M`, t('assignee.toMe')],
+      [`${ALT} + D`, t('keys.chooseDate')],
+      [`${ALT} + S`, t('keys.createSubtask')],
+      [`${MOD} + O`, t('keys.openDetails')],
+      ['Esc', t('keys.escStays')],
     ],
   ],
   [
-    'Selected row (after Esc)',
+    t('keys.selectedRow'),
     [
-      ['↑ / ↓', 'Auswahl bewegen'],
-      ['Enter', 'Edit title'],
-      ['Space', 'Open details'],
-      ['Delete', 'Delete task (with undo)'],
-      ['→ / ←', 'Expand / collapse subtasks'],
+      ['↑ / ↓', t('keys.moveSelection')],
+      ['Enter', t('keys.editTitle')],
+      ['Space', t('keys.openDetails')],
+      ['Delete', t('keys.deleteUndo')],
+      ['→ / ←', t('keys.expandCollapse')],
     ],
   ],
   [
-    'Everywhere',
+    t('keys.everywhere'),
     [
-      ['N', 'New task at the top of the first group'],
-      ['/', 'Search'],
-      ['G, dann M', 'Go to "My tasks"'],
-      ['G, dann I', 'Go to inbox'],
-      ['Esc', 'Close details or dialog'],
-      [`${MOD} + Z`, 'Undo'],
-      ['?', 'This overview'],
+      ['N', t('keys.newTask')],
+      ['/', t('toolbar.search')],
+      [t('keys.goMyKey'), t('keys.goMy')],
+      [t('keys.goInboxKey'), t('keys.goInbox')],
+      ['Esc', t('keys.closeDetails')],
+      [`${MOD} + Z`, t('toast.undo')],
+      ['?', t('keys.overview')],
     ],
   ],
   [
-    'Auswahlfelder',
+    t('keys.selectFields'),
     [
-      ['Type', 'Filter (date: "tomorrow", "fr", "12.10.")'],
-      ['↑ / ↓, Enter', 'Select and confirm'],
-      ['Esc', 'Close, focus back to the field'],
+      [t('keys.type'), t('keys.filterHint')],
+      ['↑ / ↓, Enter', t('keys.selectConfirm')],
+      ['Esc', t('keys.closeFocus')],
     ],
   ],
 ];
 
 export function KeysDialog({ onClose }: { onClose: () => void }) {
   return (
-    <Dialog title="Keyboard shortcuts" onClose={onClose}>
+    <Dialog title={t('nav.shortcuts')} onClose={onClose}>
       <div className="keys">
-        {KEYS.map(([h, rows]) => (
+        {keySections().map(([h, rows]) => (
           <div key={h}>
             <h3>{h}</h3>
             {rows.map(([k, d]) => (

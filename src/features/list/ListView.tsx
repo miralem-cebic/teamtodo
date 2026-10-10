@@ -8,6 +8,7 @@ import type { Group, View, ViewSettings } from '../../store/selectors';
 import type { ID, TaskState } from '../../data/types';
 import { TaskRow, type ThirdColumn } from './TaskRow';
 import { useDndGroup, useDndRow } from '../dnd/TaskDnd';
+import { t, t as tr } from '../../i18n';
 
 interface Props {
   groups: Group[];
@@ -32,11 +33,11 @@ export function ListView({ groups, view, settings, collapseKey, children }: Prop
   return (
     <div className={'list' + (third ? '' : ' no3')} role="grid" aria-label="Tasks">
       <div className="lhead" role="row">
-        <div className="h-title" role="columnheader">Task</div>
-        <div className="c" role="columnheader">Assignee</div>
-        <div className="c" role="columnheader">Due</div>
+        <div className="h-title" role="columnheader">{t('list.task')}</div>
+        <div className="c" role="columnheader">{t('group.assignee')}</div>
+        <div className="c" role="columnheader">{t('panel.due')}</div>
         {third && <div className="c c-proj" role="columnheader">{third === 'project' ? 'Project' : 'Section'}</div>}
-        <div className="c c-status" role="columnheader">Status</div>
+        <div className="c c-status" role="columnheader">{t('group.status')}</div>
       </div>
       {groups.map((g) => (
         <GroupSection key={g.key} g={g}>
@@ -66,7 +67,7 @@ export function ListView({ groups, view, settings, collapseKey, children }: Prop
                           }}
                         >
                           <Icon n="plus" s={14} />
-                          Add subtask
+                          {tr('panel.addSubtask')}
                         </button>
                       </div>
                     )}
@@ -77,7 +78,7 @@ export function ListView({ groups, view, settings, collapseKey, children }: Prop
                 <div className="row add-row">
                   <button type="button" className="add-btn" onClick={() => addAt(g)}>
                     <Icon n="plus" s={14} />
-                    Add task
+                    {t('task.add')}
                   </button>
                 </div>
               )}
@@ -88,12 +89,12 @@ export function ListView({ groups, view, settings, collapseKey, children }: Prop
       {view.type === 'project' && settings.group === 'section' && (
         <button type="button" className="add-section" onClick={() => requestFocus(addSection(view.id, 'New section'), 'section')}>
           <Icon n="plus" s={15} />
-          Add section
+          {t('section.add')}
         </button>
       )}
       {!groups.length && (
         <div className="empty-state">
-          <p>No tasks match your filters.</p>
+          <p>{t('list.empty')}</p>
         </div>
       )}
     </div>
@@ -143,7 +144,7 @@ function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseK
         <span className="grip-sp" />
       )}
       <button type="button" className="caret" onClick={() => toggleCollapsed(collapseKey, g.key)} aria-expanded={!g.collapsed}
-        aria-label={`${g.label} ${g.collapsed ? 'ausklappen' : 'einklappen'}`}>
+        aria-label={g.collapsed ? t('group.expand', { name: g.label }) : t('group.collapse', { name: g.label })}>
         <Icon n={g.collapsed ? 'chevR' : 'chevD'} s={15} />
       </button>
       {g.dot && <span className={'dot c-' + g.dot} />}
@@ -157,7 +158,7 @@ function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseK
           onChange={(e) => setName(e.target.value)}
           onFocus={(e) => e.currentTarget.select()}
           onBlur={commit}
-          aria-label="Section name"
+          aria-label={t('section.name')}
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur();
             if (e.key === 'Escape') {
@@ -178,19 +179,19 @@ function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseK
             <Icon n="dots" />
           </button>
           {p.anchor && (
-            <Popover anchor={p.anchor} onClose={p.close} width={230} label="Bereichsoptionen">
+            <Popover anchor={p.anchor} onClose={p.close} width={230} label={t('section.options')}>
               <Menu
                 onClose={p.close}
                 items={[
-                  { label: 'Umbenennen', icon: 'edit', onClick: () => setEditing(true), keepFocus: true },
+                  { label: t('section.rename'), icon: 'edit', onClick: () => setEditing(true), keepFocus: true },
                   {
-                    label: 'Insert section below',
+                    label: t('section.insertBelow'),
                     icon: 'plus',
-                    onClick: () => requestFocus(addSection(projectId, 'New section', g.section!.order), 'section'),
+                    onClick: () => requestFocus(addSection(projectId, t('section.new'), g.section!.order), 'section'),
                     keepFocus: true,
                   },
                   { sep: true },
-                  { label: 'Delete section', icon: 'trash', danger: true, onClick: () => deleteSection(projectId, g.section!.id) },
+                  { label: t('section.delete'), icon: 'trash', danger: true, onClick: () => deleteSection(projectId, g.section!.id) },
                 ]}
               />
             </Popover>

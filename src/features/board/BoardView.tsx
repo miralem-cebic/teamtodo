@@ -7,6 +7,7 @@ import { isOverdue, type Group, type View } from '../../store/selectors';
 import { diffDays, fmtDue, today } from '../../lib/dates';
 import type { ID, TaskState } from '../../data/types';
 import { useDndGroup, useDndRow } from '../dnd/TaskDnd';
+import { t as tr } from '../../i18n';
 
 // Board: Spalten = aktuelle Grouping. Karten per Drag and Drop verschieben.
 // Keyboard: Tab/arrows between cards, Enter/Space opens details, Ctrl/⌘+Enter completes.
@@ -19,7 +20,7 @@ export function BoardView({ groups, view, children }: { groups: Group[]; view: V
       ))}
       {!groups.length && (
         <div className="empty-state">
-          <p>No tasks match your filters.</p>
+          <p>{tr('list.empty')}</p>
         </div>
       )}
     </div>
@@ -91,7 +92,7 @@ function Card({ t, g, view, kids }: { t: TaskState; g: Group; view: View; kids: 
       tabIndex={0}
       role="button"
       data-card={t.id}
-      aria-label={`${t.title || 'Untitled'}${t.completedAt ? ', done' : ''}`}
+      aria-label={(t.title || tr('task.untitled')) + (t.completedAt ? ', ' + tr('status.done') : '')}
       className={'card' + (selected ? ' selected' : '') + (t.completedAt ? ' done' : '') + (flash ? ' flash' : '') + (dnd.dragging ? ' dragging' : '') + (dnd.dropPos ? ' drop-' + dnd.dropPos : '')}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('button')) return;
@@ -147,7 +148,7 @@ function AddCard({ g }: { g: Group }) {
     return (
       <button type="button" className="add-card" onClick={() => setOpen(true)}>
         <Icon n="plus" s={14} />
-        Add task
+        {tr('task.add')}
       </button>
     );
   return (
@@ -157,8 +158,8 @@ function AddCard({ g }: { g: Group }) {
         className="card-in"
         rows={2}
         value={v}
-        placeholder="What needs to be done?"
-        aria-label={`New task in ${g.label}`}
+        placeholder={tr('board.placeholder')}
+        aria-label={tr('board.newIn', { name: g.label })}
         onChange={(e) => setV(e.target.value)}
         onBlur={() => !v.trim() && setOpen(false)}
         onKeyDown={(e) => {
@@ -176,7 +177,7 @@ function AddCard({ g }: { g: Group }) {
           }
         }}
       />
-      <div className="card-hint">Enter saves, then the next one right away</div>
+      <div className="card-hint">{tr('board.enterHint')}</div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { dismissToast, undo, useApp } from '../store/appStore';
 import { Icon } from './Icon';
+import { t } from '../i18n';
 
 export function ToastHost() {
   const toast = useApp((s) => s.toast);
@@ -16,10 +17,10 @@ export function ToastHost() {
       {toast.undo && (
         <button type="button" onClick={undo}>
           <Icon n="chevL" s={13} />
-          Undo
+          {t('toast.undo')}
         </button>
       )}
-      <button type="button" className="icon-btn" onClick={dismissToast} aria-label="Dismiss notice">
+      <button type="button" className="icon-btn" onClick={dismissToast} aria-label={t('toast.dismiss')}>
         <Icon n="x" s={14} />
       </button>
     </div>

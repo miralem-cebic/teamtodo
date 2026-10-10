@@ -10,6 +10,20 @@ teamtodo is a task management tool for marketing teams. It runs directly in the 
 
 Tip: bookmark the opened page to get there faster next time.
 
+## Language
+
+The app is available in **English**, **Deutsch**, **Français**, **Español** and **Italiano**. It starts in the language of your browser (English if it is not one of these). To change it, click your name at the bottom left, then choose a language under **Language**. The choice is saved in this browser only.
+
+## Theme
+
+For a softer look, choose a pastel theme in the same menu, under **Theme**: **Light blue**, **Light green**, **Pink**, **Lavender** or **Peach**. **Standard** is the default. Dark mode follows your computer's setting. The choice is saved in this browser only.
+
+## Notifications
+
+Your browser can show a notice when a teammate **assigns you a task**, or when one of your tasks is **due today**. For a task with a time, the notice comes up to an hour before that time. Turn this on in the account menu at the bottom left, under **Notifications**. The browser asks for permission the first time. The setting applies to this browser only.
+
+Notifications appear while teamtodo is open in a tab or window. Clicking a notice opens the task. If the browser blocks notifications, allow them for the site in the browser's settings.
+
 ## Connecting the data folder
 
 On first start, the app asks for the **data folder**. This is the folder where your team's tasks are stored.
@@ -133,4 +147,7 @@ teamtodo/
 - **OneDrive delay:** the app only sees changes made by others once OneDrive has downloaded them to your computer. This usually takes seconds, sometimes longer.
 - **Clock of the computer:** for simultaneous changes, the newer one wins. If a computer's clock is far off, the order can be wrong.
 - **Read markers in the inbox** only apply to the browser where you set them.
+- **Date input** understands English and German words (such as `tomorrow`, `morgen`, `fr`, `Freitag`). Dates in numeric form (`12.10.`) work in every language.
+- **Sample data** is always in English.
+- **Notifications** only appear while teamtodo is open.
 - **Keyboard drag and drop:** instead of dragging, move with Ctrl/⌘ + Shift + ↑/↓. To move to another section, use the section field of the row.

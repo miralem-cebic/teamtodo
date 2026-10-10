@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ID } from '../data/types';
 import { readStorage } from '../lib/storage';
+import type { Lang } from '../i18n/languages';
 import { defaultSettings, type View, type ViewSettings } from './selectors';
 
 // Settings per browser (not in the shared folder): view, grouping, filters, collapsed sections.
@@ -12,6 +13,10 @@ const LEGACY_ME_KEY = (workspaceId: string) => `teamaufgaben.me.${workspaceId}`;
 
 export type Layout = 'list' | 'board' | 'calendar';
 
+/** Color palettes (see styles/themes.css); "standard" is the default look from tokens.css */
+export const PALETTES = ['standard', 'blue', 'green', 'pink', 'lavender', 'peach'] as const;
+export type Palette = (typeof PALETTES)[number];
+
 export interface Prefs {
   view: View;
   layout: Record<string, Layout>;
@@ -22,6 +27,12 @@ export interface Prefs {
   showActivity?: boolean;
   /** Inbox: unread only */
   inboxUnreadOnly?: boolean;
+  /** UI language; when unset, the browser language is used */
+  language?: Lang;
+  /** Color palette; unset means "standard" */
+  palette?: Palette;
+  /** Browser notifications for assigned tasks and due dates (the browser permission is separate) */
+  notifications?: boolean;
 }
 
 const fallback: Prefs = { view: { type: 'my' }, layout: {}, settings: {}, collapsed: {}, expanded: {} };
@@ -52,6 +63,9 @@ export function settingsFor(p: Prefs, v: View): ViewSettings {
 }
 
 export const setView = (view: View) => usePrefs.setState({ view });
+export const setLanguage = (language: Lang) => usePrefs.setState({ language });
+export const setPalette = (palette: Palette) => usePrefs.setState({ palette });
+export const setNotifications = (notifications: boolean) => usePrefs.setState({ notifications });
 export const setLayout = (v: View, layout: Layout) => usePrefs.setState((p) => ({ layout: { ...p.layout, [viewKey(v)]: layout } }));
 export const patchSettings = (v: View, patch: Partial<ViewSettings>) =>
   usePrefs.setState((p) => ({ settings: { ...p.settings, [viewKey(v)]: { ...settingsFor(p, v), ...patch } } }));

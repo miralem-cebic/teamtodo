@@ -5,6 +5,7 @@ import { openPanel, useApp } from '../../store/appStore';
 import { usePrefs } from '../../store/prefs';
 import { isVisible } from '../../store/selectors';
 import { fmtTimestamp } from '../../lib/dates';
+import { t } from '../../i18n';
 import { renderMentions } from '../task-panel/Feed';
 import { deriveInbox, isRead, markAllRead, markRead, useInboxRead, type InboxItem } from './inbox';
 
@@ -35,29 +36,29 @@ export function InboxView() {
   return (
     <div className="inbox">
       <div className="inbox-tools">
-        <div className="seg" role="tablist" aria-label="Benachrichtigungen">
-          <button type="button" role="tab" aria-selected={!unreadOnly} className={unreadOnly ? '' : 'on'} onClick={() => usePrefs.setState({ inboxUnreadOnly: false })}>All</button>
+        <div className="seg" role="tablist" aria-label={t('inbox.label')}>
+          <button type="button" role="tab" aria-selected={!unreadOnly} className={unreadOnly ? '' : 'on'} onClick={() => usePrefs.setState({ inboxUnreadOnly: false })}>{t('common.all')}</button>
           <button type="button" role="tab" aria-selected={unreadOnly} className={unreadOnly ? 'on' : ''} onClick={() => usePrefs.setState({ inboxUnreadOnly: true })}>
-            Unread{unread ? ` (${unread})` : ''}
+            {t('inbox.unread')}{unread ? ` (${unread})` : ''}
           </button>
         </div>
         <span className="sp" />
         {unread > 0 && (
           <button type="button" className="tb" onClick={markAllRead}>
             <Icon n="check" s={15} />
-            <span>Mark all as read</span>
+            <span>{t('inbox.markAll')}</span>
           </button>
         )}
       </div>
       {!shown.length && (
         <div className="empty-state">
-          <p>{unreadOnly ? 'All caught up.' : 'Here you see what others assign to you, where they mention you, or comment on tasks you follow.'}</p>
+          <p>{unreadOnly ? t('inbox.caughtUp') : t('inbox.intro')}</p>
         </div>
       )}
-      <ul className="inbox-list" aria-label="Benachrichtigungen">
+      <ul className="inbox-list" aria-label={t('inbox.label')}>
         {shown.map((it) => {
           const u = users.find((x) => x.id === it.userId);
-          const t = tasks[it.taskId];
+          const task = tasks[it.taskId];
           const unreadItem = !isRead(it, read);
           return (
             <li key={it.id}>
@@ -68,18 +69,18 @@ export function InboxView() {
                   markRead([it.id]);
                   openPanel(it.taskId);
                 }}
-                aria-label={`${u?.name ?? 'Someone'} ${it.text}: ${t?.title ?? ''}${unreadItem ? ' (unread)' : ''}`}
+                aria-label={`${u?.name ?? t('inbox.someone')} ${it.text}: ${task?.title ?? ''}${unreadItem ? ' ' + t('inbox.unreadTag') : ''}`}
               >
                 <span className="inbox-dot" aria-hidden="true" />
                 <Avatar user={u} size={30} />
                 <span className="inbox-b">
                   <span className="inbox-h">
-                    <strong>{u?.name ?? 'Someone'}</strong> {it.text}
+                    <strong>{u?.name ?? t('inbox.someone')}</strong> {it.text}
                     <span className="inbox-t">{fmtTimestamp(it.at)}</span>
                   </span>
                   <span className="inbox-task">
                     <Icon n={ICON[it.kind]} s={13} />
-                    {t?.title || 'Untitled'}
+                    {task?.title || t('task.untitled')}
                   </span>
                   {it.snippet && <span className="inbox-snip">{renderMentions(it.snippet, users)}</span>}
                 </span>
