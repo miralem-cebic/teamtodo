@@ -3,19 +3,18 @@ import { Icon } from '../../components/Icon';
 import { Menu, Popover, usePop } from '../../components/Popover';
 import { archiveProject, deleteProject, renameProject, setProjectColor, useApp } from '../../store/appStore';
 import { COLORS, type Project } from '../../data/types';
-import { ERROR_TEXT } from '../../data/repository';
+import { errorText } from '../../lib/labels';
 import { reconnectAndRetry, retrySave } from '../../app/session';
 import type { View } from '../../store/selectors';
+import { t } from '../../i18n';
 
-const COLOR_NAMES: Record<(typeof COLORS)[number], string> = {
-  teal: 'Teal', violet: 'Violet', amber: 'Amber', rose: 'Rose', blue: 'Blue', green: 'Green', slate: 'Slate',
-};
+const colorName = (c: (typeof COLORS)[number]) => t(`color.${c}` as 'color.teal');
 
 export function Header({ view, onBurger }: { view: View; onBurger: () => void }) {
   const project = useApp((s) => (view.type === 'project' ? s.projects.find((p) => p.id === view.id) : undefined));
   return (
     <header className="top">
-      <button type="button" className="icon-btn burger" onClick={onBurger} aria-label="Open navigation">
+      <button type="button" className="icon-btn burger" onClick={onBurger} aria-label={t('nav.open')}>
         <Icon n="menu" />
       </button>
       {project ? (
@@ -23,12 +22,12 @@ export function Header({ view, onBurger }: { view: View; onBurger: () => void })
       ) : view.type === 'inbox' ? (
         <div className="ttl">
           <span className="ttl-ic"><Icon n="bell" s={18} /></span>
-          <h1>Inbox</h1>
+          <h1>{t('nav.inbox')}</h1>
         </div>
       ) : (
         <div className="ttl">
           <span className="ttl-ic"><Icon n="mine" s={18} /></span>
-          <h1>My tasks</h1>
+          <h1>{t('nav.myTasks')}</h1>
         </div>
       )}
       <span className="sp" />
@@ -39,22 +38,22 @@ export function Header({ view, onBurger }: { view: View; onBurger: () => void })
 
 function SaveIndicator() {
   const save = useApp((s) => s.save);
-  if (save.state === 'saving') return <span className="save saving" role="status">Saving …</span>;
+  if (save.state === 'saving') return <span className="save saving" role="status">{t('save.saving')}</span>;
   if (save.state === 'saved')
     return (
       <span className="save saved" role="status">
         <Icon n="check" s={13} />
-        Saved
+        {t('save.saved')}
       </span>
     );
   return (
     <span className="save error" role="alert">
       <Icon n="alert" s={14} />
-      {ERROR_TEXT[save.kind]}
+      {errorText(save.kind)}
       {save.kind === 'permission' ? (
-        <button type="button" className="btn sm" onClick={() => void reconnectAndRetry()}>Reconnect</button>
+        <button type="button" className="btn sm" onClick={() => void reconnectAndRetry()}>{t('save.reconnect')}</button>
       ) : save.kind !== 'newerSchema' ? (
-        <button type="button" className="btn sm" onClick={() => void retrySave()}>Try again</button>
+        <button type="button" className="btn sm" onClick={() => void retrySave()}>{t('save.retry')}</button>
       ) : null}
     </span>
   );
@@ -70,7 +69,7 @@ function ProjectTitle({ proj }: { proj: Project }) {
       <input
         className="ttl-in"
         value={v}
-        aria-label="Project name"
+        aria-label={t('project.name')}
         onChange={(e) => setV(e.target.value)}
         onBlur={() => {
           if (v.trim() && v.trim() !== proj.name) renameProject(proj.id, v.trim());
@@ -85,22 +84,22 @@ function ProjectTitle({ proj }: { proj: Project }) {
           }
         }}
       />
-      {proj.archivedAt && <span className="badge">Archiviert</span>}
-      <button type="button" className="icon-btn" onClick={p.open} aria-label="Project options">
+      {proj.archivedAt && <span className="badge">{t('project.archived')}</span>}
+      <button type="button" className="icon-btn" onClick={p.open} aria-label={t('project.options')}>
         <Icon n="dots" />
       </button>
       {p.anchor && (
-        <Popover anchor={p.anchor} onClose={p.close} width={220} label="Project options">
+        <Popover anchor={p.anchor} onClose={p.close} width={220} label={t('project.options')}>
           <Menu
             onClose={p.close}
             items={[
-              { head: 'Farbe' },
-              ...COLORS.map((c) => ({ label: COLOR_NAMES[c], dot: c, active: proj.color === c, onClick: () => setProjectColor(proj.id, c) })),
+              { head: t('project.color') },
+              ...COLORS.map((c) => ({ label: colorName(c), dot: c, active: proj.color === c, onClick: () => setProjectColor(proj.id, c) })),
               { sep: true as const },
               proj.archivedAt
-                ? { label: 'Restore', icon: 'archive' as const, onClick: () => archiveProject(proj.id, false) }
-                : { label: 'Archivieren', icon: 'archive' as const, onClick: () => archiveProject(proj.id, true) },
-              { label: 'Delete project', icon: 'trash' as const, danger: true, keepFocus: true, onClick: () => deleteProject(proj.id) },
+                ? { label: t('project.restore'), icon: 'archive' as const, onClick: () => archiveProject(proj.id, false) }
+                : { label: t('project.archive'), icon: 'archive' as const, onClick: () => archiveProject(proj.id, true) },
+              { label: t('project.delete'), icon: 'trash' as const, danger: true, keepFocus: true, onClick: () => deleteProject(proj.id) },
             ]}
           />
         </Popover>

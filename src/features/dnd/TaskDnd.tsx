@@ -20,6 +20,7 @@ import { create } from 'zustand';
 import { moveSection, showToast, updateTask, useApp } from '../../store/appStore';
 import { liveSections, orderBetween, type Group, type ViewSettings } from '../../store/selectors';
 import type { ID, TaskState } from '../../data/types';
+import { t } from '../../i18n';
 
 // Drag and drop for list, board, sections and subtasks.
 // IDs: "t:<id>" task, "g:<key>" group end/column, "s:<id>" section.
@@ -159,7 +160,7 @@ export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
       if (!a2 || !o2 || a2.parentId !== o2.parentId) return;
       const list = (childrenOf[a2.parentId!] ?? []).filter((x) => x.id !== a.taskId);
       const i = list.findIndex((x) => x.id === o.taskId) + (pos === 'after' ? 1 : 0);
-      updateTask(a.taskId, { order: orderBetween(list[i - 1], list[i]) }, { undo: 'Moved' });
+      updateTask(a.taskId, { order: orderBetween(list[i - 1], list[i]) }, { undo: t('undo.moved') });
       return;
     }
 
@@ -171,7 +172,7 @@ export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
     const same = from.key === to.key;
     const manual = settings.sort === 'manual';
     if (same && !manual) {
-      showToast('Order can only be changed with manual sorting');
+      showToast(t('toast.orderManual'));
       return;
     }
     if (!same && to.apply === null) {
@@ -182,7 +183,7 @@ export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
     let i = o.type === 'task' ? list.findIndex((x) => x.id === o.taskId) + (pos === 'after' ? 1 : 0) : list.length;
     if (i < 0) i = list.length;
     const order = orderBetween(list[i - 1], list[i]);
-    if (same) updateTask(task.id, { order }, { undo: 'Moved' });
+    if (same) updateTask(task.id, { order }, { undo: t('undo.moved') });
     else updateTask(task.id, { ...to.apply, ...(manual ? { order } : {}) }, { undo: `Moved to "${to.label}"`, toast: true });
   };
 

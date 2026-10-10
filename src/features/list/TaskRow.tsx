@@ -19,6 +19,7 @@ import { orderBetween, type Group, type View } from '../../store/selectors';
 import type { TaskState } from '../../data/types';
 import { focusRow, focusTitle, isMod, neighbour, titleOf } from '../../hooks/listNav';
 import { useDndRow } from '../dnd/TaskDnd';
+import { t } from '../../i18n';
 
 export type ThirdColumn = 'project' | 'section' | null;
 
@@ -84,7 +85,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
 
   const moveBy = (dir: -1 | 1) => {
     if (!manual) {
-      showToast('Moving only works with manual sorting');
+      showToast(t('toast.manualOnly'));
       return;
     }
     const i = siblings.findIndex((x) => x.id === task.id);
@@ -92,7 +93,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
     if (j < 0 || j >= siblings.length) return;
     const a = siblings[j]!;
     const b = siblings[j + dir];
-    updateTask(task.id, { order: dir < 0 ? orderBetween(b, a) : orderBetween(a, b) }, { undo: 'Moved' });
+    updateTask(task.id, { order: dir < 0 ? orderBetween(b, a) : orderBetween(a, b) }, { undo: t('undo.moved') });
   };
 
   const openField = (name: 'assignee' | 'due') => {
@@ -205,7 +206,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
       }}
     >
       <div className="c-title" style={{ paddingLeft: depth ? 28 + depth * 22 : undefined }}>
-        <span className="grip" {...dnd.handle} aria-label="Drag to move" title="Drag to move">
+        <span className="grip" {...dnd.handle} aria-label={t('panel.drag')} title={t('panel.drag')}>
           <Icon n="grip" s={14} />
         </span>
         {canExpand ? (
@@ -213,7 +214,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
             type="button"
             className={'caret' + (kids.length ? '' : ' hidden')}
             onClick={() => toggleExpanded(task.id)}
-            aria-label={expanded ? 'Collapse subtasks' : 'Expand subtasks'}
+            aria-label={expanded ? t('subs.collapse') : t('subs.expand')}
             aria-expanded={expanded}
             tabIndex={-1}
           >
@@ -230,21 +231,21 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
             className="t-in"
             value={task.title}
             placeholder={depth ? 'Subtask' : 'Task'}
-            aria-label="Task title"
+            aria-label={t('task.title')}
             onChange={(e) => updateTask(task.id, { title: e.target.value })}
             onKeyDown={onTitleKey}
             onBlur={onBlur}
           />
         </span>
         {parent && depth === 0 && (
-          <button type="button" className="crumb" tabIndex={-1} onClick={() => openPanel(parent.id)} title="Open parent task">
+          <button type="button" className="crumb" tabIndex={-1} onClick={() => openPanel(parent.id)} title={t('panel.openParent')}>
             <Icon n="sub" s={12} />
             <span>{parent.title}</span>
           </button>
         )}
         {kids.length > 0 && (
           <button type="button" className="meta" tabIndex={-1} onClick={() => (canExpand ? toggleExpanded(task.id) : openPanel(task.id))}
-            title={`${doneKids} of ${kids.length} subtasks done`}>
+            title={t('subs.progress', { done: doneKids, total: kids.length })}>
             {doneKids}/{kids.length}
             <Icon n="sub" s={13} />
           </button>
@@ -255,8 +256,8 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
             <Icon n="comment" s={13} />
           </span>
         )}
-        <button type="button" className="details" tabIndex={-1} onClick={() => openPanel(task.id)} aria-label="Open details">
-          <span>Details</span>
+        <button type="button" className="details" tabIndex={-1} onClick={() => openPanel(task.id)} aria-label={t('panel.openDetails')}>
+          <span>{t('panel.details')}</span>
           <Icon n="chevR" s={14} />
         </button>
       </div>

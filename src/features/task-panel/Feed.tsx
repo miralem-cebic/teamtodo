@@ -6,6 +6,7 @@ import { usePrefs } from '../../store/prefs';
 import { activityText } from '../../lib/activityText';
 import { fmtTimestamp } from '../../lib/dates';
 import type { TaskState, User } from '../../data/types';
+import { t as tr } from '../../i18n';
 
 const MOD = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘' : 'Ctrl';
 
@@ -33,10 +34,10 @@ export function Feed({ t }: { t: TaskState }) {
     <div className="feed">
       <div className="feed-tools">
         <button type="button" className="link" onClick={() => usePrefs.setState({ showActivity: !showActivity })}>
-          {showActivity ? 'Show comments only' : 'Show activity'}
+          {showActivity ? tr('feed.commentsOnly') : tr('feed.showActivity')}
         </button>
       </div>
-      {!items.length && <p className="feed-empty">No comments yet.</p>}
+      {!items.length && <p className="feed-empty">{tr('feed.empty')}</p>}
       {items.map((it) => {
         if (it.kind === 'c') {
           const u = users.find((x) => x.id === it.c.userId);
@@ -45,10 +46,10 @@ export function Feed({ t }: { t: TaskState }) {
               <Avatar user={u} size={28} />
               <div className="cmt-b">
                 <div className="cmt-h">
-                  <strong>{u?.name ?? 'Unknown'}</strong>
+                  <strong>{u?.name ?? tr('common.unknown')}</strong>
                   <span>{fmtTimestamp(it.at)}</span>
                   {it.c.userId === meId && (
-                    <button type="button" className="icon-btn cmt-del" onClick={() => deleteComment(t.id, it.c.id)} aria-label="Delete comment">
+                    <button type="button" className="icon-btn cmt-del" onClick={() => deleteComment(t.id, it.c.id)} aria-label={tr('feed.deleteComment')}>
                       <Icon n="trash" s={13} />
                     </button>
                   )}
@@ -63,7 +64,7 @@ export function Feed({ t }: { t: TaskState }) {
           <div key={it.id} className="act">
             <span className="act-dot" />
             <span>
-              {u?.name ?? 'Someone'} {activityText(it.a, users)}
+              {u?.name ?? tr('inbox.someone')} {activityText(it.a, users)}
             </span>
             <span className="act-t">{fmtTimestamp(it.at)}</span>
           </div>
@@ -113,7 +114,7 @@ export function CommentBox({ t }: { t: TaskState }) {
       <Avatar user={me} size={28} />
       <div className="cbox-in">
         {sugg.length > 0 && (
-          <div className="msugg" role="listbox" aria-label="Mention person">
+          <div className="msugg" role="listbox" aria-label={tr('feed.mentionPerson')}>
             {sugg.map((u, i) => (
               <button key={u.id} type="button" role="option" aria-selected={i === hi} className={'pk-it' + (i === hi ? ' hi' : '')}
                 onMouseDown={(e) => {
@@ -131,8 +132,8 @@ export function CommentBox({ t }: { t: TaskState }) {
           className="c-in"
           rows={1}
           value={v}
-          placeholder="Write a comment, mention someone with @"
-          aria-label="Comment"
+          placeholder={tr('feed.placeholder')}
+          aria-label={tr('feed.comment')}
           onChange={(e) => onChange(e.target.value)}
           onBlur={() => setTimeout(() => setM(null), 120)}
           onKeyDown={(e) => {
@@ -154,8 +155,8 @@ export function CommentBox({ t }: { t: TaskState }) {
           }}
         />
         <div className="cbox-foot">
-          <span className="hint"><kbd>{MOD}</kbd>+<kbd>Enter</kbd> sendet</span>
-          <button type="button" className="btn primary sm" onClick={send} disabled={!v.trim()}>Kommentieren</button>
+          <span className="hint"><kbd>{MOD}</kbd>+<kbd>Enter</kbd> {tr('feed.sends')}</span>
+          <button type="button" className="btn primary sm" onClick={send} disabled={!v.trim()}>{tr('feed.submit')}</button>
         </div>
       </div>
     </div>

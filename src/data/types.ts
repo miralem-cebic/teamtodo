@@ -56,7 +56,6 @@ export interface ProjectsFile {
 
 /** "Done" is not a status but `completedAt`. The status is kept so that the task can be reopened. */
 export type TaskStatus = 'todo' | 'doing' | 'waiting';
-export const STATUS_LABEL: Record<TaskStatus, string> = { todo: 'Open', doing: 'In progress', waiting: 'Waiting' };
 
 export interface Attachment {
   id: ID;

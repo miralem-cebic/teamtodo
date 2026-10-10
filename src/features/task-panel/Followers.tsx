@@ -4,6 +4,7 @@ import { Icon } from '../../components/Icon';
 import { Popover, usePop } from '../../components/Popover';
 import { setFollowing, useApp } from '../../store/appStore';
 import type { TaskState } from '../../data/types';
+import { t as tr } from '../../i18n';
 
 export function Followers({ t }: { t: TaskState }) {
   const users = useApp((s) => s.users);
@@ -13,19 +14,19 @@ export function Followers({ t }: { t: TaskState }) {
   const iFollow = !!meId && t.followerIds.includes(meId);
   return (
     <div className="followers">
-      <span className="f-l">Follower</span>
+      <span className="f-l">{tr('followers.label')}</span>
       <div className="fol-list">
         {followers.map((u) => (
-          <button key={u.id} type="button" className="fol" onClick={() => setFollowing(t.id, u.id, false)} title={`${u.name} entfernen`} aria-label={`${u.name} als Follower entfernen`}>
+          <button key={u.id} type="button" className="fol" onClick={() => setFollowing(t.id, u.id, false)} title={tr('followers.remove', { name: u.name })} aria-label={tr('followers.removeAs', { name: u.name })}>
             <Avatar user={u} size={24} />
             <span className="fol-x" aria-hidden="true"><Icon n="x" s={10} /></span>
           </button>
         ))}
-        <button type="button" className="icon-btn" onClick={p.open} aria-label="Add follower">
+        <button type="button" className="icon-btn" onClick={p.open} aria-label={tr('followers.add')}>
           <Icon n="plus" s={15} />
         </button>
         {p.anchor && (
-          <Popover anchor={p.anchor} onClose={p.close} label="Add follower">
+          <Popover anchor={p.anchor} onClose={p.close} label={tr('followers.add')}>
             <AssigneePicker
               value={null}
               onPick={(id) => {
@@ -38,7 +39,7 @@ export function Followers({ t }: { t: TaskState }) {
       </div>
       {meId && (
         <button type="button" className="btn sm" onClick={() => setFollowing(t.id, meId, !iFollow)} aria-pressed={iFollow}>
-          {iFollow ? 'Unfollow' : 'Follow'}
+          {iFollow ? tr('followers.unfollow') : tr('followers.follow')}
         </button>
       )}
     </div>

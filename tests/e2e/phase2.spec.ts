@@ -62,7 +62,7 @@ test('add an attachment, save it as a file, remove it with undo', async ({ page 
   expect(files[`attachments/${id}/briefing.txt`]).toBeDefined();
   await expect(panel(page).getByText('attached "briefing.txt"')).toBeVisible();
 
-  await panel(page).getByRole('button', { name: 'briefing.txt entfernen' }).click();
+  await panel(page).getByRole('button', { name: 'Remove briefing.txt' }).click();
   await expect(panel(page).locator('.att-n')).toHaveCount(0);
   await page.locator('.toast').getByRole('button', { name: 'Undo' }).click();
   await expect(panel(page).locator('.att-n')).toHaveText('briefing.txt');

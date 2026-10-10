@@ -4,6 +4,7 @@ import type { Activity, ActivityType, Attachment, Color, ID, MergeableField, Pro
 import { MERGEABLE_FIELDS } from '../data/types';
 import type { StorageErrorKind } from '../data/repository';
 import { descendantIds } from './selectors';
+import { t as tr } from '../i18n';
 
 // Central app state. All changes go through the actions below:
 // they take effect immediately (optimistically), the persister writes in the background.
@@ -75,8 +76,8 @@ const set = useApp.setState;
 /* ---------- Hilfen ---------- */
 
 const short = (s: string) => {
-  const t = s.trim() || 'Untitled';
-  return t.length > 40 ? t.slice(0, 38) + '…' : t;
+  const v = s.trim() || tr('task.untitled');
+  return v.length > 40 ? v.slice(0, 38) + '…' : v;
 };
 const act = (type: ActivityType, data?: Activity['data']): Activity => ({
   id: newId(),
@@ -184,7 +185,7 @@ export function updateTask(id: ID, patch: TaskPatch, opts: UpdateOptions = {}) {
   if (tracked && !t.draft) {
     const before: UndoEntry['tasks'] = {};
     for (const k of Object.keys(changed)) before[k] = s.tasks[k];
-    pushUndo({ label: opts.undo ?? 'Change', tasks: before }, !!opts.toast);
+    pushUndo({ label: opts.undo ?? tr('undo.change'), tasks: before }, !!opts.toast);
   }
   set({ tasks: { ...s.tasks, ...changed } });
 }
@@ -194,7 +195,7 @@ export function toggleDone(id: ID, value?: boolean) {
   if (!t) return;
   const done = value ?? !t.completedAt;
   if (done === !!t.completedAt) return;
-  updateTask(id, { completedAt: done ? nowIso() : null }, done ? { undo: `"${short(t.title)}" completed`, toast: true } : { undo: 'Reopened' });
+  updateTask(id, { completedAt: done ? nowIso() : null }, done ? { undo: tr('undo.completed', { title: short(t.title) }), toast: true } : { undo: tr('undo.reopened') });
   if (t.draft && done) set((s) => ({ tasks: { ...s.tasks, [id]: { ...s.tasks[id]!, draft: false } } }));
 }
 
@@ -214,7 +215,7 @@ export function deleteTask(id: ID, opts: { silent?: boolean } = {}) {
     else tasks[k] = { ...x, deletedAt: at, fieldUpdatedAt: { ...x.fieldUpdatedAt, deletedAt: at }, activity: [...x.activity, act('deleted')] };
   }
   set({ tasks, panelId: s.panelId && ids.includes(s.panelId) ? null : s.panelId });
-  if (!t.draft) pushUndo({ label: `"${short(t.title)}" deleted`, tasks: before }, !opts.silent);
+  if (!t.draft) pushUndo({ label: tr('undo.deleted', { title: short(t.title) }), tasks: before }, !opts.silent);
 }
 
 export function removeIfEmptyDraft(id: ID) {
@@ -253,7 +254,7 @@ export function archiveProject(id: ID, archived: boolean) {
   const p = get().projects.find((x) => x.id === id);
   if (!p) return;
   setProjects(mapProject(id, (x) => ({ ...x, archivedAt: archived ? nowIso() : null })), {
-    label: archived ? `Project "${p.name}" archived` : `Project "${p.name}" restored`,
+    label: archived ? tr('undo.projectArchived', { name: p.name }) : tr('undo.projectRestored', { name: p.name }),
     toast: true,
   });
 }
@@ -262,7 +263,7 @@ export function archiveProject(id: ID, archived: boolean) {
 export function deleteProject(id: ID) {
   const p = get().projects.find((x) => x.id === id);
   if (!p) return;
-  setProjects(mapProject(id, (x) => ({ ...x, deletedAt: nowIso() })), { label: `Project "${p.name}" deleted`, toast: true });
+  setProjects(mapProject(id, (x) => ({ ...x, deletedAt: nowIso() })), { label: tr('undo.projectDeleted', { name: p.name }), toast: true });
 }
 
 export function addSection(projectId: ID, name: string, afterOrder?: number): ID {
@@ -286,7 +287,7 @@ export function renameSection(projectId: ID, sectionId: ID, name: string) {
 export function moveSection(projectId: ID, sectionId: ID, order: number) {
   const sec = get().projects.find((p) => p.id === projectId)?.sections.find((s) => s.id === sectionId);
   if (!sec) return;
-  setProjects(mapSections(projectId, (list) => list.map((s) => (s.id === sectionId ? { ...s, order, updatedAt: nowIso() } : s))), { label: `Section "${sec.name}" moved`, toast: false });
+  setProjects(mapSections(projectId, (list) => list.map((s) => (s.id === sectionId ? { ...s, order, updatedAt: nowIso() } : s))), { label: tr('undo.sectionMoved', { name: sec.name }), toast: false });
 }
 
 /** Deletes the section and (softly) all its tasks, with undo. */
@@ -310,7 +311,7 @@ export function deleteSection(projectId: ID, sectionId: ID) {
   set({ tasks });
   setProjects(
     mapSections(projectId, (list) => list.map((x) => (x.id === sectionId ? { ...x, deletedAt: at, updatedAt: at } : x))),
-    { label: `Section "${sec.name}" deleted`, toast: true },
+    { label: tr('undo.sectionDeleted', { name: sec.name }), toast: true },
     before,
   );
 }
@@ -373,7 +374,7 @@ export function removeAttachment(taskId: ID, attachmentId: ID) {
   if (!t || !a) return;
   const before = t;
   patchTask(taskId, (x) => ({ ...x, attachments: x.attachments.map((y) => (y.id === attachmentId ? { ...y, removedAt: nowIso() } : y)) }));
-  pushUndo({ label: `"${a.fileName}" removed`, tasks: { [taskId]: before } }, true);
+  pushUndo({ label: tr('undo.attachmentRemoved', { name: a.fileName }), tasks: { [taskId]: before } }, true);
 }
 
 /* ---------- People ---------- */
@@ -412,7 +413,7 @@ export function deleteUser(id: ID): number {
     tasks,
     users: s.users.map((x) => (x.id === id ? { ...x, deletedAt: at, updatedAt: at } : x)),
   });
-  pushUndo({ label: `"${u.name}" removed from the team`, tasks: before, users: { [id]: u } }, true);
+  pushUndo({ label: tr('undo.memberRemoved', { name: u.name }), tasks: before, users: { [id]: u } }, true);
   return open.length;
 }
 
@@ -421,7 +422,7 @@ export function restoreUser(id: ID) {
   const u = get().users.find((x) => x.id === id);
   if (!u?.deletedAt) return;
   set((s) => ({ users: s.users.map((x) => (x.id === id ? { ...x, deletedAt: null, updatedAt: nowIso() } : x)) }));
-  showToast(`"${u.name}" is back in the team`);
+  showToast(tr('toast.memberRestored', { name: u.name }));
 }
 
 /* ---------- Undo ---------- */
@@ -471,7 +472,7 @@ export function undo() {
     users = s.users.map((x) => (x.id in prev ? { ...prev[x.id]!, updatedAt: at } : x));
   }
   set({ tasks, projects, users, undoStack: s.undoStack.slice(0, -1) });
-  showToast('Undone');
+  showToast(tr('toast.undone'));
 }
 
 /* ---------- Panel and focus ---------- */

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ID, ISODateTime, TaskState, User } from '../../data/types';
 import { activityText } from '../../lib/activityText';
+import { t } from '../../i18n';
 import { readStorage } from '../../lib/storage';
 
 // Inbox: derived from activity and comments, not stored.
@@ -20,25 +21,25 @@ export interface InboxItem {
 
 const DAYS = 30;
 
-export function deriveInbox(tasks: Record<ID, TaskState>, users: User[], meId: ID | null, visible: (t: TaskState) => boolean): InboxItem[] {
+export function deriveInbox(tasks: Record<ID, TaskState>, users: User[], meId: ID | null, visible: (task: TaskState) => boolean): InboxItem[] {
   if (!meId) return [];
   const since = new Date(Date.now() - DAYS * 86_400_000).toISOString();
   const out: InboxItem[] = [];
-  for (const t of Object.values(tasks)) {
-    if (t.draft || !visible(t)) continue;
-    const follows = t.followerIds.includes(meId);
-    for (const a of t.activity) {
+  for (const task of Object.values(tasks)) {
+    if (task.draft || !visible(task)) continue;
+    const follows = task.followerIds.includes(meId);
+    for (const a of task.activity) {
       if (a.userId === meId || a.at < since) continue;
       if (a.type === 'assigned' && a.data?.userId === meId) {
-        out.push({ id: a.id, kind: 'assigned', taskId: t.id, userId: a.userId, at: a.at, text: 'assigned you a task' });
+        out.push({ id: a.id, kind: 'assigned', taskId: task.id, userId: a.userId, at: a.at, text: t('inbox.assigned') });
       } else if (a.type === 'completed' && follows) {
-        out.push({ id: a.id, kind: 'completed', taskId: t.id, userId: a.userId, at: a.at, text: activityText(a, users) });
+        out.push({ id: a.id, kind: 'completed', taskId: task.id, userId: a.userId, at: a.at, text: activityText(a, users) });
       }
     }
-    for (const c of t.comments) {
+    for (const c of task.comments) {
       if (c.userId === meId || c.deletedAt || c.at < since) continue;
-      if (c.mentions.includes(meId)) out.push({ id: c.id, kind: 'mention', taskId: t.id, userId: c.userId, at: c.at, text: 'mentioned you', snippet: c.text });
-      else if (follows) out.push({ id: c.id, kind: 'comment', taskId: t.id, userId: c.userId, at: c.at, text: 'commented', snippet: c.text });
+      if (c.mentions.includes(meId)) out.push({ id: c.id, kind: 'mention', taskId: task.id, userId: c.userId, at: c.at, text: t('inbox.mention'), snippet: c.text });
+      else if (follows) out.push({ id: c.id, kind: 'comment', taskId: task.id, userId: c.userId, at: c.at, text: t('inbox.comment'), snippet: c.text });
     }
   }
   return out.sort((a, b) => b.at.localeCompare(a.at));

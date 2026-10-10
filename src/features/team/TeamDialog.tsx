@@ -4,6 +4,7 @@ import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
 import { addUser, deleteUser, renameUser, restoreUser, useApp } from '../../store/appStore';
 import type { ID } from '../../data/types';
+import { t } from '../../i18n';
 
 /** Team management: add, rename, remove (open tasks become unassigned) and restore people. */
 export function TeamDialog({ onClose }: { onClose: () => void }) {
@@ -32,7 +33,7 @@ export function TeamDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Dialog title="Team" onClose={onClose}>
+    <Dialog title={t('team.title')} onClose={onClose}>
       <form
         className="d-row"
         onSubmit={(e) => {
@@ -43,19 +44,19 @@ export function TeamDialog({ onClose }: { onClose: () => void }) {
         <input
           className="tm-in"
           value={newName}
-          placeholder="Name of the new person"
-          aria-label="Name of the new person"
+          placeholder={t('team.newPerson')}
+          aria-label={t('team.newPerson')}
           aria-invalid={duplicate}
           onChange={(e) => setNewName(e.target.value)}
         />
         <button type="submit" className="btn" disabled={!trimmed || duplicate}>
           <Icon n="plus" s={15} />
-          Add
+          {t('common.add')}
         </button>
       </form>
-      {duplicate && <p className="d-text tm-hint">"{trimmed}" is already in the team.</p>}
+      {duplicate && <p className="d-text tm-hint">{t('team.duplicate', { name: trimmed })}</p>}
 
-      <ul className="tm-list" aria-label="Team members">
+      <ul className="tm-list" aria-label={t('onb.teamMembers')}>
         {active.map((u) => {
           const open = openCount(u.id);
           const isMe = u.id === meId;
@@ -67,20 +68,20 @@ export function TeamDialog({ onClose }: { onClose: () => void }) {
                 key={u.name}
                 className="tm-name"
                 defaultValue={u.name}
-                aria-label={`Name of ${u.name}`}
+                aria-label={t('team.nameOf', { name: u.name })}
                 onBlur={(e) => renameUser(u.id, e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
               />
               <small className="tm-meta">
-                {isMe ? 'You, currently logged in' : open ? `${open} open ${open === 1 ? 'task' : 'tasks'}` : 'No open tasks'}
+                {isMe ? t('team.you') : open ? (open === 1 ? t('team.openOne') : t('team.openMany', { n: open })) : t('team.noOpen')}
               </small>
               {confirming ? (
                 <span className="tm-confirm">
                   <button type="button" className="btn sm" onClick={() => remove(u.id)}>
-                    Remove{open ? ` and unassign ${open}` : ''}
+                    {open ? t('team.removeUnassign', { n: open }) : t('team.remove')}
                   </button>
                   <button type="button" className="btn sm" onClick={() => setConfirmId(null)}>
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                 </span>
               ) : (
@@ -88,11 +89,11 @@ export function TeamDialog({ onClose }: { onClose: () => void }) {
                   type="button"
                   className="btn sm"
                   disabled={isMe}
-                  title={isMe ? 'Switch person first, then remove this one' : undefined}
+                  title={isMe ? t('team.switchFirst') : undefined}
                   onClick={() => setConfirmId(u.id)}
                 >
                   <Icon n="trash" s={14} />
-                  Remove
+                  {t('team.remove')}
                 </button>
               )}
             </li>
@@ -102,14 +103,14 @@ export function TeamDialog({ onClose }: { onClose: () => void }) {
 
       {removed.length > 0 && (
         <>
-          <h3 className="d-h">Removed</h3>
-          <ul className="tm-list" aria-label="Removed people">
+          <h3 className="d-h">{t('team.removed')}</h3>
+          <ul className="tm-list" aria-label={t('team.removedAria')}>
             {removed.map((u) => (
               <li key={u.id} className="tm-row tm-gone">
                 <Avatar user={u} size={28} />
                 <span className="tm-name">{u.name}</span>
                 <button type="button" className="btn sm" onClick={() => restoreUser(u.id)}>
-                  Restore
+                  {t('team.restore')}
                 </button>
               </li>
             ))}

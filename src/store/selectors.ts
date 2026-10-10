@@ -1,6 +1,7 @@
 import { addDays, diffDays, nextMonday, today } from '../lib/dates';
 import type { ID, Project, Section, Task, TaskState, TaskStatus, User } from '../data/types';
-import { STATUS_LABEL } from '../data/types';
+import { statusLabel, STATUSES } from '../lib/labels';
+import { t } from '../i18n';
 
 // Reine Funktionen: Sichtbarkeit, Hierarchie, Grouping, Filter, Sorting.
 
@@ -159,37 +160,37 @@ export function buildGroups(inp: BuildInput): Group[] {
     const ids = new Set(secs.map((x) => x.id));
     groups = secs.map((x) => ({ key: x.id, label: x.name, section: x, apply: { sectionId: x.id }, defaults: { ...baseDef, sectionId: x.id }, keep: true }));
     if (base.some((t) => !t.sectionId || !ids.has(t.sectionId))) {
-      groups.push({ key: '__none', label: 'No section', apply: { sectionId: null }, defaults: { ...baseDef, sectionId: null } });
+      groups.push({ key: '__none', label: t('group.noSection'), apply: { sectionId: null }, defaults: { ...baseDef, sectionId: null } });
     }
     keyOf = (t) => (t.sectionId && ids.has(t.sectionId) ? t.sectionId : '__none');
   } else if (g === 'due') {
     const later = addDays(nextMonday(), 7);
     groups = [
-      { key: 'overdue', label: 'Overdue', tone: 'danger', apply: null, defaults: { ...baseDef, dueDate: t0 } },
-      { key: 'today', label: 'Today', apply: { dueDate: t0 }, defaults: { ...baseDef, dueDate: t0 }, keep: true },
-      { key: 'soon', label: 'Upcoming', hint: 'next 7 days', apply: { dueDate: addDays(t0, 1) }, defaults: { ...baseDef, dueDate: addDays(t0, 1) }, keep: true },
-      { key: 'later', label: 'Later', apply: { dueDate: later }, defaults: { ...baseDef, dueDate: later }, keep: true },
-      { key: 'none', label: 'No date', apply: { dueDate: null, dueTime: null }, defaults: { ...baseDef }, keep: true },
-      { key: 'past', label: 'Done, date passed', apply: null, defaults: { ...baseDef } },
+      { key: 'overdue', label: t('due.overdue'), tone: 'danger', apply: null, defaults: { ...baseDef, dueDate: t0 } },
+      { key: 'today', label: t('due.today'), apply: { dueDate: t0 }, defaults: { ...baseDef, dueDate: t0 }, keep: true },
+      { key: 'soon', label: t('group.upcoming'), hint: t('due.week'), apply: { dueDate: addDays(t0, 1) }, defaults: { ...baseDef, dueDate: addDays(t0, 1) }, keep: true },
+      { key: 'later', label: t('group.later'), apply: { dueDate: later }, defaults: { ...baseDef, dueDate: later }, keep: true },
+      { key: 'none', label: t('due.none'), apply: { dueDate: null, dueTime: null }, defaults: { ...baseDef }, keep: true },
+      { key: 'past', label: t('group.past'), apply: null, defaults: { ...baseDef } },
     ];
     keyOf = (t) => dueKey(t, inp.recentDone);
   } else if (g === 'status') {
     groups = [
-      ...(Object.entries(STATUS_LABEL) as [TaskStatus, string][]).map(([k, l]) => ({
+      ...STATUSES.map((k) => ({
         key: k,
-        label: l,
+        label: statusLabel(k),
         dot: 'st-' + k,
         apply: { status: k, completedAt: null },
         defaults: { ...baseDef, status: k },
         keep: true,
       })),
-      { key: 'done', label: 'Done', dot: 'st-done', apply: { completedAt: new Date().toISOString() }, defaults: { ...baseDef } },
+      { key: 'done', label: statusLabel('done'), dot: 'st-done', apply: { completedAt: new Date().toISOString() }, defaults: { ...baseDef } },
     ];
     keyOf = (t) => (t.completedAt ? 'done' : t.status);
   } else if (g === 'assignee') {
     groups = [
       ...inp.users.filter((u) => !u.deletedAt).map((u) => ({ key: u.id, label: u.name, user: u, apply: { assigneeId: u.id }, defaults: { ...baseDef, assigneeId: u.id } })),
-      { key: '__none', label: 'Unassigned', apply: { assigneeId: null }, defaults: { ...baseDef, assigneeId: null }, keep: true },
+      { key: '__none', label: t('group.unassigned'), apply: { assigneeId: null }, defaults: { ...baseDef, assigneeId: null }, keep: true },
     ];
     keyOf = (t) => t.assigneeId ?? '__none';
   } else if (g === 'project') {
@@ -201,11 +202,11 @@ export function buildGroups(inp: BuildInput): Group[] {
           const apply = { projectId: p.id, sectionId: firstSection(p.id) };
           return { key: p.id, label: p.name, project: p, apply, defaults: { ...baseDef, ...apply }, keep: !p.archivedAt };
         }),
-      { key: '__none', label: 'No project', apply: { projectId: null, sectionId: null }, defaults: { ...baseDef, projectId: null, sectionId: null }, keep: true },
+      { key: '__none', label: t('group.noProject'), apply: { projectId: null, sectionId: null }, defaults: { ...baseDef, projectId: null, sectionId: null }, keep: true },
     ];
     keyOf = (t) => t.projectId ?? '__none';
   } else {
-    groups = [{ key: 'all', label: 'All tasks', apply: {}, defaults: { ...baseDef }, keep: true }];
+    groups = [{ key: 'all', label: t('filter.all'), apply: {}, defaults: { ...baseDef }, keep: true }];
     keyOf = () => 'all';
   }
 

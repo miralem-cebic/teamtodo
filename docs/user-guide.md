@@ -10,6 +10,10 @@ teamtodo is a task management tool for marketing teams. It runs directly in the 
 
 Tip: bookmark the opened page to get there faster next time.
 
+## Language
+
+The app is available in **English**, **Deutsch**, **Français**, **Español** and **Italiano**. It starts in the language of your browser (English if it is not one of these). To change it, click your name at the bottom left, then choose a language under **Language**. The choice is saved in this browser only.
+
 ## Connecting the data folder
 
 On first start, the app asks for the **data folder**. This is the folder where your team's tasks are stored.
@@ -133,4 +137,6 @@ teamtodo/
 - **OneDrive delay:** the app only sees changes made by others once OneDrive has downloaded them to your computer. This usually takes seconds, sometimes longer.
 - **Clock of the computer:** for simultaneous changes, the newer one wins. If a computer's clock is far off, the order can be wrong.
 - **Read markers in the inbox** only apply to the browser where you set them.
+- **Date input** understands English and German words (such as `tomorrow`, `morgen`, `fr`, `Freitag`). Dates in numeric form (`12.10.`) work in every language.
+- **Sample data** is always in English.
 - **Keyboard drag and drop:** instead of dragging, move with Ctrl/⌘ + Shift + ↑/↓. To move to another section, use the section field of the row.

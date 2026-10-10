@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../../components/Icon';
 import { addAttachmentMeta, removeAttachment, showToast, useApp } from '../../store/appStore';
 import { getRepo } from '../../app/session';
-import { classifyError, ERROR_TEXT } from '../../data/repository';
+import { classifyError } from '../../data/repository';
+import { errorText } from '../../lib/labels';
+import { t } from '../../i18n';
 import { newId, nowIso } from '../../data/schema';
 import type { Attachment, TaskState } from '../../data/types';
 
@@ -34,7 +36,7 @@ export async function addFiles(task: TaskState, files: FileList | File[]) {
       const fileName = await repo.writeAttachment(task.id, f.name, f);
       addAttachmentMeta(task.id, { id: newId(), fileName, size: f.size, mimeType: f.type || 'application/octet-stream', addedAt: nowIso(), addedBy: me });
     } catch (e) {
-      showToast(`"${f.name}" could not be saved. ${ERROR_TEXT[classifyError(e)]}`);
+      showToast(t('attach.saveFailed', { name: f.name, reason: errorText(classifyError(e)) }));
     }
   }
 }
@@ -51,14 +53,14 @@ function Thumb({ taskId, a }: { taskId: string; a: Attachment }) {
   return src ? <img src={src} alt="" /> : <span className="att-ic"><Icon n="clip" s={15} /></span>;
 }
 
-export function Attachments({ t }: { t: TaskState }) {
+export function Attachments({ task }: { task: TaskState }) {
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
-  const list = t.attachments.filter((a) => !a.removedAt);
+  const list = task.attachments.filter((a) => !a.removedAt);
 
   const open = async (a: Attachment) => {
     try {
-      const url = await objectUrl(t.id, a);
+      const url = await objectUrl(task.id, a);
       if (opensInBrowser(a)) window.open(url, '_blank', 'noopener');
       else {
         const link = document.createElement('a');
@@ -67,7 +69,7 @@ export function Attachments({ t }: { t: TaskState }) {
         link.click();
       }
     } catch (e) {
-      showToast(`File not found. ${e instanceof DOMException ? 'Was it deleted from the folder, or has it not synced yet?' : ''}`);
+      showToast(t('attach.notFound') + (e instanceof DOMException ? ' ' + t('attach.notFoundHint') : ''));
     }
   };
 
@@ -84,19 +86,19 @@ export function Attachments({ t }: { t: TaskState }) {
         if (!e.dataTransfer.files.length) return;
         e.preventDefault();
         setOver(false);
-        void addFiles(t, e.dataTransfer.files);
+        void addFiles(task, e.dataTransfer.files);
       }}
     >
       {list.map((a) => (
         <div key={a.id} className="att">
           <button type="button" className="att-open" onClick={() => void open(a)} title={opensInBrowser(a) ? 'Open' : 'Download'}>
-            <Thumb taskId={t.id} a={a} />
+            <Thumb taskId={task.id} a={a} />
             <span className="att-b">
               <span className="att-n">{a.fileName}</span>
               <span className="att-s">{fmtSize(a.size)}</span>
             </span>
           </button>
-          <button type="button" className="icon-btn" onClick={() => removeAttachment(t.id, a.id)} aria-label={`${a.fileName} entfernen`}>
+          <button type="button" className="icon-btn" onClick={() => removeAttachment(task.id, a.id)} aria-label={t('attach.remove', { name: a.fileName })}>
             <Icon n="x" s={14} />
           </button>
         </div>
@@ -107,13 +109,13 @@ export function Attachments({ t }: { t: TaskState }) {
         multiple
         hidden
         onChange={(e) => {
-          if (e.target.files) void addFiles(t, e.target.files);
+          if (e.target.files) void addFiles(task, e.target.files);
           e.target.value = '';
         }}
       />
       <button type="button" className="add-btn" onClick={() => input.current?.click()}>
         <Icon n="clip" s={14} />
-        Attach a file or drag it here
+        {t('attach.drop')}
       </button>
     </div>
   );

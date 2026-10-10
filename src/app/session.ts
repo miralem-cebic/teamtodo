@@ -7,7 +7,9 @@ import { checkSupport } from '../data/fs/support';
 import { EMERGENCY_KEY, LEGACY_EMERGENCY_KEY, Persister } from '../data/persister';
 import { dailyBackup, purge, restoreBackup } from '../data/maintenance';
 import { SyncEngine } from '../data/sync';
-import { classifyError, ERROR_TEXT, type LoadResult } from '../data/repository';
+import { classifyError, type LoadResult } from '../data/repository';
+import { errorText } from '../lib/labels';
+import { t } from '../i18n';
 import { emptySnapshot, sampleSnapshot } from '../data/seed';
 import type { ID, Task } from '../data/types';
 import { addUser, loadSnapshot, resetApp, setMe, showToast, useApp } from '../store/appStore';
@@ -104,7 +106,7 @@ export async function pickFolder() {
     await openFolder();
   } catch (e) {
     if (e instanceof DOMException && e.name === 'AbortError') return;
-    set({ phase: 'failed', error: `The folder could not be opened. ${ERROR_TEXT[classifyError(e)]}` });
+    set({ phase: 'failed', error: t('session.openFailed', { reason: errorText(classifyError(e)) }) });
   }
 }
 
@@ -114,7 +116,7 @@ export async function reconnect() {
   try {
     if (await ensureReadWrite(handle, true)) await openFolder();
   } catch (e) {
-    set({ phase: 'failed', error: ERROR_TEXT[classifyError(e)] });
+    set({ phase: 'failed', error: errorText(classifyError(e)) });
   }
 }
 
@@ -139,7 +141,7 @@ async function openFolder() {
     }
     await load();
   } catch (e) {
-    set({ phase: 'failed', error: ERROR_TEXT[classifyError(e)] });
+    set({ phase: 'failed', error: errorText(classifyError(e)) });
   }
 }
 
@@ -170,14 +172,14 @@ export async function initialize(opts: { samples: boolean; subfolder: boolean })
     await repo!.initialize(opts.samples ? sampleSnapshot(name) : emptySnapshot(name));
     await load();
   } catch (e) {
-    set({ phase: 'failed', error: `Setup failed. ${ERROR_TEXT[classifyError(e)]}` });
+    set({ phase: 'failed', error: t('session.setupFailed', { reason: errorText(classifyError(e)) }) });
   }
 }
 
 async function load() {
   const res = await repo!.loadAll();
   if (res.newerSchema) {
-    set({ phase: 'failed', error: ERROR_TEXT.newerSchema });
+    set({ phase: 'failed', error: errorText('newerSchema') });
     return;
   }
   stopEngines();
@@ -209,7 +211,7 @@ function recoverEmergencyCopy(workspaceId: ID) {
     const take = copy.tasks.filter((t) => !cur[t.id] || newest(t) > newest(cur[t.id]!));
     if (!take.length) return;
     useApp.setState({ tasks: { ...cur, ...Object.fromEntries(take.map((t) => [t.id, t])) } });
-    showToast(`${take.length} unsaved changes restored`);
+    showToast(t('toast.restored', { n: take.length }));
   } catch {
     /* ignore */
   }
@@ -258,7 +260,7 @@ export async function reconnectAndRetry() {
   try {
     if (await ensureReadWrite(handle, true)) await persister.retry();
   } catch (e) {
-    showToast(ERROR_TEXT[classifyError(e)]);
+    showToast(errorText(classifyError(e)));
   }
 }
 

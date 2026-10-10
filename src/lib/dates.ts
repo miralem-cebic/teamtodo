@@ -1,5 +1,6 @@
 import { addDays as dfAddDays, differenceInCalendarDays, format, isSameYear, nextMonday as dfNextMonday, parseISO } from 'date-fns';
 import type { ISODate, ISODateTime } from '../data/types';
+import { fmt, t } from '../i18n';
 
 // Due dates are calendar days (local time), not timestamps.
 
@@ -14,7 +15,7 @@ export const nextMonday = (): ISODate => toIsoDate(dfNextMonday(new Date()));
 /** "Oct 2" or "Oct 2, 2027" outside the current year */
 export function fmtDate(iso: ISODate): string {
   const d = fromIsoDate(iso);
-  return format(d, isSameYear(d, new Date()) ? 'MMM d' : 'MMM d, yyyy');
+  return fmt(d, isSameYear(d, new Date()) ? 'MMM d' : 'MMM d, yyyy');
 }
 
 /** Relative label for due dates: Today, Tomorrow, Yesterday, weekday (next 6 days), otherwise the date */
@@ -22,26 +23,26 @@ export function fmtDue(iso: ISODate | null, time?: string | null): string {
   if (!iso) return '';
   const dd = diffDays(iso, today());
   let s: string;
-  if (dd === 0) s = 'Today';
-  else if (dd === 1) s = 'Tomorrow';
-  else if (dd === -1) s = 'Yesterday';
-  else if (dd > 1 && dd < 7) s = format(fromIsoDate(iso), 'EEE');
+  if (dd === 0) s = t('due.today');
+  else if (dd === 1) s = t('due.tomorrow');
+  else if (dd === -1) s = t('due.yesterday');
+  else if (dd > 1 && dd < 7) s = fmt(fromIsoDate(iso), 'EEE');
   else s = fmtDate(iso);
   return time ? `${s}, ${time}` : s;
 }
 
 export function fmtMonth(d: Date): string {
-  return format(d, 'LLLL yyyy');
+  return fmt(d, 'LLLL yyyy');
 }
 
 /** Timestamp in feeds: "just now", "5 min ago", "today, 14:03", "Oct 2, 14:03" */
 export function fmtTimestamp(at: ISODateTime): string {
   const d = new Date(at);
   const mins = Math.round((Date.now() - d.getTime()) / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins} min ago`;
-  const hm = format(d, 'HH:mm');
-  if (toIsoDate(d) === today()) return `today, ${hm}`;
+  if (mins < 1) return t('time.justNow');
+  if (mins < 60) return t('time.minAgo', { n: mins });
+  const hm = fmt(d, 'HH:mm');
+  if (toIsoDate(d) === today()) return t('time.todayAt', { time: hm });
   return `${fmtDate(toIsoDate(d))}, ${hm}`;
 }
 
