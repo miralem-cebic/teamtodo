@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon';
 import { Menu, Popover, usePop } from '../../components/Popover';
 import { archiveProject, deleteProject, renameProject, setProjectColor, useApp } from '../../store/appStore';
+import { lastDueDate } from '../../lib/calendar';
+import { fmtDate } from '../../lib/dates';
 import { COLORS, type Project } from '../../data/types';
 import { errorText } from '../../lib/labels';
 import { reconnectAndRetry, retrySave } from '../../app/session';
@@ -12,13 +14,23 @@ const colorName = (c: (typeof COLORS)[number]) => t(`color.${c}` as 'color.teal'
 
 export function Header({ view, onBurger }: { view: View; onBurger: () => void }) {
   const project = useApp((s) => (view.type === 'project' ? s.projects.find((p) => p.id === view.id) : undefined));
+  // latest due date of the open tasks of the project (visible, not deleted, including subtasks)
+  const lastDue = useApp((s) => {
+    if (view.type !== 'project') return null;
+    const proj = s.projects.find((p) => p.id === view.id);
+    if (!proj || proj.deletedAt) return null;
+    return lastDueDate(Object.values(s.tasks).filter((x) => x.projectId === view.id && !x.deletedAt));
+  });
   return (
     <header className="top">
       <button type="button" className="icon-btn burger" onClick={onBurger} aria-label={t('nav.open')}>
         <Icon n="menu" />
       </button>
       {project ? (
-        <ProjectTitle proj={project} />
+        <>
+          <ProjectTitle proj={project} />
+          {lastDue && <span className="last-due">{t('project.lastDue', { date: fmtDate(lastDue) })}</span>}
+        </>
       ) : view.type === 'inbox' ? (
         <div className="ttl">
           <span className="ttl-ic"><Icon n="bell" s={18} /></span>

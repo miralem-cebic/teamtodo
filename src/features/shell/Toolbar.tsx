@@ -18,6 +18,7 @@ interface Props {
   setSearch: (v: string) => void;
   searchRef: RefObject<HTMLInputElement>;
   onAdd: () => void;
+  onExport: () => void;
 }
 
 const completedOptions = (): [CompletedFilter, string][] => [
@@ -48,7 +49,7 @@ export function groupOptions(view: View): [GroupBy, string][] {
 
 export const activeFilterCount = (s: ViewSettings) => (s.due !== 'all' ? 1 : 0) + (s.status.length ? 1 : 0) + (s.assignee ? 1 : 0);
 
-export function Toolbar({ view, settings: s, setSettings, layout, setLayout, search, setSearch, searchRef, onAdd }: Props) {
+export function Toolbar({ view, settings: s, setSettings, layout, setLayout, search, setSearch, searchRef, onAdd, onExport }: Props) {
   const users = useApp((x) => x.users);
   const meId = useApp((x) => x.meId);
   const fp = usePop();
@@ -74,6 +75,10 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
         <button type="button" role="tab" aria-selected={layout === 'board'} className={layout === 'board' ? 'on' : ''} onClick={() => setLayout('board')} title={t('toolbar.boardTitle')}>
           <Icon n="board" s={15} />
           {t('view.board')}
+        </button>
+        <button type="button" role="tab" aria-selected={layout === 'calendar'} className={layout === 'calendar' ? 'on' : ''} onClick={() => setLayout('calendar')} title={t('toolbar.calendarTitle')}>
+          <Icon n="cal" s={15} />
+          {t('view.calendar')}
         </button>
       </div>
       <span className="sp" />
@@ -107,6 +112,10 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
           <Icon n="x" s={14} />
         </button>
       )}
+      <button type="button" className="tb" onClick={onExport} title={t('ics.exportViewTitle')}>
+        <Icon n="cal" s={15} />
+        <span>{t('ics.exportView')}</span>
+      </button>
       <button type="button" className={'tb' + (s.sort !== 'manual' ? ' active' : '')} onClick={sp.open} aria-haspopup="menu">
         <Icon n="sort" s={15} />
         <span>{s.sort === 'manual' ? t('toolbar.sort') : sortOptions().find((x) => x[0] === s.sort)![1]}</span>

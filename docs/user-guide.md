@@ -60,13 +60,32 @@ When you hover over a row, a handle (⋮⋮) appears on its left edge. Drag it t
 
 ### Board, filter, sort, group
 
-- **List or board:** switch at the top, or press **L** / **B**. On the board, the columns follow the current grouping (by default the sections of a project). Drag cards to another column.
+- **List, board, or calendar:** switch at the top, or press **L** / **B** / **C**. On the board, the columns follow the current grouping (by default the sections of a project). Drag cards to another column.
 - **Filter** by responsible person, due date, and status. Active filters are highlighted, and the small × resets them.
 - **Sort** by due date, title, person, or creation date. Ordering by dragging is only available with **Manual**.
 - **Group** by section, person, due date, status, or project.
 - **Open tasks / All tasks / Completed tasks** shows or hides completed tasks.
 
 ![Board view of a project with one column per section and task cards](screenshot2.png)
+
+### Calendar
+
+The calendar shows the open tasks of the current view by their due date. Weeks start on Monday.
+
+- Use **‹** and **›** to change the month, and **Today** to return to the current month. Overdue tasks are shown in red.
+- Click a task to open it, or tick its box to complete it. A **+** on a day creates a task due on that day; with the keyboard, select a day and press Enter.
+- **Without due date** lists the open tasks that have no date yet, so nothing gets lost.
+- The project header shows **Last due**: the latest due date of the project's open tasks.
+- Arrow keys move between days. On a phone, each day shows a dot per task.
+
+### Calendar export
+
+Tasks can be taken into Outlook, Apple Calendar, or Google Calendar as a calendar file (`.ics`):
+
+- **One task:** open it, choose **⋯** → **Export to calendar (.ics)**.
+- **All open tasks of the view:** click **Calendar export** in the toolbar. Tasks without a due date are skipped, and the message says how many.
+
+Open the downloaded file, or attach it to an email. A task without a time becomes an all-day event; a task with a time becomes a 30-minute event at that time. Importing the file again updates the same events instead of creating copies. The export is a snapshot: a later change of the due date does not reach the calendar until you export again.
 
 ### Comments, attachments, followers
 
@@ -114,7 +133,7 @@ Press **?** to show the full list in the app.
 | /                           | Search                                                                  |
 | G, then M                   | Go to **My tasks**                                                      |
 | G, then I                   | Go to inbox                                                             |
-| L / B                       | List / board                                                            |
+| L / B / C                   | List / board / calendar                                                 |
 | Ctrl/⌘ + Z                  | Undo                                                                    |
 | ?                           | All shortcuts                                                           |
 
@@ -150,4 +169,5 @@ teamtodo/
 - **Date input** understands English and German words (such as `tomorrow`, `morgen`, `fr`, `Freitag`). Dates in numeric form (`12.10.`) work in every language.
 - **Sample data** is always in English.
 - **Notifications** only appear while teamtodo is open.
+- **Calendar export** is a one-time file. Calendars do not follow later changes in teamtodo; export again to update them.
 - **Keyboard drag and drop:** instead of dragging, move with Ctrl/⌘ + Shift + ↑/↓. To move to another section, use the section field of the row.

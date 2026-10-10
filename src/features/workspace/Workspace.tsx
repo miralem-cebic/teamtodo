@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ToastHost } from '../../components/Toast';
 import { isTyping, isMod } from '../../hooks/listNav';
-import { addTask, clearRecentDone, closePanel, requestFocus, undo, useApp } from '../../store/appStore';
-import { collapseKey, patchSettings, setLayout, setView, settingsFor, toggleCollapsed, usePrefs, type Layout } from '../../store/prefs';
+import { addTask, clearRecentDone, closePanel, openPanel, requestFocus, undo, useApp } from '../../store/appStore';
+import { collapseKey, patchSettings, setLayout, setView, settingsFor, toggleCollapsed, usePrefs, viewKey, type Layout } from '../../store/prefs';
 import { buildGroups, visibleTasks, type View, type ViewSettings } from '../../store/selectors';
 import { KeysDialog } from '../keys/KeysDialog';
 import { ListView } from '../list/ListView';
 import { Header } from '../shell/Header';
 import { Toolbar } from '../shell/Toolbar';
 import { DataDialog } from '../shell/DataDialog';
+import { t } from '../../i18n';
 import { TeamDialog } from '../team/TeamDialog';
 import { BoardView } from '../board/BoardView';
 import { TaskDnd } from '../dnd/TaskDnd';
@@ -16,6 +17,9 @@ import { Sidebar } from '../shell/Sidebar';
 import { TaskPanel } from '../task-panel/TaskPanel';
 import { InboxView } from '../inbox/InboxView';
 import { loadInboxRead } from '../inbox/inbox';
+import { CalendarView } from '../calendar/CalendarView';
+import { exportIcs } from '../calendar/exportIcs';
+import { today } from '../../lib/dates';
 
 export function Workspace() {
   const tasks = useApp((s) => s.tasks);
@@ -43,7 +47,7 @@ export function Workspace() {
   const cKey = collapseKey(view, settings);
   const collapsed = prefs.collapsed[cKey] ?? {};
   const setSettings = useCallback((p: Partial<ViewSettings>) => patchSettings(view, p), [view]);
-  const layout: Layout = prefs.layout[view.type === 'project' ? view.id : view.type] === 'board' ? 'board' : 'list';
+  const layout: Layout = prefs.layout[viewKey(view)] ?? 'list';
   const changeLayout = useCallback((l: Layout) => setLayout(view, l), [view]);
 
   const children = useMemo(() => visibleTasks(tasks, projects).children, [tasks, projects]);
@@ -54,6 +58,9 @@ export function Workspace() {
   );
   const groupsRef = useRef(groups);
   groupsRef.current = groups;
+  /** Open tasks of the view after filters: the calendar and the calendar export use them */
+  const openTasks = useMemo(() => groups.flatMap((g) => g.tasks).filter((x) => !x.completedAt), [groups]);
+  const viewName = useApp((s) => (view.type === 'project' ? s.projects.find((p) => p.id === (view as { id: string }).id)?.name : undefined));
 
   const go = useCallback((v: View) => {
     setView(v);
@@ -67,6 +74,11 @@ export function Workspace() {
     const g = groupsRef.current.find((x) => x.apply !== null);
     if (!g) return;
     if (layout === 'board') return requestFocus(g.key, 'board-add');
+    if (layout === 'calendar') {
+      const id = addTask({ ...g.defaults, dueDate: today(), order: Date.now() });
+      requestFocus(id, 'panel-title');
+      return openPanel(id);
+    }
     if (g.collapsed) toggleCollapsed(cKey, g.key, false);
     const first = g.tasks[0];
     requestFocus(addTask({ ...g.defaults, order: first ? first.order - 1 : Date.now() }), 'list');
@@ -113,6 +125,7 @@ export function Workspace() {
         setKeysOpen(true);
       } else if (k === 'l') changeLayout('list');
       else if (k === 'b') changeLayout('board');
+      else if (k === 'c') changeLayout('calendar');
       else if (k === 'g') gPressed = Date.now();
     };
     window.addEventListener('keydown', h);
@@ -133,9 +146,22 @@ export function Workspace() {
             </div>
           ) : (
             <>
-              <Toolbar view={view} settings={settings} setSettings={setSettings} layout={layout} setLayout={changeLayout} search={search} setSearch={setSearch} searchRef={searchRef} onAdd={newTask} />
+              <Toolbar
+                view={view}
+                settings={settings}
+                setSettings={setSettings}
+                layout={layout}
+                setLayout={changeLayout}
+                search={search}
+                setSearch={setSearch}
+                searchRef={searchRef}
+                onAdd={newTask}
+                onExport={() => exportIcs(openTasks, viewName ?? t('nav.myTasks'))}
+              />
               <div className="scroll" data-testid="list-scroll">
-                {layout === 'board' ? (
+                {layout === 'calendar' ? (
+                  <CalendarView tasks={openTasks} defaults={groups.find((x) => x.apply !== null)?.defaults ?? {}} />
+                ) : layout === 'board' ? (
                   <BoardView groups={groups} view={view} children={children} />
                 ) : (
                   <ListView groups={groups} view={view} settings={settings} collapseKey={cKey} children={children} />

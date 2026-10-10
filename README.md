@@ -20,7 +20,7 @@ It runs entirely in the browser and needs no server. All data is stored as plain
 ## Highlights
 
 - **Fast task entry**: type a title, press Enter, and the next task is ready. Keyboard-first, with a full set of shortcuts.
-- **Lists, boards, and my tasks**: switch views, filter, sort, and group. Drag and drop tasks, sections, and subtasks.
+- **Lists, boards, calendar, and my tasks**: switch views, filter, sort, and group. Drag and drop tasks, sections, and subtasks. Export tasks as calendar files for Outlook and other calendar apps.
 - **Team collaboration**: assign tasks, mention people, comment, follow tasks, and see changes from others in an inbox.
 - **Field-level merging**: when two people edit the same task at the same time, changes to different fields are both kept.
 - **No server, your data**: data lives as files in a shared folder. Daily backups are kept automatically, and deleted tasks can be restored for 30 days.

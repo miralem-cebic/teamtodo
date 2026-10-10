@@ -25,6 +25,7 @@ import { CommentBox, Feed } from './Feed';
 import { t as tr } from '../../i18n';
 import { Followers } from './Followers';
 import { useDndRow } from '../dnd/TaskDnd';
+import { exportIcs } from '../calendar/exportIcs';
 
 const short = (s: string) => {
   const v = s.trim() || tr('task.untitled');
@@ -66,7 +67,13 @@ export function TaskPanel({ id }: { id: ID }) {
         </button>
         {p.anchor && (
           <Popover anchor={p.anchor} onClose={p.close} width={200} label={tr('panel.actions')}>
-            <Menu onClose={p.close} items={[{ label: tr('task.delete'), icon: 'trash', danger: true, keepFocus: true, onClick: () => deleteTask(t.id) }]} />
+            <Menu
+              onClose={p.close}
+              items={[
+                { label: tr('ics.addToCalendar'), icon: 'cal', onClick: () => exportIcs([t], t.title.trim() || tr('task.untitled')) },
+                { label: tr('task.delete'), icon: 'trash', danger: true, keepFocus: true, onClick: () => deleteTask(t.id) },
+              ]}
+            />
           </Popover>
         )}
         <button type="button" className="icon-btn" onClick={closePanel} aria-label={tr('panel.close')}>
