@@ -1,5 +1,5 @@
 import type { Activity, Attachment, Comment, Project, Section, Task, User } from './types';
-import { MERGEABLE_FIELDS } from './types';
+import { MERGEABLE_FIELDS, type MergeableField } from './types';
 
 // Merging of parallel changes (e.g. two people via OneDrive).
 // Tasks: field by field by `fieldUpdatedAt`; the newer one wins, on a tie the local one.
@@ -25,13 +25,18 @@ const pickComment = (x: Comment, y: Comment): Comment => {
 };
 const pickAttachment = (x: Attachment, y: Attachment): Attachment => ({ ...x, removedAt: later(x.removedAt, y.removedAt) });
 
+/** Copies one mergeable field; the generic keeps the value type of each field checked by the compiler */
+function takeField<K extends MergeableField>(out: Task, from: Task, f: K) {
+  out[f] = from[f];
+}
+
 export function mergeTask(local: Task, remote: Task): Task {
   const out: Task = { ...local, fieldUpdatedAt: { ...local.fieldUpdatedAt } };
   for (const f of MERGEABLE_FIELDS) {
     const tl = stamp(local, f);
     const tr = stamp(remote, f);
     if (tr > tl) {
-      (out as unknown as Record<string, unknown>)[f] = remote[f];
+      takeField(out, remote, f);
       out.fieldUpdatedAt[f] = tr;
     } else if (local.fieldUpdatedAt[f] === undefined && remote.fieldUpdatedAt[f] !== undefined) {
       out.fieldUpdatedAt[f] = remote.fieldUpdatedAt[f];

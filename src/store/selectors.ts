@@ -3,7 +3,7 @@ import type { ID, Project, Section, Task, TaskState, TaskStatus, User } from '..
 import { statusLabel, STATUSES } from '../lib/labels';
 import { t } from '../i18n';
 
-// Reine Funktionen: Sichtbarkeit, Hierarchie, Grouping, Filter, Sorting.
+// Pure functions: visibility, hierarchy, grouping, filters, sorting.
 
 export type View = { type: 'my' } | { type: 'inbox' } | { type: 'templates' } | { type: 'project'; id: ID };
 export type GroupBy = 'section' | 'due' | 'status' | 'assignee' | 'project' | 'none';
@@ -17,7 +17,7 @@ export interface ViewSettings {
   completed: CompletedFilter;
   due: DueFilter;
   status: (TaskStatus | 'done')[];
-  /** '' = alle, 'none' = niemand, sonst User-ID */
+  /** '' = everyone, 'none' = nobody, otherwise a user ID */
   assignee: string;
 }
 
@@ -52,13 +52,27 @@ export function isVisible(t: TaskState, tasks: Record<ID, TaskState>, deletedPro
   return true;
 }
 
+/** parent ID → child IDs, per task state. The store replaces the state object on every change, so the cache never goes stale. */
+const childIndexCache = new WeakMap<Record<ID, TaskState>, Map<ID, ID[]>>();
+function childIndex(tasks: Record<ID, TaskState>): Map<ID, ID[]> {
+  let index = childIndexCache.get(tasks);
+  if (!index) {
+    index = new Map();
+    for (const t of Object.values(tasks)) if (t.parentId) (index.get(t.parentId) ?? index.set(t.parentId, []).get(t.parentId)!).push(t.id);
+    childIndexCache.set(tasks, index);
+  }
+  return index;
+}
+
+/** All subtasks below a task (any depth), in depth-first order */
 export function descendantIds(tasks: Record<ID, TaskState>, id: ID): ID[] {
-  const kids = new Map<ID, ID[]>();
-  for (const t of Object.values(tasks)) if (t.parentId) (kids.get(t.parentId) ?? kids.set(t.parentId, []).get(t.parentId)!).push(t.id);
+  const kids = childIndex(tasks);
   const out: ID[] = [];
+  const seen = new Set<ID>([id]);
   const walk = (pid: ID) => {
     for (const k of kids.get(pid) ?? []) {
-      if (out.includes(k)) continue;
+      if (seen.has(k)) continue;
+      seen.add(k);
       out.push(k);
       walk(k);
     }
@@ -106,7 +120,7 @@ export interface Group {
   section?: Section;
   apply: GroupPatch | null;
   defaults: Partial<Task>;
-  /** Auch leer anzeigen */
+  /** Show even when empty */
   keep?: boolean;
   tasks: TaskState[];
   collapsed: boolean;

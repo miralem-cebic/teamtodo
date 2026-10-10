@@ -69,7 +69,7 @@ export const useApp = create<AppState>()(() => ({ ...initial }));
 const get = useApp.getState;
 const set = useApp.setState;
 
-/* ---------- Hilfen ---------- */
+/* ---------- Helpers ---------- */
 
 const short = (s: string) => {
   const v = s.trim() || tr('task.untitled');
@@ -97,7 +97,7 @@ function pushUndo(entry: UndoEntry, toast: boolean) {
   if (toast) showToast(entry.label, true);
 }
 
-/* ---------- Laden / Sitzung ---------- */
+/* ---------- Loading / session ---------- */
 
 export function loadSnapshot(snap: Snapshot) {
   const tasks: Record<ID, TaskState> = {};
