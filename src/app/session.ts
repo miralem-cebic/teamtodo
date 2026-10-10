@@ -231,7 +231,7 @@ async function maintenance() {
     await dailyBackup(repo);
     await purge(repo);
   } catch (e) {
-    console.warn('Pflege des Datenordners fehlgeschlagen', e);
+    console.warn('Data folder maintenance failed', e);
   }
 }
 

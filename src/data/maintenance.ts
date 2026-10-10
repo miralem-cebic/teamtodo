@@ -14,10 +14,12 @@ export const PURGE_AFTER_DAYS = 30;
 const DAILY = /^\d{4}-\d{2}-\d{2}$/;
 const PRE_RESTORE = /^before-restore-/;
 
-export function currentSnapshot(): Snapshot {
+/** Full state for a backup. `null` while no workspace is loaded: a snapshot without workspace would be invalid. */
+export function currentSnapshot(): Snapshot | null {
   const s = useApp.getState();
+  if (!s.workspace) return null;
   return {
-    workspace: s.workspace!,
+    workspace: s.workspace,
     users: s.users,
     projects: s.projects,
     tasks: Object.values(s.tasks)
@@ -32,7 +34,9 @@ export async function dailyBackup(repo: Repository, force = false): Promise<stri
   if (!ws) return null;
   const day = today();
   if (!force && ws.lastBackupDate === day) return null;
-  await repo.writeBackup(day, currentSnapshot());
+  const snapshot = currentSnapshot();
+  if (!snapshot) return null;
+  await repo.writeBackup(day, snapshot);
   const all = await repo.listBackups();
   const daily = all.filter((b) => DAILY.test(b.name)).sort((a, b) => b.name.localeCompare(a.name));
   for (const b of daily.slice(KEEP_BACKUPS)) await repo.removeBackup(b.name);
@@ -93,7 +97,9 @@ export async function purge(repo: Repository, now = Date.now()): Promise<number>
  */
 export async function restoreBackup(repo: Repository, name: string) {
   const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
-  await repo.writeBackup(`before-restore-${stamp}`, currentSnapshot());
+  const snapshot = currentSnapshot();
+  if (!snapshot) throw new Error('Restore needs a loaded workspace');
+  await repo.writeBackup(`before-restore-${stamp}`, snapshot);
   const b = await repo.readBackup(name);
   const at = nowIso();
   const s = useApp.getState();

@@ -48,6 +48,8 @@ export interface Project {
   updatedAt: ISODateTime;
   archivedAt?: ISODateTime | null;
   deletedAt?: ISODateTime | null;
+  /** Template: a project without a place in the project list. Its sections and tasks are the blueprint for new projects. */
+  template?: boolean;
 }
 export interface ProjectsFile {
   schemaVersion: number;

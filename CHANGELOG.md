@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Links in descriptions and comments: a web address (`https://…`) is clickable by itself. Select text and press Ctrl/⌘ + K to turn it into a link. Only `http` and `https` links are accepted.
+- Templates: save a project as a template (project menu, **Save as template**). Create a new project from a template or start from a blank project. Templates keep sections, tasks, descriptions and subtasks; assignments and due dates are not copied. Manage them under **Templates** in the navigation.
+
+### Changed
+
+- The arrows at the top of the task detail panel go to the previous and next task in the list. They previously stepped back and forward through the tasks you had opened.
+- **+** next to **Projects** opens a dialog that asks for a name and a starting point (blank or template).
+
+### Fixed
+
+- A backup or restore started before the workspace was loaded no longer writes an invalid snapshot (#20, #22).
+- Finding subtasks is faster in large task trees (#21).
+- Merging task fields is checked by the compiler instead of unsafe casts (#19).
+- Comments and log messages in the source are in English (#23).
+
 ## [0.2.0] - 2026-10-10
 
 ### Added

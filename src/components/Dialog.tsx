@@ -7,7 +7,8 @@ export function Dialog({ title, onClose, children, wide }: { title: string; onCl
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
-    ref.current?.focus();
+    // keep focus where a child put it (e.g. an autofocused input)
+    if (!ref.current?.contains(document.activeElement)) ref.current?.focus();
     const k = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();

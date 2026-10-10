@@ -35,7 +35,7 @@
 .side-empty{font-size:12px;color:var(--text-3);padding:4px 8px;margin:0}
 .side-note{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--warn);padding:6px 8px;margin:0 0 4px;background:var(--warn-soft);border-radius:var(--r)}
 
-/* Liste: Zeilenauswahl per Tastatur */
+/* List: row selection by keyboard */
 .row:focus{outline:none}
 .row:focus-visible,.row:focus{background:var(--sel)}
 .row:focus::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent)}

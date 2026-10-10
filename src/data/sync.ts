@@ -137,7 +137,7 @@ export class SyncEngine {
       applyChanges(this.persister, changes);
       this.onConflictCopies(changes.conflictCopies);
     } catch (e) {
-      console.warn('Abgleich fehlgeschlagen', e);
+      console.warn('Sync failed', e);
     } finally {
       this.busy = false;
     }

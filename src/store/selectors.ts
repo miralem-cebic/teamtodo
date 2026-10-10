@@ -3,9 +3,9 @@ import type { ID, Project, Section, Task, TaskState, TaskStatus, User } from '..
 import { statusLabel, STATUSES } from '../lib/labels';
 import { t } from '../i18n';
 
-// Reine Funktionen: Sichtbarkeit, Hierarchie, Grouping, Filter, Sorting.
+// Pure functions: visibility, hierarchy, grouping, filters, sorting.
 
-export type View = { type: 'my' } | { type: 'inbox' } | { type: 'project'; id: ID };
+export type View = { type: 'my' } | { type: 'inbox' } | { type: 'templates' } | { type: 'project'; id: ID };
 export type GroupBy = 'section' | 'due' | 'status' | 'assignee' | 'project' | 'none';
 export type SortBy = 'manual' | 'due' | 'title' | 'assignee' | 'created';
 export type CompletedFilter = 'open' | 'all' | 'done';
@@ -17,7 +17,7 @@ export interface ViewSettings {
   completed: CompletedFilter;
   due: DueFilter;
   status: (TaskStatus | 'done')[];
-  /** '' = alle, 'none' = niemand, sonst User-ID */
+  /** '' = everyone, 'none' = nobody, otherwise a user ID */
   assignee: string;
 }
 
@@ -38,6 +38,9 @@ export function liveSections(p: Project | undefined): Section[] {
   return (p?.sections ?? []).filter((s) => !s.deletedAt).sort(byOrder);
 }
 
+/** Projects whose tasks do not show in any view: deleted projects and templates (templates only hold a blueprint). */
+export const hiddenProjectIds = (projects: Project[]) => new Set(projects.filter((p) => p.deletedAt || p.template).map((p) => p.id));
+
 /** Task is visible: not deleted, its project is not deleted, its parent task is not deleted. */
 export function isVisible(t: TaskState, tasks: Record<ID, TaskState>, deletedProjects: Set<ID>): boolean {
   let cur: TaskState | undefined = t;
@@ -49,13 +52,27 @@ export function isVisible(t: TaskState, tasks: Record<ID, TaskState>, deletedPro
   return true;
 }
 
+/** parent ID → child IDs, per task state. The store replaces the state object on every change, so the cache never goes stale. */
+const childIndexCache = new WeakMap<Record<ID, TaskState>, Map<ID, ID[]>>();
+function childIndex(tasks: Record<ID, TaskState>): Map<ID, ID[]> {
+  let index = childIndexCache.get(tasks);
+  if (!index) {
+    index = new Map();
+    for (const t of Object.values(tasks)) if (t.parentId) (index.get(t.parentId) ?? index.set(t.parentId, []).get(t.parentId)!).push(t.id);
+    childIndexCache.set(tasks, index);
+  }
+  return index;
+}
+
+/** All subtasks below a task (any depth), in depth-first order */
 export function descendantIds(tasks: Record<ID, TaskState>, id: ID): ID[] {
-  const kids = new Map<ID, ID[]>();
-  for (const t of Object.values(tasks)) if (t.parentId) (kids.get(t.parentId) ?? kids.set(t.parentId, []).get(t.parentId)!).push(t.id);
+  const kids = childIndex(tasks);
   const out: ID[] = [];
+  const seen = new Set<ID>([id]);
   const walk = (pid: ID) => {
     for (const k of kids.get(pid) ?? []) {
-      if (out.includes(k)) continue;
+      if (seen.has(k)) continue;
+      seen.add(k);
       out.push(k);
       walk(k);
     }
@@ -66,7 +83,7 @@ export function descendantIds(tasks: Record<ID, TaskState>, id: ID): ID[] {
 
 /** Visible tasks + children per parent task (sorted) */
 export function visibleTasks(tasks: Record<ID, TaskState>, projects: Project[]) {
-  const deleted = new Set(projects.filter((p) => p.deletedAt).map((p) => p.id));
+  const deleted = hiddenProjectIds(projects);
   const visible: TaskState[] = [];
   const children: Record<ID, TaskState[]> = {};
   for (const t of Object.values(tasks)) {
@@ -103,7 +120,7 @@ export interface Group {
   section?: Section;
   apply: GroupPatch | null;
   defaults: Partial<Task>;
-  /** Auch leer anzeigen */
+  /** Show even when empty */
   keep?: boolean;
   tasks: TaskState[];
   collapsed: boolean;
@@ -196,7 +213,7 @@ export function buildGroups(inp: BuildInput): Group[] {
   } else if (g === 'project') {
     groups = [
       ...inp.projects
-        .filter((p) => !p.deletedAt)
+        .filter((p) => !p.deletedAt && !p.template)
         .sort(byOrder)
         .map((p) => {
           const apply = { projectId: p.id, sectionId: firstSection(p.id) };

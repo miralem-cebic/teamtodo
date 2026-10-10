@@ -1,5 +1,7 @@
-import { Fragment, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState } from 'react';
 import { Avatar } from '../../components/Avatar';
+import { RichText } from '../../components/RichText';
+import { useLinkInput } from '../../components/LinkInput';
 import { Icon } from '../../components/Icon';
 import { addComment, deleteComment, useApp } from '../../store/appStore';
 import { usePrefs } from '../../store/prefs';
@@ -9,17 +11,6 @@ import type { TaskState, User } from '../../data/types';
 import { t as tr } from '../../i18n';
 
 const MOD = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘' : 'Ctrl';
-
-/** Highlight @Name in the text */
-export function renderMentions(text: string, users: User[]): ReactNode {
-  const names = users
-    .map((u) => u.name)
-    .sort((a, b) => b.length - a.length)
-    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  if (!names.length) return text;
-  const re = new RegExp(`(@(?:${names.join('|')}))`, 'gi');
-  return text.split(re).map((part, i) => (i % 2 ? <span key={i} className="mention">{part}</span> : <Fragment key={i}>{part}</Fragment>));
-}
 
 export function Feed({ t }: { t: TaskState }) {
   const users = useApp((s) => s.users);
@@ -54,7 +45,9 @@ export function Feed({ t }: { t: TaskState }) {
                     </button>
                   )}
                 </div>
-                <p>{renderMentions(it.c.text, users)}</p>
+                <p>
+                  <RichText text={it.c.text} users={users} />
+                </p>
               </div>
             </div>
           );
@@ -91,6 +84,7 @@ export function CommentBox({ t }: { t: TaskState }) {
     setM(mm ? mm[1]! : null);
     setHi(0);
   };
+  const links = useLinkInput(ref, v, onChange);
   const insert = (u: User) => {
     const el = ref.current!;
     const pos = el.selectionStart;
@@ -137,6 +131,7 @@ export function CommentBox({ t }: { t: TaskState }) {
           onChange={(e) => onChange(e.target.value)}
           onBlur={() => setTimeout(() => setM(null), 120)}
           onKeyDown={(e) => {
+            if (links.onKeyDown(e)) return;
             if (sugg.length && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
               e.preventDefault();
               setHi((h) => (h + (e.key === 'ArrowDown' ? 1 : -1) + sugg.length) % sugg.length);
@@ -158,6 +153,7 @@ export function CommentBox({ t }: { t: TaskState }) {
           <span className="hint"><kbd>{MOD}</kbd>+<kbd>Enter</kbd> {tr('feed.sends')}</span>
           <button type="button" className="btn primary sm" onClick={send} disabled={!v.trim()}>{tr('feed.submit')}</button>
         </div>
+        {links.bar}
       </div>
     </div>
   );

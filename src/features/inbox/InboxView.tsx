@@ -3,10 +3,10 @@ import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { openPanel, useApp } from '../../store/appStore';
 import { usePrefs } from '../../store/prefs';
-import { isVisible } from '../../store/selectors';
+import { hiddenProjectIds, isVisible } from '../../store/selectors';
 import { fmtTimestamp } from '../../lib/dates';
 import { t } from '../../i18n';
-import { renderMentions } from '../task-panel/Feed';
+import { renderMentions } from '../../components/RichText';
 import { deriveInbox, isRead, markAllRead, markRead, useInboxRead, type InboxItem } from './inbox';
 
 const ICON: Record<InboxItem['kind'], 'user' | 'comment' | 'check'> = { assigned: 'user', mention: 'comment', comment: 'comment', completed: 'check' };
@@ -18,8 +18,8 @@ export function useInbox() {
   const meId = useApp((s) => s.meId);
   const read = useInboxRead();
   const items = useMemo(() => {
-    const deleted = new Set(projects.filter((p) => p.deletedAt).map((p) => p.id));
-    return deriveInbox(tasks, users, meId, (t) => isVisible(t, tasks, deleted));
+    const hidden = hiddenProjectIds(projects);
+    return deriveInbox(tasks, users, meId, (t) => isVisible(t, tasks, hidden));
   }, [tasks, projects, users, meId]);
   const unread = items.filter((it) => !isRead(it, read)).length;
   return { items, unread, read };
