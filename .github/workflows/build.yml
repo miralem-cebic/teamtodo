@@ -28,7 +28,7 @@ jobs:
 
       - name: Set up Node.js
         if: ${{ hashFiles('package.json') != '' }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -59,7 +59,7 @@ jobs:
           ls -lh release
 
       - name: Upload package
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: teamtodo-package
           path: release/
