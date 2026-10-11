@@ -50,6 +50,8 @@ export interface Project {
   deletedAt?: ISODateTime | null;
   /** Template: a project without a place in the project list. Its sections and tasks are the blueprint for new projects. */
   template?: boolean;
+  /** Pinned projects stay above the unpinned ones in the sidebar; `order` arranges each group */
+  pinned?: boolean;
 }
 export interface ProjectsFile {
   schemaVersion: number;

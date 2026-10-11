@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { Menu, Popover, usePop } from '../../components/Popover';
-import { archiveProject, showToast, useApp } from '../../store/appStore';
-import { byOrder, visibleTasks, type View } from '../../store/selectors';
+import { archiveProject, moveProject, setProjectPinned, showToast, useApp } from '../../store/appStore';
+import { byPinnedThenOrder, visibleTasks, type View } from '../../store/selectors';
 import { forgetFolder, switchUser, useSession } from '../../app/session';
 import { useInbox } from '../inbox/InboxView';
 import { LANGS, LANG_NAMES, currentLang, t } from '../../i18n';
@@ -19,6 +19,12 @@ interface Props {
   openData: () => void;
   openTeam: () => void;
 }
+
+/** True if the project at `i` can move in `dir` without leaving its group (pinned or unpinned) */
+const canMove = (list: { pinned?: boolean }[], i: number, dir: -1 | 1) => {
+  const other = list[i + dir];
+  return !!other && !!other.pinned === !!list[i]?.pinned;
+};
 
 export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
   const tasks = useApp((s) => s.tasks);
@@ -46,7 +52,7 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
     return c;
   }, [tasks, projects, meId]);
 
-  const live = projects.filter((p) => !p.deletedAt && !p.template).sort(byOrder);
+  const live = projects.filter((p) => !p.deletedAt && !p.template).sort(byPinnedThenOrder);
   const active = live.filter((p) => !p.archivedAt);
   const archived = live.filter((p) => p.archivedAt);
 
@@ -78,13 +84,28 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
           <Icon n="plus" s={15} />
         </button>
       </div>
-      {active.map((p) => (
-        <button key={p.id} type="button" className={'nav' + (view.type === 'project' && view.id === p.id ? ' on' : '')} onClick={() => go({ type: 'project', id: p.id })}
-          aria-current={view.type === 'project' && view.id === p.id ? 'page' : undefined}>
-          <span className={'sq c-' + p.color} />
-          <span>{p.name}</span>
-          <span className="n">{counts[p.id] ?? 0}</span>
-        </button>
+      {active.map((p, i) => (
+        <div key={p.id} className="nav-arch">
+          <button type="button" className={'nav' + (view.type === 'project' && view.id === p.id ? ' on' : '')} onClick={() => go({ type: 'project', id: p.id })}
+            aria-current={view.type === 'project' && view.id === p.id ? 'page' : undefined}>
+            <span className={'sq c-' + p.color} />
+            <span>{p.name}</span>
+            <span className="n">{counts[p.id] ?? 0}</span>
+          </button>
+          <button type="button" className={'icon-btn' + (p.pinned ? ' on' : '')} onClick={() => setProjectPinned(p.id, !p.pinned)} aria-pressed={!!p.pinned}
+            aria-label={p.pinned ? t('project.unpinNamed', { name: p.name }) : t('project.pinNamed', { name: p.name })} title={p.pinned ? t('project.unpin') : t('project.pin')}>
+            <Icon n="pin" s={14} />
+          </button>
+          {/* Arrows only where the project can move: inside its own group */}
+          <button type="button" className="icon-btn" onClick={() => moveProject(p.id, -1)} disabled={!canMove(active, i, -1)}
+            aria-label={t('project.moveUpNamed', { name: p.name })} title={t('project.moveUp')}>
+            <Icon n="chevU" s={14} />
+          </button>
+          <button type="button" className="icon-btn" onClick={() => moveProject(p.id, 1)} disabled={!canMove(active, i, 1)}
+            aria-label={t('project.moveDownNamed', { name: p.name })} title={t('project.moveDown')}>
+            <Icon n="chevD" s={14} />
+          </button>
+        </div>
       ))}
       {!active.length && <p className="side-empty">{t('side.noProjects')}</p>}
       {archived.length > 0 && (

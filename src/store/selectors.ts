@@ -31,6 +31,30 @@ export const defaultSettings = (view: View): ViewSettings => ({
 });
 
 export const byOrder = (a: { order: number }, b: { order: number }) => a.order - b.order;
+/** Pinned projects first, then by order */
+export const byPinnedThenOrder = (a: Project, b: Project) => Number(!!b.pinned) - Number(!!a.pinned) || a.order - b.order;
+
+/**
+ * Moves a project one place up or down inside its group (pinned or not). Only the projects of that group
+ * that change position get a new `order` and `updatedAt`. Returns null if the project cannot move.
+ */
+export function reorderWithinGroup(projects: Project[], id: ID, dir: -1 | 1, at: string): Project[] | null {
+  const group = projects.filter((p) => !p.deletedAt && !p.template && !p.archivedAt).sort(byPinnedThenOrder);
+  const me = group.find((p) => p.id === id);
+  if (!me) return null;
+  const from = group.indexOf(me);
+  const to = from + dir;
+  const target = group[to];
+  if (!target || !!target.pinned !== !!me.pinned) return null;
+  const moved = [...group];
+  moved[from] = target;
+  moved[to] = me;
+  const newOrder = new Map(moved.map((p, i) => [p.id, i]));
+  return projects.map((p) => {
+    const order = newOrder.get(p.id);
+    return order === undefined || order === p.order ? p : { ...p, order, updatedAt: at };
+  });
+}
 export const isDone = (t: Task) => !!t.completedAt;
 export const isOverdue = (t: Task) => !!t.dueDate && !t.completedAt && diffDays(t.dueDate, today()) < 0;
 

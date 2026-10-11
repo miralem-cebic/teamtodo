@@ -206,6 +206,7 @@ export const validateProject: Check<Project> = objectOf<Project>({
   archivedAt: optional(nullable(dateTime)),
   deletedAt: optional(nullable(dateTime)),
   template: optional(bool),
+  pinned: optional(bool),
 });
 
 export const validateUser: Check<User> = objectOf<User>({

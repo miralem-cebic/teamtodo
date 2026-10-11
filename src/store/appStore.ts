@@ -3,7 +3,7 @@ import { makeProject, makeSection, makeTask, makeUser, newId, nowIso, pickColor 
 import type { Activity, ActivityType, Attachment, Color, ID, MergeableField, Project, Section, Snapshot, Task, TaskState, User, WorkspaceFile } from '../data/types';
 import { MERGEABLE_FIELDS } from '../data/types';
 import type { StorageErrorKind } from '../data/repository';
-import { descendantIds, liveSections } from './selectors';
+import { descendantIds, liveSections, reorderWithinGroup } from './selectors';
 import { t as tr } from '../i18n';
 
 // Central app state. All changes go through the actions below:
@@ -270,6 +270,26 @@ export function addProject(name: string): ID {
 
 export const renameProject = (id: ID, name: string) => setProjects(mapProject(id, (p) => ({ ...p, name })));
 export const setProjectColor = (id: ID, color: Color) => setProjects(mapProject(id, (p) => ({ ...p, color })));
+
+/** Pinning puts the project at the end of the pinned group, unpinning at the start of the unpinned group. */
+export function setProjectPinned(id: ID, pinned: boolean) {
+  const current = get().projects.find((p) => p.id === id);
+  if (!current || !!current.pinned === pinned) return;
+  setProjects(
+    (list) => {
+      const group = list.filter((p) => p.id !== id && !p.deletedAt && !p.template && !p.archivedAt && !!p.pinned === pinned);
+      const order = pinned ? Math.max(-1, ...group.map((p) => p.order)) + 1 : Math.min(0, ...group.map((p) => p.order)) - 1;
+      return list.map((p) => (p.id === id ? touch({ ...p, pinned, order }) : p));
+    },
+    { label: tr('undo.change'), toast: false },
+  );
+}
+
+/** Moves a project one place up or down within its group (pinned or not) */
+export function moveProject(id: ID, dir: -1 | 1) {
+  const next = reorderWithinGroup(get().projects, id, dir, nowIso());
+  if (next) setProjects(() => next, { label: tr('undo.change'), toast: false });
+}
 
 export function archiveProject(id: ID, archived: boolean) {
   const p = get().projects.find((x) => x.id === id);
