@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Tags for tasks: add tags in the task panel, filter every view by a tag. Tags are kept when a project is created from a template.
+- Pin projects to the top of the sidebar, and move projects up or down within their group. Both are undoable.
+- A crash in one part of the screen (the sidebar, a view, the task panel or a dialog) shows a short message with **Try again** and **Copy diagnostics**. The rest of the app keeps working, and unsaved changes are kept.
+
+### Changed
+
+- Files from the data folder, backups and the emergency copy are checked when they are read. A broken user or project is left out and reported; the rest of the workspace still loads.
+- Backups are written in batches, and the undo stack and attachment previews use bounded memory.
+- The built app sends a Content Security Policy: no network access, scripts and styles only from the app itself.
+
+### Fixed
+
+- Attachment names read from task files are checked before they are used. HTML, SVG and XML attachments are always downloaded, never opened as a page.
+- Merging a task no longer keeps an older change timestamp on a field. Such a timestamp could let an older edit win over a newer one later.
+
 ## [0.3.0] - 2026-10-10
 
 ### Added

@@ -47,7 +47,7 @@ The app must run by double-clicking `dist/index.html` in Chrome or Edge:
 
 ## Conventions
 
-- Code, comments, log messages, and test names are in English.
+- New code, comments, log messages, and test names are in English. Older German comments are translated when the code around them changes.
 - Commit messages and pull request titles follow Conventional Commits (see CONTRIBUTING.md).
 - Keep changes focused. Do not refactor unrelated code in the same change.
 - Update `CHANGELOG.md` under `## [Unreleased]` for user-visible changes.

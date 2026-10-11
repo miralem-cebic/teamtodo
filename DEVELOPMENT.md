@@ -35,6 +35,7 @@ Chrome blocks module scripts and CORS requests under `file://`. Therefore:
 - `vite.config.ts`: `format: 'iife'`, no code splitting, `base: './'`, `modulePreload: false`.
 - `build/fileProtocol.ts`: a Vite plugin that removes `type="module"` and `crossorigin` from the built `index.html` and loads the script with `defer`. It fails the build if `type="module"` remains.
 - The Hanken Grotesk font (`@fontsource`) is embedded as a `data:` URL in the CSS.
+- The same plugin adds a Content Security Policy to the built `index.html` (`CONTENT_SECURITY_POLICY` in `build/fileProtocol.ts`): no network access (`connect-src 'none'`), scripts only from the build. It is not added in `npm run dev`, because the dev server injects inline scripts. `npm run check:file` shows a refused inline script as a console error, which fails the check.
 
 ## Architecture
 
@@ -52,14 +53,19 @@ src/
     fs/handleStore.ts        Folder handle stored in IndexedDB
     persister.ts             Observes the store, writes changed entities (400 ms debounce)
     merge.ts                 Field-level merge (tasks, projects, team)
+    validate.ts              Runtime checks for every file, backup and emergency copy read (hand-written)
+    fs/fileNames.ts          Safe attachment file names (sanitize on write, check on read)
     sync.ts                  SyncEngine (every 10 s + window focus), applying external changes
     maintenance.ts           Daily backup (14 kept), purge after 30 days, restore
     fs/storageFs.ts          Folder in localStorage (E2E: two windows share one folder)
     seed.ts                  Sample data
   store/
     appStore.ts              State (zustand) and all actions, undo stack, panel, focus
-    selectors.ts             Visibility, hierarchy, grouping, filters, sorting (pure, tested)
+    selectors.ts             Visibility, hierarchy, grouping, filters, sorting, project order (pure, tested)
     prefs.ts                 Per-browser settings (localStorage)
+  lib/tags.ts                Tag names: normalizing, uniqueness, list of tags in use
+  components/ErrorBoundary.tsx  Keeps a failing part of the screen from taking down the rest
+  app/crashReporting.ts      Global handlers for uncaught errors (emergency copy, then a toast)
   features/                  onboarding, workspace, shell (sidebar/header/toolbar/data dialog), list, board,
                              task-panel (feed, attachments, followers), inbox, dnd, keys
   components/                Popover/menu, person and date pickers, fields, toast, dialog, avatar, icon
@@ -97,12 +103,21 @@ src/
 
 `features/inbox/inbox.ts` derives entries from `activity` (assigned, completed on followed tasks) and `comments` (mention, comment on followed tasks) from the last 30 days, only for actions by others. Read status is stored in `localStorage` under `teamtodo.inbox.<workspaceId>.<userId>` (`readBefore` + IDs).
 
+### Boundary rules
+
+- Everything read from the data folder, a backup or the `localStorage` emergency copy goes through `validate.ts` (via `migrate` in `data/migrations.ts`). Wrong types and unknown values are errors; a missing field is filled in, an explicit `null` is only accepted where null is allowed.
+- Users and projects are read leniently on load: a broken record is left out and reported as a load issue (`LoadResult.issues`). Writes, backups and restores are strict.
+- IDs from file content must match `[A-Za-z0-9_-]` and must not be names that exist on every object (`__proto__`, `constructor`, …).
+- Attachment names read from a task file are checked (`fileNames.ts`) before any file access.
+
 ### Important rules
 
 - **Drafts:** new empty rows have `draft: true` and are never written. A file is created only once the row has a title.
 - **Soft delete:** `deletedAt` is set instead of deleting the file (tasks, sections, projects). Removed permanently after 30 days (`maintenance.ts`).
 - **`fieldUpdatedAt`:** every change to a mergeable field sets that field's timestamp. This is the basis of the field-level merge.
 - **Templates:** a template is a project with `template: true` in `projects.json`. It is excluded from the project list and from all task views (`hiddenProjectIds` in `store/selectors.ts`). Its tasks are the blueprint: `saveAsTemplate` and `addProjectFromTemplate` copy the structure (`copyTaskTree`) without assignees, due dates, followers, comments or status.
+- **Tags:** `Task.tags` is a list of short names (`lib/tags.ts`), unique per task without regard to case. Tags are merged like other fields. Templates copy them.
+- **Pinned projects:** `Project.pinned`. The sidebar shows pinned projects first, then by `order`. Moves (`reorderWithinGroup`) stay inside a group.
 - **Links:** text is stored as typed. `lib/links.ts` finds bare `http(s)://` and `www.` addresses and `[label](https://…)` links; `components/RichText.tsx` renders them. Only http and https are accepted.
 - **Undo:** entries store the previous state of the affected tasks and projects. Undoing resets changed fields with a new timestamp; comments and activity are kept.
 - **Focus:** `requestFocus(id, scope)` + `claimFocus()`: each request takes effect exactly once (rows that move to another group do not steal focus again).
@@ -110,6 +125,8 @@ src/
 - **Renamed from Teamaufgaben:** settings in `localStorage`, the saved folder handle in IndexedDB, and the emergency copy are migrated from their `teamaufgaben` names on first read (`lib/storage.ts`, `data/fs/handleStore.ts`). An existing subfolder `Teamaufgaben` is used only if it contains a workspace (`app/session.ts`).
 
 ## Data format (schema version 1)
+
+Optional fields added after the first release: `Project.pinned` (boolean) and `Task.tags` (list of strings). Older files are read without them.
 
 ```text
 <data folder>/
@@ -142,6 +159,10 @@ OneDrive conflict copies (file names that are not a UUID, for example `<uuid>-LA
 To introduce a new schema version, increase `SCHEMA_VERSION` in `data/schema.ts` and add `{ from: n, up(raw) }` in `data/migrations.ts` for each affected file type. Files are migrated up when read and saved in the new version on the next write. Files from a newer version block startup with a message.
 
 ## Tests
+
+- **Property-based** (`tests/unit/properties.test.ts`, fast-check): merge rules, link safety and migrations for generated inputs. CI uses a fixed seed (`CI` is set); locally the seed is random. Use `FC_SEED=<seed>` to repeat a failing run and `FC_RUNS=<n>` for more cases.
+- **Budgets** (`tests/unit/memory.test.ts`): with 10,000 tasks, the largest write of a backup and the size of the undo stack stay within fixed limits. They count bytes, not time.
+- **Crash recovery** (`tests/e2e/crash.spec.ts`): an injected error in one part of the screen leaves the rest usable. The injection is a test hook that only works with `?e2e` (`window.__e2eCrash`).
 
 - **Unit** (`tests/unit`): repository, migrations, store actions including undo, grouping, persister including the error path, date parser, merging, two clients on one folder (conflicting writes, change detection), attachments, backups, cleanup, restore.
 - **E2E** (`tests/e2e`): real build under `file://`. Covered: five tasks and three subtasks entered only by keyboard; the panel without page navigation and without losing scroll position; undo; reload; projects and sections; **two windows see each other's changes within 10 s**; **simultaneous changes to different fields are kept**; a comment with @mention → inbox; attachments; filter, grouping, and sorting; drag and drop (list, sections, board, rejection on "Überfällig"); board with Enter chain; restoring a backup.
