@@ -4,6 +4,7 @@ import type { BackupInfo, ChangeSet, LoadIssue, LoadResult, Repository } from '.
 import { SCHEMA_VERSION } from '../schema';
 import type { ID, Project, ProjectsFile, Snapshot, Task, User, UsersFile, WorkspaceFile } from '../types';
 import { writeJson } from './jsonFile';
+import { isSafeFileName, toSafeFileName, UnsafeFileNameError } from './fileNames';
 
 // Ordnerstruktur:
 //   workspace.json, users.json, projects.json
@@ -38,7 +39,7 @@ async function listFiles(dir: FileSystemDirectoryHandle): Promise<Map<string, { 
 
 /** "report.pdf" → "report (2).pdf" if the name is already taken */
 function uniqueName(name: string, taken: Set<string>): string {
-  const clean = name.replace(/[\\/:*?"<>|]/g, '_').trim() || 'file';
+  const clean = toSafeFileName(name);
   if (!taken.has(clean)) return clean;
   const dot = clean.lastIndexOf('.');
   const stem = dot > 0 ? clean.slice(0, dot) : clean;
@@ -297,11 +298,14 @@ export class FsRepository implements Repository {
   }
 
   async readAttachment(taskId: ID, fileName: string) {
+    // The name comes from a task file, which other people may have written: never use it unchecked
+    if (!isSafeFileName(fileName)) throw new UnsafeFileNameError(fileName);
     const dir = await this.attachmentDir(taskId, false);
     return (await dir.getFileHandle(fileName)).getFile();
   }
 
   async removeAttachment(taskId: ID, fileName: string) {
+    if (!isSafeFileName(fileName)) return;
     const dir = await this.attachmentDir(taskId, false).catch(() => null);
     await dir?.removeEntry(fileName).catch(() => undefined);
   }

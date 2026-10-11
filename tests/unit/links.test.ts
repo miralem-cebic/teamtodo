@@ -63,3 +63,32 @@ describe('insertLink', () => {
     expect(insertLink('x', 0, 1, 'ftp://nope')).toBeNull();
   });
 });
+
+describe('link targets stay http(s)', () => {
+  const hostile = [
+    'javascript:alert(1)',
+    'JavaScript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'vbscript:msgbox(1)',
+    'file:///etc/passwd',
+    'ftp://example.com/file',
+  ];
+
+  it.each(hostile)('normalizeUrl rejects %s', (input) => {
+    expect(normalizeUrl(input)).toBeNull();
+  });
+
+  it.each(hostile)('insertLink does not create a link for %s', (input) => {
+    expect(insertLink('Text', 0, 4, input)).toBeNull();
+  });
+
+  it.each(hostile)('parseLinks never produces a link for %s', (input) => {
+    const links = parseLinks(`see ${input} here`).filter((s) => s.kind === 'link');
+    for (const link of links) expect(link.href).toMatch(/^https?:\/\//);
+  });
+
+  it('parseLinks never turns a Markdown link with a foreign scheme into a link', () => {
+    const segments = parseLinks('[click](javascript:alert(1))');
+    expect(segments.some((s) => s.kind === 'link')).toBe(false);
+  });
+});

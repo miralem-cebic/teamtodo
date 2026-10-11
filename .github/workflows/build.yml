@@ -40,6 +40,7 @@ jobs:
           else
             npm install
           fi
+          npm audit --omit=dev --audit-level=high
           npm run lint --if-present
           npm test --if-present
           npm run build

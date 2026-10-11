@@ -13,7 +13,12 @@ import type { Attachment, TaskState } from '../../data/types';
 const urlCache = new Map<string, string>();
 const fmtSize = (b: number) => (b < 1024 ? `${b} B` : b < 1048576 ? `${Math.round(b / 1024)} KB` : `${(b / 1048576).toFixed(1)} MB`);
 const isImage = (a: Attachment) => a.mimeType.startsWith('image/');
-const opensInBrowser = (a: Attachment) => isImage(a) || a.mimeType === 'application/pdf' || a.mimeType.startsWith('text/') || a.mimeType.startsWith('video/') || a.mimeType.startsWith('audio/');
+// Types that can run script when a browser renders them as a page. They are only ever downloaded.
+const ACTIVE_TYPES = /^(text\/html|application\/xhtml\+xml|text\/xml|application\/xml|image\/svg\+xml)$/i;
+const opensInBrowser = (a: Attachment) => {
+  if (ACTIVE_TYPES.test(a.mimeType)) return false;
+  return isImage(a) || a.mimeType === 'application/pdf' || a.mimeType.startsWith('text/') || a.mimeType.startsWith('video/') || a.mimeType.startsWith('audio/');
+};
 
 async function objectUrl(taskId: string, a: Attachment): Promise<string> {
   const key = `${taskId}/${a.fileName}`;
