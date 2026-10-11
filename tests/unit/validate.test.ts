@@ -7,6 +7,7 @@ import { SCHEMA_VERSION, makeTask } from '../../src/data/schema';
 import { sampleSnapshot } from '../../src/data/seed';
 import type { Project, Task, User } from '../../src/data/types';
 import { isValidId } from '../../src/data/validate';
+import { must } from '../../src/data/result';
 
 const T0 = '2026-10-01T10:00:00.000Z';
 const UUID = '7f3c2a10-0b1e-4c8a-9d2f-1a2b3c4d5e6f';
@@ -120,7 +121,7 @@ describe('IDs from file content', () => {
   it('a task with a prototype name as ID never reaches the loaded state', async () => {
     const root = new MemDir('teamtodo');
     const repo = new FsRepository(root.asHandle());
-    await repo.initialize(sampleSnapshot('teamtodo'));
+    must(await repo.initialize(sampleSnapshot('teamtodo')));
     const tasks = await root.getDirectoryHandle('tasks');
     await writeJson(tasks as unknown as FileSystemDirectoryHandle, `${UUID}.json`, { ...goodTask(), id: '__proto__' });
     const res = await repo.loadAll();
@@ -132,7 +133,7 @@ describe('IDs from file content', () => {
     const root = new MemDir('teamtodo');
     const repo = new FsRepository(root.asHandle());
     const snap = sampleSnapshot('teamtodo');
-    await repo.initialize(snap);
+    must(await repo.initialize(snap));
     await writeJson(root.asHandle() as unknown as FileSystemDirectoryHandle, 'users.json', {
       schemaVersion: SCHEMA_VERSION,
       users: [...snap.users, { id: 'broken', name: 42 }],

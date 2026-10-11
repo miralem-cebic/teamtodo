@@ -11,6 +11,7 @@ import type { Persister } from '../../src/data/persister';
 import { sampleSnapshot } from '../../src/data/seed';
 import { SCHEMA_VERSION } from '../../src/data/schema';
 import type { Task } from '../../src/data/types';
+import { must } from '../../src/data/result';
 
 /** The same folder, but writes that create a file wait until `gate` is released */
 function gated(dir: MemDir, gate: () => Promise<void>): FileSystemDirectoryHandle {
@@ -43,12 +44,12 @@ describe('a broken user in the shared folder does not block saving', () => {
     const root = new MemDir('teamtodo');
     const repo = new FsRepository(root.asHandle());
     const snap = sampleSnapshot('teamtodo');
-    await repo.initialize(snap);
+    must(await repo.initialize(snap));
     // another client writes a user record that this version cannot read
     await writeJson(root.asHandle(), 'users.json', { schemaVersion: SCHEMA_VERSION, users: [...snap.users, { id: 'broken', name: 42 }] });
 
     const users = [{ ...snap.users[0]!, name: 'Renamed' }, ...snap.users.slice(1)];
-    await expect(repo.saveUsers(users)).resolves.toBeDefined();
+    must(await repo.saveUsers(users));
     const text = JSON.parse(await (await (await root.getFileHandle('users.json')).getFile()).text()) as { users: { id: string; name: unknown }[] };
     expect(text.users).toContainEqual({ id: 'broken', name: 42 });
     expect(text.users.find((u) => u.id === snap.users[0]!.id)!.name).toBe('Renamed');
@@ -63,7 +64,7 @@ describe('lost update between two clients', () => {
     const root = new MemDir('teamtodo');
     const snap = sampleSnapshot('teamtodo');
     const setup = new FsRepository(root.asHandle());
-    await setup.initialize(snap);
+    must(await setup.initialize(snap));
     const base = (await setup.loadAll()).snapshot.tasks.find((t) => !t.parentId)!;
 
     let release!: () => void;
@@ -78,8 +79,8 @@ describe('lost update between two clients', () => {
     const bVersion: Task = { ...base, title: 'written by B', fieldUpdatedAt: { ...base.fieldUpdatedAt, title: stamp(3) } };
 
     // A checks the file and waits; B saves its title change; A then writes its description
-    const pendingA = repoA.saveTask(aVersion);
-    await repoB.saveTask(bVersion);
+    const pendingA = repoA.saveTask(aVersion).then(must);
+    must(await repoB.saveTask(bVersion));
     release();
     await pendingA;
     // B's title is gone from the file (read without loadAll, which would hide the change from B's next poll)
@@ -95,7 +96,7 @@ describe('lost update between two clients', () => {
     expect(restored.description).toBe('written by A');
 
     // and the restored state is written back
-    await repoB.saveTask(restored);
+    must(await repoB.saveTask(restored));
     const final = await readTask(root, base.id);
     expect(final.title).toBe('written by B');
     expect(final.description).toBe('written by A');

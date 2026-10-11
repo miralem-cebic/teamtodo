@@ -4,6 +4,7 @@ import { MemDir } from '../../src/data/fs/memoryFs';
 import { Persister } from '../../src/data/persister';
 import { sampleSnapshot } from '../../src/data/seed';
 import * as A from '../../src/store/appStore';
+import { must } from '../../src/data/result';
 
 beforeAll(() => {
   (globalThis as unknown as { window: unknown }).window = { addEventListener() {}, removeEventListener() {} };
@@ -16,7 +17,7 @@ let persister: Persister;
 beforeEach(async () => {
   root = new MemDir('T');
   repo = new FsRepository(root.asHandle());
-  await repo.initialize(sampleSnapshot('T'));
+  must(await repo.initialize(sampleSnapshot('T')));
   const res = await repo.loadAll();
   A.resetApp();
   A.loadSnapshot(res.snapshot);

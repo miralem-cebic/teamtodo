@@ -9,6 +9,7 @@ import { dailyBackup, purge, restoreBackup } from '../data/maintenance';
 import { migrate } from '../data/migrations';
 import { SyncEngine } from '../data/sync';
 import { classifyError, type LoadResult } from '../data/repository';
+import { must } from '../data/result';
 import { errorText } from '../lib/labels';
 import { t } from '../i18n';
 import { emptySnapshot, sampleSnapshot } from '../data/seed';
@@ -200,7 +201,7 @@ export async function initialize(opts: { samples: boolean; subfolder: boolean })
       if (await repo.hasWorkspace()) return load();
     }
     const name = handle.name;
-    await requireRepo().initialize(opts.samples ? sampleSnapshot(name) : emptySnapshot(name));
+    must(await requireRepo().initialize(opts.samples ? sampleSnapshot(name) : emptySnapshot(name)));
     await load();
   } catch (e) {
     set({ phase: 'failed', error: t('session.setupFailed', { reason: errorText(classifyError(e)) }) });

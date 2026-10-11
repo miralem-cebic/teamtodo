@@ -5,6 +5,7 @@ import { sampleSnapshot } from '../../src/data/seed';
 import { dailyBackup, purge, restoreBackup, KEEP_BACKUPS } from '../../src/data/maintenance';
 import * as A from '../../src/store/appStore';
 import type { Task } from '../../src/data/types';
+import { must } from '../../src/data/result';
 
 // Change timestamps relative to now, as in the app. Fixed dates in the past
 // are older than the sample data (createdAt = 3 days ago) and would lose when merging.
@@ -31,9 +32,9 @@ describe('Two people, one folder (repository level)', () => {
   it('simultaneous changes to different fields are not lost', async () => {
     const byA = { ...task, title: 'Titel von A', fieldUpdatedAt: { ...task.fieldUpdatedAt, title: at(1) } };
     const byB = { ...task, assigneeId: 'jemand', fieldUpdatedAt: { ...task.fieldUpdatedAt, assigneeId: at(2) } };
-    expect(await a.saveTask(byA)).toBe(byA); // no conflict
+    expect(must(await a.saveTask(byA))).toBe(byA); // no conflict
     await tick();
-    const stored = await b.saveTask(byB); // B is stale → merge
+    const stored = must(await b.saveTask(byB)); // B is stale → merge
     expect(stored.title).toBe('Titel von A');
     expect(stored.assigneeId).toBe('jemand');
 
@@ -47,10 +48,10 @@ describe('Two people, one folder (repository level)', () => {
 
   it('new tasks, removed tasks and projects are detected', async () => {
     const extra = { ...task, id: crypto.randomUUID(), title: 'Neu von B' };
-    await b.saveTask(extra);
-    await b.removeTask(task.id);
+    must(await b.saveTask(extra));
+    must(await b.removeTask(task.id));
     const snap = await b.loadAll();
-    await b.saveProjects([...snap.snapshot.projects.slice(1)]);
+    must(await b.saveProjects([...snap.snapshot.projects.slice(1)]));
     const c = await a.pullChanges();
     expect(c.tasks.map((t) => t.title)).toContain('Neu von B');
     expect(c.removedTaskIds).toContain(task.id);
@@ -79,14 +80,14 @@ describe('Maintenance: backups and cleanup', () => {
   beforeEach(async () => {
     root = new MemDir('T');
     repo = new FsRepository(root.asHandle());
-    await repo.initialize(sampleSnapshot('T'));
+    must(await repo.initialize(sampleSnapshot('T')));
     A.resetApp();
     A.loadSnapshot((await repo.loadAll()).snapshot);
     A.setMe(A.useApp.getState().users[0]!.id);
   });
 
   it('backs up once a day and keeps 14 backups', async () => {
-    for (let i = 1; i <= 16; i++) await repo.writeBackup(`2026-09-${String(i).padStart(2, '0')}`, A.useApp.getState() as never);
+    for (let i = 1; i <= 16; i++) must(await repo.writeBackup(`2026-09-${String(i).padStart(2, '0')}`, A.useApp.getState() as never));
     const name = await dailyBackup(repo);
     expect(name).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(await dailyBackup(repo)).toBeNull(); // already backed up today
@@ -107,7 +108,7 @@ describe('Maintenance: backups and cleanup', () => {
         [newDel!.id]: { ...newDel!, deletedAt: new Date().toISOString() },
       },
     }));
-    await repo.saveTask(A.useApp.getState().tasks[oldDel!.id]!);
+    must(await repo.saveTask(A.useApp.getState().tasks[oldDel!.id]!));
     const removed = await purge(repo);
     expect(removed).toBeGreaterThanOrEqual(1);
     expect(A.useApp.getState().tasks[oldDel!.id]).toBeUndefined();

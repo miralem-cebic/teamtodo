@@ -8,6 +8,7 @@ import { MemDir } from '../../src/data/fs/memoryFs';
 import { makeTask, SCHEMA_VERSION } from '../../src/data/schema';
 import { sampleSnapshot } from '../../src/data/seed';
 import type { Snapshot, Task } from '../../src/data/types';
+import { must } from '../../src/data/result';
 
 const BATCH_CHARS = 1 << 20;
 
@@ -70,8 +71,8 @@ describe('backup writing (budget)', () => {
     const snap = bigSnapshot(2_000);
     const root = new MemDir('teamtodo');
     const repo = new FsRepository(root.asHandle());
-    await repo.initialize(sampleSnapshot('teamtodo'));
-    await repo.writeBackup('2026-10-10', snap);
+    must(await repo.initialize(sampleSnapshot('teamtodo')));
+    must(await repo.writeBackup('2026-10-10', snap));
     const back = await repo.readBackup('2026-10-10');
     expect(back.tasks).toHaveLength(2_000);
     expect(back.tasks.map((t) => t.id).sort()).toEqual(snap.tasks.map((t) => t.id).sort());

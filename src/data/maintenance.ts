@@ -3,6 +3,7 @@ import { today } from '../lib/dates';
 import { mergeUsers } from './merge';
 import { nowIso } from './schema';
 import type { Repository } from './repository';
+import { must } from './result';
 import type { ID, Snapshot, Task, TaskState } from './types';
 import { MERGEABLE_FIELDS } from './types';
 
@@ -36,7 +37,7 @@ export async function dailyBackup(repo: Repository, force = false): Promise<stri
   if (!force && ws.lastBackupDate === day) return null;
   const snapshot = currentSnapshot();
   if (!snapshot) return null;
-  await repo.writeBackup(day, snapshot);
+  must(await repo.writeBackup(day, snapshot));
   const all = await repo.listBackups();
   const daily = all.filter((b) => DAILY.test(b.name)).sort((a, b) => b.name.localeCompare(a.name));
   for (const b of daily.slice(KEEP_BACKUPS)) await repo.removeBackup(b.name);
@@ -65,7 +66,7 @@ export async function purge(repo: Repository, now = Date.now()): Promise<number>
   };
 
   const remove: ID[] = Object.values(s.tasks).filter((t) => !t.draft && isDead(t)).map((t) => t.id);
-  for (const id of remove) await repo.removeTask(id);
+  for (const id of remove) must(await repo.removeTask(id));
 
   // permanently delete removed attachments
   const tasks = { ...s.tasks };
@@ -99,7 +100,7 @@ export async function restoreBackup(repo: Repository, name: string) {
   const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
   const snapshot = currentSnapshot();
   if (!snapshot) throw new Error('Restore needs a loaded workspace');
-  await repo.writeBackup(`before-restore-${stamp}`, snapshot);
+  must(await repo.writeBackup(`before-restore-${stamp}`, snapshot));
   const b = await repo.readBackup(name);
   const at = nowIso();
   const s = useApp.getState();

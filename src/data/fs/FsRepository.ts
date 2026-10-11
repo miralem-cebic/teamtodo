@@ -1,6 +1,7 @@
 import { mergeProjects, mergeTask, mergeUsers, sameJson } from '../merge';
 import { migrate, migrateCollection, NewerSchemaError, type RejectedRecord } from '../migrations';
-import type { BackupInfo, ChangeSet, ConflictPayload, LoadIssue, LoadResult, Repository } from '../repository';
+import { classifyError, type BackupInfo, type ChangeSet, type ConflictPayload, type LoadIssue, type LoadResult, type Repository, type StorageError } from '../repository';
+import { err, ok, type Result } from '../result';
 import { SCHEMA_VERSION } from '../schema';
 import type { ID, Project, ProjectsFile, Snapshot, Task, User, UsersFile, WorkspaceFile } from '../types';
 import { writeJson, writeLargeJson } from './jsonFile';
@@ -57,7 +58,45 @@ function uniqueName(name: string, taken: Set<string>): string {
   }
 }
 
+/** Runs a storage operation: an exception from the browser API becomes a failed result */
+async function attempt<T>(run: () => Promise<T>): Promise<Result<T, StorageError>> {
+  try {
+    return ok(await run());
+  } catch (cause) {
+    return err({ kind: classifyError(cause), cause });
+  }
+}
+
 export class FsRepository implements Repository {
+  /* The public writes return results: an exception from the browser API becomes a failed result, once, here. */
+  initialize(snapshot: Snapshot) {
+    return attempt(() => this.runInitialize(snapshot));
+  }
+
+  saveWorkspace(ws: WorkspaceFile) {
+    return attempt(() => this.runSaveWorkspace(ws));
+  }
+
+  saveUsers(users: User[]) {
+    return attempt(() => this.runSaveUsers(users));
+  }
+
+  saveProjects(projects: Project[]) {
+    return attempt(() => this.runSaveProjects(projects));
+  }
+
+  saveTask(task: Task) {
+    return attempt(() => this.runSaveTask(task));
+  }
+
+  removeTask(id: ID) {
+    return attempt(() => this.runRemoveTask(id));
+  }
+
+  writeBackup(name: string, snapshot: Snapshot) {
+    return attempt(() => this.runWriteBackup(name, snapshot));
+  }
+
   /** Path → lastModified at the last read/write */
   readonly known = new Map<string, number>();
 
@@ -87,13 +126,13 @@ export class FsRepository implements Repository {
     return this.root.getDirectoryHandle(name, { create: true });
   }
 
-  async initialize(snapshot: Snapshot) {
+  private async runInitialize(snapshot: Snapshot) {
     for (const d of Object.values(DIRS)) await this.dir(d);
-    await this.saveUsers(snapshot.users);
-    await this.saveProjects(snapshot.projects);
-    for (const t of snapshot.tasks) await this.saveTask(t);
+    await this.runSaveUsers(snapshot.users);
+    await this.runSaveProjects(snapshot.projects);
+    for (const t of snapshot.tasks) await this.runSaveTask(t);
     // workspace.json last: the folder counts as set up only once it exists
-    await this.saveWorkspace(snapshot.workspace);
+    await this.runSaveWorkspace(snapshot.workspace);
   }
 
   private async readJson<T>(handle: FileSystemFileHandle, path: string): Promise<T> {
@@ -208,18 +247,18 @@ export class FsRepository implements Repository {
     return next;
   }
 
-  async saveWorkspace(ws: WorkspaceFile) {
+  private async runSaveWorkspace(ws: WorkspaceFile) {
     const data = { ...ws, schemaVersion: SCHEMA_VERSION };
     this.known.set(FILES.workspace, await writeJson(this.root, FILES.workspace, data));
     return data;
   }
 
-  async saveUsers(users: User[]) {
+  private async runSaveUsers(users: User[]) {
     const merged = await this.writeCollection('users', users, mergeUsers);
     return sameJson(merged, users) ? users : merged;
   }
 
-  async saveProjects(projects: Project[]) {
+  private async runSaveProjects(projects: Project[]) {
     const merged = await this.writeCollection('projects', projects, mergeProjects);
     return sameJson(merged, projects) ? projects : merged;
   }
@@ -252,14 +291,14 @@ export class FsRepository implements Repository {
     return next;
   }
 
-  async saveTask(task: Task) {
+  private async runSaveTask(task: Task) {
     const { draft: _draft, ...clean } = task as Task & { draft?: boolean };
     const data: Task = { ...clean, schemaVersion: SCHEMA_VERSION };
     const merged = await this.writeChecked<Task>(await this.dir(DIRS.tasks), `${task.id}.json`, `${DIRS.tasks}/${task.id}.json`, data, (raw) => migrate<Task>('task', raw), mergeTask);
     return sameJson(merged, data) ? task : merged;
   }
 
-  async removeTask(id: ID) {
+  private async runRemoveTask(id: ID) {
     const tasks = await this.dir(DIRS.tasks);
     await tasks.removeEntry(`${id}.json`).catch((e) => {
       if (!isNotFound(e)) throw e;
@@ -271,7 +310,7 @@ export class FsRepository implements Repository {
 
   /* ---------- Backups ---------- */
 
-  async writeBackup(name: string, snapshot: Snapshot) {
+  private async runWriteBackup(name: string, snapshot: Snapshot) {
     // Tasks are the big part: they are written in batches instead of one JSON string for the whole backup
     const { tasks, ...rest } = snapshot;
     await writeLargeJson(await this.dir(DIRS.backups), `${name}.json`, { schemaVersion: SCHEMA_VERSION, createdAt: new Date().toISOString(), ...rest }, { tasks });

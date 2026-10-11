@@ -1,5 +1,6 @@
 import { setSaveStatus, useApp, type AppState } from '../store/appStore';
-import { classifyError, type Repository } from './repository';
+import { classifyError, type Repository, type StorageError } from './repository';
+import { err, ok, type Result } from './result';
 import { integrateProjects, integrateUsers, integrateWrittenTask } from './sync';
 import type { Snapshot } from './types';
 
@@ -11,7 +12,7 @@ export const DEBOUNCE_MS = 400;
 export const EMERGENCY_KEY = 'teamtodo.unsaved.v1';
 export const LEGACY_EMERGENCY_KEY = 'teamaufgaben.unsaved.v1'; // before the rename to teamtodo
 
-type Job = () => Promise<void>;
+type Job = () => Promise<Result<void, StorageError>>;
 
 export class Persister {
   private clean = new WeakSet<object>();
@@ -68,33 +69,41 @@ export class Persister {
         const t = next.tasks[id];
         if (!t || t === prev.tasks[id] || t.draft || this.clean.has(t)) continue;
         this.enqueue(`task:${id}`, async () => {
-          const stored = await this.repo.saveTask(t);
-          if (stored === t) this.clean.add(t);
-          else integrateWrittenTask(this, t, stored);
+          const r = await this.repo.saveTask(t);
+          if (!r.ok) return r;
+          if (r.value === t) this.clean.add(t);
+          else integrateWrittenTask(this, t, r.value);
+          return ok(undefined);
         });
       }
     }
     if (next.projects !== prev.projects && !this.clean.has(next.projects)) {
       const list = next.projects;
       this.enqueue('projects', async () => {
-        const stored = await this.repo.saveProjects(list);
-        if (stored === list) this.clean.add(list);
-        else integrateProjects(this, stored, list);
+        const r = await this.repo.saveProjects(list);
+        if (!r.ok) return r;
+        if (r.value === list) this.clean.add(list);
+        else integrateProjects(this, r.value, list);
+        return ok(undefined);
       });
     }
     if (next.users !== prev.users && !this.clean.has(next.users)) {
       const list = next.users;
       this.enqueue('users', async () => {
-        const stored = await this.repo.saveUsers(list);
-        if (stored === list) this.clean.add(list);
-        else integrateUsers(this, stored, list);
+        const r = await this.repo.saveUsers(list);
+        if (!r.ok) return r;
+        if (r.value === list) this.clean.add(list);
+        else integrateUsers(this, r.value, list);
+        return ok(undefined);
       });
     }
     if (next.workspace && next.workspace !== prev.workspace && !this.clean.has(next.workspace)) {
       const ws = next.workspace;
       this.enqueue('workspace', async () => {
-        await this.repo.saveWorkspace(ws);
+        const r = await this.repo.saveWorkspace(ws);
+        if (!r.ok) return r;
         this.clean.add(ws);
+        return ok(undefined);
       });
     }
   }
@@ -126,14 +135,14 @@ export class Persister {
       while (this.queue.size) {
         const [key, job] = this.queue.entries().next().value as [string, Job];
         this.queue.delete(key);
-        try {
-          await job();
-        } catch (e) {
+        // a failed result is the normal case; an exception in the job itself counts as a failure too
+        const r: Result<void, StorageError> = await job().catch((cause: unknown) => err({ kind: classifyError(cause), cause }));
+        if (!r.ok) {
           if (!this.queue.has(key)) this.queue.set(key, job);
           this.failed = true;
-          setSaveStatus({ state: 'error', kind: classifyError(e) });
+          setSaveStatus({ state: 'error', kind: r.error.kind });
           this.writeEmergencyCopy();
-          console.warn('Saving failed', key, e);
+          console.warn('Saving failed', key, r.error.cause);
           return;
         }
       }

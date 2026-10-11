@@ -1,4 +1,5 @@
 import type { ID, Project, Snapshot, Task, User, WorkspaceFile } from './types';
+import type { Result } from './result';
 
 export interface LoadIssue {
   file: string;
@@ -46,22 +47,28 @@ export interface BackupInfo {
  * The save* methods check before writing whether the stored state has meanwhile been changed
  * by someone else. They merge in that case and return the state that was actually written.
  */
+/** A failed storage operation: what went wrong, and the exception it came from (if any) */
+export interface StorageError {
+  kind: StorageErrorKind;
+  cause: unknown;
+}
+
 export interface Repository {
   readonly label: string;
   hasWorkspace(): Promise<boolean>;
   isEmpty(): Promise<boolean>;
-  initialize(snapshot: Snapshot): Promise<void>;
+  initialize(snapshot: Snapshot): Promise<Result<void, StorageError>>;
   loadAll(): Promise<LoadResult>;
   /** Files changed since the last read/write */
   pullChanges(): Promise<ChangeSet>;
-  saveWorkspace(ws: WorkspaceFile): Promise<WorkspaceFile>;
-  saveUsers(users: User[]): Promise<User[]>;
-  saveProjects(projects: Project[]): Promise<Project[]>;
-  saveTask(task: Task): Promise<Task>;
+  saveWorkspace(ws: WorkspaceFile): Promise<Result<WorkspaceFile, StorageError>>;
+  saveUsers(users: User[]): Promise<Result<User[], StorageError>>;
+  saveProjects(projects: Project[]): Promise<Result<Project[], StorageError>>;
+  saveTask(task: Task): Promise<Result<Task, StorageError>>;
   /** Remove permanently (cleanup after 30 days), including attachments */
-  removeTask(id: ID): Promise<void>;
+  removeTask(id: ID): Promise<Result<void, StorageError>>;
 
-  writeBackup(name: string, snapshot: Snapshot): Promise<void>;
+  writeBackup(name: string, snapshot: Snapshot): Promise<Result<void, StorageError>>;
   listBackups(): Promise<BackupInfo[]>;
   /** Reads a conflict copy (name as listed in `LoadResult.conflictCopies`); a copy that cannot be read is returned as `unreadable` */
   readConflictCopy(name: string): Promise<ConflictPayload>;

@@ -6,6 +6,7 @@ import { MemDir } from '../../src/data/fs/memoryFs';
 import { SCHEMA_VERSION } from '../../src/data/schema';
 import { sampleSnapshot } from '../../src/data/seed';
 import type { Task, User } from '../../src/data/types';
+import { must } from '../../src/data/result';
 
 const COPY = 'c7d1f2a0-1111-4222-8333-944455556666';
 
@@ -13,7 +14,7 @@ async function setup() {
   const root = new MemDir('teamtodo');
   const repo = new FsRepository(root.asHandle());
   const snap = sampleSnapshot('teamtodo');
-  await repo.initialize(snap);
+  must(await repo.initialize(snap));
   const base = snap.tasks.find((t) => !t.parentId)!;
   return { root, repo, snap, base };
 }
