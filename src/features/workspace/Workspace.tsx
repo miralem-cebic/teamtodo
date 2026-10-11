@@ -3,7 +3,7 @@ import { ToastHost } from '../../components/Toast';
 import { isTyping, isMod } from '../../hooks/listNav';
 import { addTask, clearRecentDone, closePanel, openPanel, requestFocus, undo, useApp } from '../../store/appStore';
 import { collapseKey, patchSettings, setLayout, setView, settingsFor, toggleCollapsed, usePrefs, viewKey, type Layout } from '../../store/prefs';
-import { buildGroups, visibleTasks, type View, type ViewSettings } from '../../store/selectors';
+import { buildGroups, visibleTasks, type View, type ViewSettings, projectStatus } from '../../store/selectors';
 import { KeysDialog } from '../keys/KeysDialog';
 import { ListView } from '../list/ListView';
 import { Header } from '../shell/Header';
@@ -48,7 +48,7 @@ export function Workspace() {
   let view: View = prefs.view;
   if (view.type === 'project') {
     const id = view.id;
-    if (!projects.some((p) => p.id === id && !p.deletedAt)) view = { type: 'my' };
+    if (!projects.some((p) => p.id === id && projectStatus(p) !== 'deleted')) view = { type: 'my' };
   }
   const settings = settingsFor(prefs, view);
   const cKey = collapseKey(view, settings);

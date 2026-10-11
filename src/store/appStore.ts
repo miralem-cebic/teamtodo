@@ -7,7 +7,7 @@ import { mergeProjects, mergeTask, mergeUsers } from '../data/merge';
 import type { ConflictPayload } from '../data/repository';
 import { normalizeTag, renameInList, withoutTag, withoutTagEverywhere, withTag } from '../lib/tags';
 import type { StorageErrorKind } from '../data/repository';
-import { descendantIds, liveSections, projectState, reorderWithinGroup, placeProject } from './selectors';
+import { descendantIds, liveSections, projectStatus, reorderWithinGroup, placeProject } from './selectors';
 import { t as tr } from '../i18n';
 
 // Central app state. All changes go through the actions below:
@@ -361,7 +361,7 @@ export function setProjectPinned(id: ProjectId, pinned: boolean) {
   if (!current || !!current.pinned === pinned) return;
   setProjects(
     (list) => {
-      const group = list.filter((p) => p.id !== id && projectState(p) === 'active' && !!p.pinned === pinned);
+      const group = list.filter((p) => p.id !== id && projectStatus(p) === 'active' && !!p.pinned === pinned);
       const order = pinned ? Math.max(-1, ...group.map((p) => p.order)) + 1 : Math.min(0, ...group.map((p) => p.order)) - 1;
       return list.map((p) => (p.id === id ? touch({ ...p, pinned, order }) : p));
     },
@@ -398,7 +398,7 @@ export function moveProject(id: ProjectId, dir: -1 | 1) {
 export function archiveProject(id: ProjectId, archived: boolean) {
   const p = get().projects.find((x) => x.id === id);
   if (!p) return;
-  setProjects(mapProject(id, (x) => ({ ...x, archivedAt: archived ? nowIso() : null })), {
+  setProjects(mapProject(id, (x) => ({ ...x, state: archived ? { kind: 'archived', at: nowIso() } : { kind: 'active' } })), {
     label: archived ? tr('undo.projectArchived', { name: p.name }) : tr('undo.projectRestored', { name: p.name }),
     toast: true,
   });
@@ -408,7 +408,7 @@ export function archiveProject(id: ProjectId, archived: boolean) {
 export function deleteProject(id: ProjectId) {
   const p = get().projects.find((x) => x.id === id);
   if (!p) return;
-  setProjects(mapProject(id, (x) => ({ ...x, deletedAt: nowIso() })), { label: tr('undo.projectDeleted', { name: p.name }), toast: true });
+  setProjects(mapProject(id, (x) => ({ ...x, state: { kind: 'deleted', at: nowIso() } })), { label: tr('undo.projectDeleted', { name: p.name }), toast: true });
 }
 
 export function addSection(projectId: ProjectId, name: string, afterOrder?: number): ID {
@@ -496,7 +496,7 @@ function copyTaskTree(src: TaskState[], projectId: ProjectId, sectionMap: Map<Se
 /** Saves a project as a template: its sections and tasks (subtasks included), without the project in the project list. */
 export function saveAsTemplate(projectId: ProjectId, name: string): ID | null {
   const s = get();
-  const src = s.projects.find((p) => p.id === projectId && !p.deletedAt && !p.template);
+  const src = s.projects.find((p) => p.id === projectId && projectStatus(p) !== 'deleted' && !p.template);
   if (!src || !name.trim()) return null;
   const tpl: Project = { ...makeProject(name.trim(), src.color, Math.max(0, ...s.projects.map((x) => x.order)) + 1, []), template: true };
   const sectionMap = new Map<SectionId, SectionId>();
@@ -514,7 +514,7 @@ export function saveAsTemplate(projectId: ProjectId, name: string): ID | null {
 /** Creates a project from a template. Sections and tasks are copied; due dates and assignments are not. */
 export function addProjectFromTemplate(templateId: ProjectId, name: string): ProjectId | null {
   const s = get();
-  const tpl = s.projects.find((p) => p.id === templateId && p.template && !p.deletedAt);
+  const tpl = s.projects.find((p) => p.id === templateId && p.template && projectStatus(p) !== 'deleted');
   if (!tpl || !name.trim()) return null;
   const p = makeProject(name.trim(), pickColor(s.projects.length), Math.max(0, ...s.projects.map((x) => x.order)) + 1, []);
   const sectionMap = new Map<SectionId, SectionId>();
@@ -670,19 +670,14 @@ export function undo() {
       const b = prev.get(p.id);
       if (!b || b === p) return p;
       // reset exactly the changed fields; sections added in the meantime (e.g. by others) stay
-      const fieldsChanged = (['name', 'color', 'order', 'archivedAt', 'deletedAt'] as const).some((k) => p[k] !== b[k]);
+      const fieldsChanged = (['name', 'color', 'order'] as const).some((k) => p[k] !== b[k]) || JSON.stringify(p.state) !== JSON.stringify(b.state);
       const before = new Map(b.sections.map((x) => [x.id, x]));
       const sections = p.sections.map((x) => {
         const old = before.get(x.id);
         return old && JSON.stringify(old) !== JSON.stringify(x) ? { ...old, updatedAt: at } : x;
       });
       if (!fieldsChanged) return { ...p, sections };
-      const out: Project = { ...p, name: b.name, color: b.color, order: b.order, updatedAt: at, sections };
-      if (b.archivedAt !== undefined) out.archivedAt = b.archivedAt;
-      else delete out.archivedAt;
-      if (b.deletedAt !== undefined) out.deletedAt = b.deletedAt;
-      else delete out.deletedAt;
-      return out;
+      return { ...p, name: b.name, color: b.color, order: b.order, state: b.state, updatedAt: at, sections };
     });
   }
   let users = s.users;

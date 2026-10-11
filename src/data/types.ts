@@ -40,6 +40,9 @@ export interface Section {
   updatedAt: ISODateTime;
   deletedAt?: ISODateTime | null;
 }
+/** One state of a project. `archived` and `deleted` keep the time they were set; deleted projects are purged after 30 days. */
+export type ProjectState = { kind: 'active' } | { kind: 'archived'; at: ISODateTime } | { kind: 'deleted'; at: ISODateTime };
+
 export interface Project {
   id: ProjectId;
   name: string;
@@ -48,8 +51,7 @@ export interface Project {
   sections: Section[];
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
-  archivedAt?: ISODateTime | null;
-  deletedAt?: ISODateTime | null;
+  state: ProjectState;
   /** Template: a project without a place in the project list. Its sections and tasks are the blueprint for new projects. */
   template?: boolean;
   /** Pinned projects stay above the unpinned ones in the sidebar; `order` arranges each group */

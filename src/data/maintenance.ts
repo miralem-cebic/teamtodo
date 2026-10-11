@@ -57,7 +57,7 @@ export async function purge(repo: Repository, now = Date.now()): Promise<number>
   const cutoff = new Date(now - PURGE_AFTER_DAYS * 86_400_000).toISOString();
   const old = (at?: string | null) => !!at && at < cutoff;
 
-  const deadProjects = new Set(s.projects.filter((p) => old(p.deletedAt)).map((p) => p.id));
+  const deadProjects = new Set(s.projects.filter((p) => p.state.kind === 'deleted' && old(p.state.at)).map((p) => p.id));
   const isDead = (t: TaskState): boolean => {
     for (let cur: TaskState | undefined = t, g = 0; cur && g < 50; g++) {
       if (old(cur.deletedAt) || (cur.projectId && deadProjects.has(cur.projectId))) return true;
@@ -119,7 +119,7 @@ export async function restoreBackup(repo: Repository, name: string) {
   }
   const projects = b.projects.map((p) => ({ ...p, updatedAt: at, sections: p.sections.map((x) => ({ ...x, updatedAt: at })) }));
   // mark projects that were created after the backup as deleted
-  for (const p of s.projects) if (!projects.some((x) => x.id === p.id)) projects.push({ ...p, deletedAt: p.deletedAt ?? at, updatedAt: at });
+  for (const p of s.projects) if (!projects.some((x) => x.id === p.id)) projects.push({ ...p, state: p.state.kind === 'deleted' ? p.state : { kind: 'deleted', at }, updatedAt: at });
   touchTasks('all');
   useApp.setState({ tasks, projects, users: mergeUsers(s.users, b.users), panelId: null, undoStack: [] });
   showToast(`Backup from ${name} restored`);

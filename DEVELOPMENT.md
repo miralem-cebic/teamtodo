@@ -99,7 +99,7 @@ src/
 ### Maintenance
 
 - `dailyBackup`: if `workspace.lastBackupDate` is not today → write `backups/YYYY-MM-DD.json` (full state without attachments), and remove all but the 14 newest.
-- `purge`: runs at most once per day. Removes task files (including `attachments/<id>`) whose `deletedAt` (or that of their parent task or project) is older than 30 days, plus old sections, projects, and removed attachments.
+- `purge`: runs at most once per day. Removes task files (including `attachments/<id>`) whose `deletedAt` (or that of their parent task, or the deletion time of their project) is older than 30 days, plus old sections, projects, and removed attachments.
 - `restoreBackup`: creates a backup first (`before-restore-…`), sets all fields with a new timestamp (so they win the merge), and soft-deletes tasks and projects that do not exist in the backup.
 
 ### Drag and drop
@@ -116,14 +116,14 @@ src/
 - Users and projects are read leniently on load: a broken record is left out and reported as a load issue (`LoadResult.issues`). Writes, backups and restores are strict.
 - IDs from file content must match `[A-Za-z0-9_-]` and must not be names that exist on every object (`__proto__`, `constructor`, …).
 - IDs are branded types (`data/ids.ts`): `TaskId`, `ProjectId`, `SectionId`, `UserId`, `CommentId`, `ActivityId`, `AttachmentId`. The brand is added in the validators (after the check) and by the generators. The UI brands an ID only where it reads one from the DOM or from storage it has just checked. The workspace ID is still a plain string.
-- Project state: `projectState()` (`store/selectors.ts`) gives one of `active`, `archived`, `template`, `deleted` from the file's fields. Code asks for the state instead of combining `archivedAt`, `template` and `deletedAt` itself. The file format is unchanged.
+- Project state: the file stores `Project.state` (`active`, `archived` or `deleted`, each with its time) and the `template` flag. `projectStatus()` (`store/selectors.ts`) combines them into `active`, `archived`, `template` or `deleted`. Code asks for the status instead of combining the fields itself.
 - `switch` over a union must be exhaustive (`@typescript-eslint/switch-exhaustiveness-check`, type-aware lint for `src/`), and `noImplicitReturns` is on.
 - Attachment names read from a task file are checked (`fileNames.ts`) before any file access.
 
 ### Important rules
 
 - **Drafts:** new empty rows have `draft: true` and are never written. A file is created only once the row has a title.
-- **Soft delete:** `deletedAt` is set instead of deleting the file (tasks, sections, projects). Removed permanently after 30 days (`maintenance.ts`).
+- **Soft delete:** `deletedAt` is set instead of deleting the file (tasks, sections); a project gets `state: { kind: 'deleted', at }`. Removed permanently after 30 days (`maintenance.ts`).
 - **`fieldUpdatedAt`:** every change to a mergeable field sets that field's timestamp. This is the basis of the field-level merge.
 - **Templates:** a template is a project with `template: true` in `projects.json`. It is excluded from the project list and from all task views (`hiddenProjectIds` in `store/selectors.ts`). Its tasks are the blueprint: `saveAsTemplate` and `addProjectFromTemplate` copy the structure (`copyTaskTree`) without assignees, due dates, followers, comments or status.
 - **Tags:** `Task.tags` is a list of short names (`lib/tags.ts`), unique per task without regard to case. Tags are merged like other fields. Templates copy them.
@@ -136,7 +136,9 @@ src/
 - **Who am I:** stored per browser in `localStorage` (`teamtodo.me.<workspaceId>`), not in the shared folder.
 - **Renamed from Teamaufgaben:** settings in `localStorage`, the saved folder handle in IndexedDB, and the emergency copy are migrated from their `teamaufgaben` names on first read (`lib/storage.ts`, `data/fs/handleStore.ts`). An existing subfolder `Teamaufgaben` is used only if it contains a workspace (`app/session.ts`).
 
-## Data format (schema version 1)
+## Data format (schema version 2)
+
+Version 2 changed projects: `archivedAt` and `deletedAt` are replaced by one `state` (`{ kind: 'active' }`, `{ kind: 'archived', at }` or `{ kind: 'deleted', at }`). A deleted project keeps the time it was deleted; the 30-day purge uses it. `template` stays a flag. Version 1 files are upgraded when read (`migrations.ts`); a version 2 folder blocks clients that only know version 1.
 
 Optional fields added after the first release: `Project.pinned` (boolean) and `Task.tags` (list of strings). Older files are read without them.
 
@@ -168,7 +170,11 @@ OneDrive conflict copies (file names that are not a UUID, for example `<uuid>-LA
 
 ### Migrations
 
-To introduce a new schema version, increase `SCHEMA_VERSION` in `data/schema.ts` and add `{ from: n, up(raw) }` in `data/migrations.ts` for each affected file type. Files are migrated up when read and saved in the new version on the next write. Files from a newer version block startup with a message.
+To introduce a new schema version, increase `SCHEMA_VERSION` in `data/schema.ts` and add `{ from: n, up(raw) }` in `data/migrations.ts`. The version is shared by all file types, so every file type needs a step at every version: the affected ones change, the others use `unchanged(n)`. Files are migrated up when read and saved in the new version on the next write. Files from a newer version block startup with a message.
+
+A backup keeps the version it was written with (`runReadBackup`), so its projects are upgraded from that version and not from the current one.
+
+To test a migration, write the old file with `schemaVersion: n` into a `MemDir` and load it (`tests/unit/upgradeFolder.test.ts`).
 
 ## Performance
 

@@ -393,11 +393,13 @@ export class FsRepository implements Repository {
 
   private async runReadBackup(name: string): Promise<Snapshot> {
     const fh = await (await this.dir(DIRS.backups)).getFileHandle(`${name}.json`);
-    const raw = JSON.parse(await (await fh.getFile()).text()) as Snapshot;
+    const raw = JSON.parse(await (await fh.getFile()).text()) as Snapshot & { schemaVersion?: number };
+    // A backup keeps the version it was written with: its projects are upgraded from that version
+    const version = raw.schemaVersion ?? 1;
     return {
       workspace: migrate<WorkspaceFile>('workspace', raw.workspace),
-      users: migrate<UsersFile>('users', { schemaVersion: SCHEMA_VERSION, users: raw.users ?? [] }).users,
-      projects: migrate<ProjectsFile>('projects', { schemaVersion: SCHEMA_VERSION, projects: raw.projects ?? [] }).projects,
+      users: migrate<UsersFile>('users', { schemaVersion: version, users: raw.users ?? [] }).users,
+      projects: migrate<ProjectsFile>('projects', { schemaVersion: version, projects: raw.projects ?? [] }).projects,
       tasks: (raw.tasks ?? []).map((t) => migrate<Task>('task', t)),
     };
   }

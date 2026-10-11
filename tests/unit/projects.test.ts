@@ -13,6 +13,7 @@ const proj = (id: string, order: number, over: Partial<Project> = {}): Project =
   sections: [],
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
+  state: { kind: 'active' },
   ...over,
 });
 const ids = (list: Project[]) => [...list].sort(byPinnedThenOrder).map((p) => p.id);
@@ -67,9 +68,9 @@ describe('project order', () => {
   });
 
   it('archived and deleted projects are not part of the arrangement', () => {
-    const list = [proj('u1', 0), proj('old', 1, { archivedAt: AT }), proj('u2', 2)];
+    const list = [proj('u1', 0), proj('old', 1, { state: { kind: 'archived', at: AT } }), proj('u2', 2)];
     const next = reorderWithinGroup(list, 'u1', 1, AT)!;
-    expect(ids(next.filter((p) => !p.archivedAt))).toEqual(['u2', 'u1']);
+    expect(ids(next.filter((p) => p.state.kind === 'active'))).toEqual(['u2', 'u1']);
   });
 });
 

@@ -12,11 +12,34 @@ interface Migration {
   up: (raw: Record<string, unknown>) => Record<string, unknown>;
 }
 
+/** Version 2 changed projects only. The version is shared by all files, so the other file types need a step that changes nothing. */
+const unchanged = (from: number): Migration => ({ from, up: (raw) => raw });
+
+/**
+ * Projects: `archivedAt` and `deletedAt` become one `state` with its time. Deleted wins over archived,
+ * as it did before. A timestamp that is not a string is left as it is, so that validation rejects the record.
+ */
+function projectV1ToV2(raw: unknown): unknown {
+  if (!isDoc(raw)) return raw;
+  const { archivedAt, deletedAt, ...rest } = raw;
+  if ((deletedAt !== undefined && deletedAt !== null && typeof deletedAt !== 'string') || (archivedAt !== undefined && archivedAt !== null && typeof archivedAt !== 'string')) {
+    return raw;
+  }
+  const state =
+    typeof deletedAt === 'string' ? { kind: 'deleted', at: deletedAt } : typeof archivedAt === 'string' ? { kind: 'archived', at: archivedAt } : { kind: 'active' };
+  return { ...rest, state };
+}
+
 const MIGRATIONS: Record<FileKind, Migration[]> = {
-  workspace: [],
-  users: [],
-  projects: [],
-  task: [],
+  workspace: [unchanged(1)],
+  users: [unchanged(1)],
+  projects: [
+    {
+      from: 1,
+      up: (doc) => ({ ...doc, projects: Array.isArray(doc['projects']) ? doc['projects'].map(projectV1ToV2) : doc['projects'] }),
+    },
+  ],
+  task: [unchanged(1)],
 };
 
 export class NewerSchemaError extends Error {

@@ -2,13 +2,13 @@ import type { ProjectId } from '../../data/ids';
 import { useMemo, useState } from 'react';
 import { Dialog } from '../../components/Dialog';
 import { addProject, addProjectFromTemplate, useApp } from '../../store/appStore';
-import { byOrder } from '../../store/selectors';
+import { byOrder, projectStatus } from '../../store/selectors';
 import { t } from '../../i18n';
 
 /** New project: from scratch or from a template. Template tasks come without assignments and due dates. */
 export function NewProjectDialog({ onClose, onCreated, templateId }: { onClose: () => void; onCreated: (id: ProjectId) => void; templateId?: ProjectId | undefined }) {
   const projects = useApp((s) => s.projects);
-  const templates = useMemo(() => projects.filter((p) => p.template && !p.deletedAt).sort(byOrder), [projects]);
+  const templates = useMemo(() => projects.filter((p) => p.template && projectStatus(p) !== 'deleted').sort(byOrder), [projects]);
   const [name, setName] = useState('');
   const [from, setFrom] = useState<ProjectId | ''>(templateId && templates.some((x) => x.id === templateId) ? templateId : '');
 

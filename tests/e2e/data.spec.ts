@@ -12,7 +12,7 @@ test('Data survives a reload; folder structure and schema version', async ({ pag
   const top = Object.keys(files).filter((p) => !p.includes('/')).sort();
   expect(top).toEqual(['projects.json', 'users.json', 'workspace.json']);
   expect(Object.keys(files).some((p) => /^backups\/\d{4}-\d{2}-\d{2}\.json$/.test(p))).toBe(true);
-  for (const [p, c] of Object.entries(files)) if (p.startsWith('tasks/')) expect(JSON.parse(c).schemaVersion).toBe(1);
+  for (const [p, c] of Object.entries(files)) if (p.startsWith('tasks/')) expect(JSON.parse(c).schemaVersion).toBe(2);
 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'My tasks' })).toBeVisible();

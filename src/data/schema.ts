@@ -3,7 +3,7 @@ import { newProjectId, newSectionId, newTaskId, newUserId, type UserId } from '.
 import type { Color, ID, Project, Section, Task, User, WorkspaceFile } from './types';
 import { COLORS } from './types';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const newId = (): ID => crypto.randomUUID();
 export const nowIso = () => stampNow();
@@ -54,8 +54,7 @@ export function makeProject(name: string, color: Color, order: number, sectionNa
     sections: sectionNames.map((n, i) => makeSection(n, i + 1)),
     createdAt: at,
     updatedAt: at,
-    archivedAt: null,
-    deletedAt: null,
+    state: { kind: 'active' },
   };
 }
 

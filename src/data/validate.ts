@@ -12,6 +12,7 @@ import {
   type Attachment,
   type Comment,
   type Project,
+  type ProjectState,
   type RecurrenceRule,
   type Section,
   type Task,
@@ -145,6 +146,15 @@ const recurrence = objectOf<RecurrenceRule>({
 const tagName: Check<string> = (v, path) =>
   typeof v === 'string' && v !== '' && v === normalizeTag(v) ? v : fail(path, `expected a tag, got ${describe(v)}`);
 
+/** The state of a project: a kind, and for archived and deleted the time it was set */
+const projectLifecycle: Check<ProjectState> = (v, path) => {
+  if (!isRecord(v)) return fail(path, `expected an object, got ${describe(v)}`);
+  if (v['kind'] === 'active') return { kind: 'active' };
+  if (v['kind'] === 'archived') return { kind: 'archived', at: dateTime(v['at'], `${path}.at`) };
+  if (v['kind'] === 'deleted') return { kind: 'deleted', at: dateTime(v['at'], `${path}.at`) };
+  return fail(path, `unknown project state ${describe(v['kind'])}`);
+};
+
 const fieldTimestamps: Check<Record<string, string>> = (v, path) => {
   if (!isRecord(v)) return fail(path, `expected an object, got ${describe(v)}`);
   // Unknown fields are ignored (they may come from a newer version), but known ones must have a timestamp.
@@ -226,8 +236,7 @@ export const validateProject: Check<Project> = objectOf<Project>({
   sections: arrayOf(validateSection),
   createdAt: dateTime,
   updatedAt: dateTime,
-  archivedAt: optional(nullable(dateTime)),
-  deletedAt: optional(nullable(dateTime)),
+  state: projectLifecycle,
   template: optional(bool),
   pinned: optional(bool),
 });

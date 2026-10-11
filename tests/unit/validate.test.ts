@@ -38,7 +38,7 @@ const goodTask = (): Record<string, unknown> => ({
 });
 
 const goodUser = (over: Record<string, unknown> = {}) => ({ id: 'user-1', name: 'Pia', color: 'teal', createdAt: T0, updatedAt: T0, deletedAt: null, ...over });
-const goodProject = (over: Record<string, unknown> = {}) => ({ id: 'proj-1', name: 'Launch', color: 'blue', order: 1, sections: [], createdAt: T0, updatedAt: T0, ...over });
+const goodProject = (over: Record<string, unknown> = {}) => ({ id: 'proj-1', name: 'Launch', color: 'blue', order: 1, sections: [], createdAt: T0, updatedAt: T0, state: { kind: 'active' }, ...over });
 
 describe('task files reject wrong types instead of passing them on', () => {
   it('accepts a valid task', () => {

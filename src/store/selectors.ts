@@ -44,20 +44,19 @@ export const byPinnedThenOrder = (a: Project, b: Project) => Number(!!b.pinned) 
  * that change position get a new `order` and `updatedAt`. Returns null if the project cannot move.
  */
 /**
- * What a project is now. Derived from the file's fields (`deletedAt`, `template`, `archivedAt`), which stay as they are
- * in the file. Each project has exactly one kind; deleted wins over template, template over archived.
+ * What a project is now: its stored `state`, and the `template` flag. Deleted wins over template, template over archived.
  */
-export type ProjectState = 'deleted' | 'template' | 'archived' | 'active';
+export type ProjectStatus = 'deleted' | 'template' | 'archived' | 'active';
 
-export function projectState(p: Project): ProjectState {
-  if (p.deletedAt) return 'deleted';
+export function projectStatus(p: Project): ProjectStatus {
+  if (p.state.kind === 'deleted') return 'deleted';
   if (p.template) return 'template';
-  if (p.archivedAt) return 'archived';
+  if (p.state.kind === 'archived') return 'archived';
   return 'active';
 }
 
 /** The projects that are shown in the sidebar, in their arrangement: pinned first, then by order */
-const arranged = (projects: Project[]) => projects.filter((p) => projectState(p) === 'active').sort(byPinnedThenOrder);
+const arranged = (projects: Project[]) => projects.filter((p) => projectStatus(p) === 'active').sort(byPinnedThenOrder);
 
 /** Gives the projects in `ordered` the positions 0, 1, 2 …; only projects whose position changes get `updatedAt` */
 function renumber(projects: Project[], ordered: Project[], at: string): Project[] {
@@ -100,7 +99,7 @@ export function liveSections(p: Project | undefined): Section[] {
 }
 
 /** Projects whose tasks do not show in any view: deleted projects and templates (templates only hold a blueprint). */
-export const hiddenProjectIds = (projects: Project[]) => new Set(projects.filter((p) => p.deletedAt || p.template).map((p) => p.id));
+export const hiddenProjectIds = (projects: Project[]) => new Set(projects.filter((p) => projectStatus(p) === 'deleted' || p.template).map((p) => p.id));
 
 /** Task is visible: not deleted, its project is not deleted, its parent task is not deleted. */
 export function isVisible(t: TaskState, tasks: Record<ID, TaskState>, deletedProjects: Set<ID>): boolean {
@@ -300,11 +299,11 @@ export function buildGroups(inp: BuildInput): Group[] {
   } else if (g === 'project') {
     groups = [
       ...inp.projects
-        .filter((p) => !p.deletedAt && !p.template)
+        .filter((p) => projectStatus(p) !== 'deleted' && !p.template)
         .sort(byOrder)
         .map((p) => {
           const apply = { projectId: p.id, sectionId: firstSection(p.id) };
-          return { key: p.id, label: p.name, project: p, apply, defaults: { ...baseDef, ...apply }, keep: projectState(p) !== 'archived' };
+          return { key: p.id, label: p.name, project: p, apply, defaults: { ...baseDef, ...apply }, keep: projectStatus(p) !== 'archived' };
         }),
       { key: '__none', label: t('group.noProject'), apply: { projectId: null, sectionId: null }, defaults: { ...baseDef, projectId: null, sectionId: null }, keep: true },
     ];
