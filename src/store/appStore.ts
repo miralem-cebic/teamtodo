@@ -29,6 +29,25 @@ interface UndoEntry {
   tasks: Record<ID, TaskState | undefined>;
   projects?: Project[];
   users?: Record<ID, User | undefined>;
+  /** Estimated size of the stored state, for the byte budget of the undo stack */
+  bytes?: number;
+}
+
+/** At most this many undo steps, and at most this much stored state (estimated) */
+export const UNDO_LIMIT = 20;
+export const UNDO_MAX_BYTES = 4_000_000;
+
+const estimateBytes = (e: UndoEntry) => JSON.stringify([e.tasks, e.projects ?? null, e.users ?? null]).length;
+
+/** Keeps the newest entries within both budgets; the newest entry is always kept. */
+export function trimUndo(stack: UndoEntry[]): UndoEntry[] {
+  let out = stack.slice(-UNDO_LIMIT);
+  let total = out.reduce((sum, e) => sum + (e.bytes ?? 0), 0);
+  while (out.length > 1 && total > UNDO_MAX_BYTES) {
+    total -= out[0]!.bytes ?? 0;
+    out = out.slice(1);
+  }
+  return out;
 }
 
 export interface AppState {
@@ -93,7 +112,8 @@ export function showToast(msg: string, undo = false) {
 export const dismissToast = () => set({ toast: null });
 
 function pushUndo(entry: UndoEntry, toast: boolean) {
-  set((s) => ({ undoStack: [...s.undoStack.slice(-19), entry] }));
+  const sized = { ...entry, bytes: estimateBytes(entry) };
+  set((s) => ({ undoStack: trimUndo([...s.undoStack, sized]) }));
   if (toast) showToast(entry.label, true);
 }
 

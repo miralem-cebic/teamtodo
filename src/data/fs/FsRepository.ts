@@ -3,7 +3,7 @@ import { migrate, migrateCollection, NewerSchemaError } from '../migrations';
 import type { BackupInfo, ChangeSet, LoadIssue, LoadResult, Repository } from '../repository';
 import { SCHEMA_VERSION } from '../schema';
 import type { ID, Project, ProjectsFile, Snapshot, Task, User, UsersFile, WorkspaceFile } from '../types';
-import { writeJson } from './jsonFile';
+import { writeJson, writeLargeJson } from './jsonFile';
 import { isSafeFileName, toSafeFileName, UnsafeFileNameError } from './fileNames';
 
 // Ordnerstruktur:
@@ -250,7 +250,9 @@ export class FsRepository implements Repository {
   /* ---------- Backups ---------- */
 
   async writeBackup(name: string, snapshot: Snapshot) {
-    await writeJson(await this.dir(DIRS.backups), `${name}.json`, { schemaVersion: SCHEMA_VERSION, createdAt: new Date().toISOString(), ...snapshot });
+    // Tasks are the big part: they are written in batches instead of one JSON string for the whole backup
+    const { tasks, ...rest } = snapshot;
+    await writeLargeJson(await this.dir(DIRS.backups), `${name}.json`, { schemaVersion: SCHEMA_VERSION, createdAt: new Date().toISOString(), ...rest }, { tasks });
   }
 
   async listBackups(): Promise<BackupInfo[]> {
