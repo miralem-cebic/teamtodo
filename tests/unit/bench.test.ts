@@ -25,7 +25,7 @@ function workspace(count: number): Snapshot {
 }
 
 describe.skipIf(!process.env.BENCH)('scale (10,000 tasks)', () => {
-  it('prints timings', () => {
+  it('prints timings', async () => {
     const snap = workspace(10_000);
     const meId = snap.users[0]!.id;
     A.resetApp();
@@ -44,20 +44,25 @@ describe.skipIf(!process.env.BENCH)('scale (10,000 tasks)', () => {
       A.updateTask(ids[n % ids.length]!, { status: n % 2 ? 'doing' : 'todo' });
       n++;
     }, 200);
-    // what the persister does on every change: a pass over all tasks to find the changed ones (for…in, as in persister.ts)
-    const scan = ms(() => {
-      const s = A.useApp.getState();
-      let changed = 0;
-      for (const id in s.tasks) if (s.tasks[id]?.draft) changed++;
-      expect(changed).toBe(0);
-    }, 20);
+    // the same change with the persister attached: it reads only the touched tasks and queues one write
+    (globalThis as unknown as { window: unknown }).window = { addEventListener() {}, removeEventListener() {} };
+    const { Persister } = await import('../../src/data/persister');
+    const repo = { saveTask: async (t: Task) => ({ ok: true as const, value: t }) };
+    const persister = new Persister(repo as never);
+    persister.start();
+    let m = 0;
+    const attached = ms(() => {
+      A.updateTask(ids[m % ids.length]!, { status: m % 2 ? 'doing' : 'todo' });
+      m++;
+    }, 200);
+    persister.stop();
     process.stdout.write(
       '\n' + [
         `loadSnapshot: ${load.toFixed(1)} ms`,
         `visibleTasks: ${vis.toFixed(2)} ms`,
         `buildGroups (project view): ${groups.toFixed(2)} ms`,
         `updateTask (one change, store only): ${update.toFixed(3)} ms`,
-        `persister scan of all tasks per change: ${scan.toFixed(2)} ms`,
+        `updateTask with persister attached: ${attached.toFixed(3)} ms`,
       ].join('\n') + '\n',
     );
   }, 120_000);

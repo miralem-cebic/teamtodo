@@ -1,5 +1,5 @@
 import type { TaskId } from './ids';
-import { showToast, useApp } from '../store/appStore';
+import { showToast, touchTasks, useApp } from '../store/appStore';
 import { today } from '../lib/dates';
 import { mergeUsers } from './merge';
 import { nowIso } from './schema';
@@ -84,6 +84,7 @@ export async function purge(repo: Repository, now = Date.now()): Promise<number>
     .map((p) => (p.sections.some((x) => old(x.deletedAt)) ? { ...p, sections: p.sections.filter((x) => !old(x.deletedAt)) } : p));
   const projectsChanged = projects.length !== s.projects.length || projects.some((p, i) => p !== s.projects[i]);
 
+  touchTasks('all');
   useApp.setState({
     tasks,
     ...(projectsChanged ? { projects } : {}),
@@ -119,6 +120,7 @@ export async function restoreBackup(repo: Repository, name: string) {
   const projects = b.projects.map((p) => ({ ...p, updatedAt: at, sections: p.sections.map((x) => ({ ...x, updatedAt: at })) }));
   // mark projects that were created after the backup as deleted
   for (const p of s.projects) if (!projects.some((x) => x.id === p.id)) projects.push({ ...p, deletedAt: p.deletedAt ?? at, updatedAt: at });
+  touchTasks('all');
   useApp.setState({ tasks, projects, users: mergeUsers(s.users, b.users), panelId: null, undoStack: [] });
   showToast(`Backup from ${name} restored`);
 }

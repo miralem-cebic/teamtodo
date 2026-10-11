@@ -118,6 +118,28 @@ export function showToast(msg: string, undo = false) {
 }
 export const dismissToast = () => set({ toast: null });
 
+/* ---------- Which tasks changed ---------- */
+// The persister writes what changed. Each change to the task record reports the IDs it touched, so that a change
+// does not cost a look at every task. 'all' after the whole record was replaced.
+let touched: Set<TaskId> | 'all' = new Set();
+
+/** Reports that these tasks were changed (call before the state is set) */
+export function touchTasks(ids: Iterable<TaskId> | 'all'): void {
+  if (touched === 'all') return;
+  if (ids === 'all') {
+    touched = 'all';
+    return;
+  }
+  for (const id of ids) touched.add(id);
+}
+
+/** The IDs reported since the last call; 'all' if the whole record was replaced. Used by the persister. */
+export function takeTouchedTasks(): TaskId[] | 'all' {
+  const out = touched === 'all' ? 'all' : [...touched];
+  touched = new Set();
+  return out;
+}
+
 function pushUndo(entry: UndoEntry, toast: boolean) {
   const sized = { ...entry, bytes: estimateBytes(entry) };
   set((s) => ({ undoStack: trimUndo([...s.undoStack, sized]) }));
@@ -130,10 +152,12 @@ export function loadSnapshot(snap: Snapshot) {
   // Null prototype: an ID can never resolve to an Object.prototype member such as `constructor`
   const tasks: Record<TaskId, TaskState> = Object.create(null);
   for (const t of snap.tasks) tasks[t.id] = t;
+  touchTasks('all');
   set({ workspace: snap.workspace, users: snap.users, projects: snap.projects, tasks, undoStack: [], panelId: null });
 }
 
 export function resetApp() {
+  touchTasks('all');
   set({ ...initial, recentDone: new Set(), flash: new Set() });
 }
 
@@ -154,6 +178,7 @@ export function addTask(fields: Partial<Task> = {}): TaskId {
   }
   // The creator and the assignee follow the task automatically
   t.followerIds = [...new Set([...(me ? [me] : []), ...(t.assigneeId ? [t.assigneeId] : []), ...t.followerIds])];
+  touchTasks([t.id]);
   set((s) => ({ tasks: { ...s.tasks, [t.id]: t } }));
   return t.id;
 }
@@ -228,6 +253,7 @@ export function updateTask(id: TaskId, patch: TaskPatch, opts: UpdateOptions = {
     for (const k of keysOf(changed)) before[k] = s.tasks[k];
     pushUndo({ label: opts.undo ?? tr('undo.change'), tasks: before }, !!opts.toast);
   }
+  touchTasks(keysOf(changed));
   set({ tasks: { ...s.tasks, ...changed } });
 }
 
@@ -237,7 +263,10 @@ export function toggleDone(id: TaskId, value?: boolean) {
   const done = value ?? !t.completedAt;
   if (done === !!t.completedAt) return;
   updateTask(id, { completedAt: done ? nowIso() : null }, done ? { undo: tr('undo.completed', { title: short(t.title) }), toast: true } : { undo: tr('undo.reopened') });
-  if (t.draft && done) set((s) => ({ tasks: { ...s.tasks, [id]: { ...(s.tasks[id] ?? t), draft: false } } }));
+  if (t.draft && done) {
+    touchTasks([id]);
+    set((s) => ({ tasks: { ...s.tasks, [id]: { ...(s.tasks[id] ?? t), draft: false } } }));
+  }
 }
 
 /** Soft delete including subtasks. Drafts are removed directly. */
@@ -256,6 +285,7 @@ export function deleteTask(id: TaskId, opts: { silent?: boolean } = {}) {
     if (x.draft) delete tasks[k];
     else tasks[k] = { ...x, deletedAt: at, fieldUpdatedAt: { ...x.fieldUpdatedAt, deletedAt: at }, activity: [...x.activity, act('deleted')] };
   }
+  touchTasks(ids);
   set({ tasks, panelId: s.panelId && ids.includes(s.panelId) ? null : s.panelId });
   if (!t.draft) pushUndo({ label: tr('undo.deleted', { title: short(t.title) }), tasks: before }, !opts.silent);
 }
@@ -266,6 +296,7 @@ export function removeIfEmptyDraft(id: TaskId) {
   if (!t || !t.draft || t.title.trim() || descendantIds(s.tasks, id).length) return;
   const tasks = { ...s.tasks };
   delete tasks[id];
+  touchTasks([id]);
   set({ tasks });
 }
 
@@ -311,6 +342,7 @@ export function mergeConflictPayload(p: ConflictPayload) {
   const s = get();
   if (p.kind === 'task') {
     const cur = s.tasks[p.task.id];
+    touchTasks([p.task.id]);
     set({ tasks: { ...s.tasks, [p.task.id]: cur ? mergeTask(cur, p.task) : p.task } });
   } else if (p.kind === 'users') {
     set({ users: mergeUsers(s.users, p.users) });
@@ -389,6 +421,7 @@ export function deleteSection(projectId: ProjectId, sectionId: SectionId) {
       else tasks[k] = { ...x, deletedAt: at, fieldUpdatedAt: { ...x.fieldUpdatedAt, deletedAt: at } };
     }
   }
+  touchTasks(keysOf(before));
   set({ tasks });
   setProjects(
     mapSections(projectId, (list) => list.map((x) => (x.id === sectionId ? { ...x, deletedAt: at, updatedAt: at } : x))),
@@ -441,6 +474,7 @@ export function saveAsTemplate(projectId: ProjectId, name: string): ID | null {
     return copy;
   });
   const tasks = copyTaskTree(liveTasksOf(src.id), tpl.id, sectionMap);
+  touchTasks(keysOf(tasks));
   set((st) => ({ projects: [...st.projects, tpl], tasks: { ...st.tasks, ...tasks } }));
   return tpl.id;
 }
@@ -458,6 +492,7 @@ export function addProjectFromTemplate(templateId: ProjectId, name: string): Pro
     return copy;
   });
   const tasks = copyTaskTree(liveTasksOf(tpl.id), p.id, sectionMap);
+  touchTasks(keysOf(tasks));
   set((st) => ({ projects: [...st.projects, p], tasks: { ...st.tasks, ...tasks } }));
   return p.id;
 }
@@ -477,6 +512,7 @@ export function findMentions(text: string, users: User[]): UserId[] {
 function patchTask(id: TaskId, fn: (t: TaskState) => TaskState) {
   const t = get().tasks[id];
   if (!t) return;
+  touchTasks([id]);
   set((s) => ({ tasks: { ...s.tasks, [id]: fn(t) } }));
 }
 
@@ -555,6 +591,7 @@ export function deleteUser(id: ID): number {
     before[t.id] = t;
     tasks[t.id] = applyPatch(t, { assigneeId: null }, at);
   }
+  touchTasks(keysOf(before));
   set({
     tasks,
     users: s.users.map((x) => (x.id === id ? { ...x, deletedAt: at, updatedAt: at } : x)),
@@ -625,6 +662,7 @@ export function undo() {
       return old ? { ...old, updatedAt: at } : x;
     });
   }
+  touchTasks(keysOf(entry.tasks));
   set({ tasks, projects, users, undoStack: s.undoStack.slice(0, -1) });
   showToast(tr('toast.undone'));
 }

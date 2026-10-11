@@ -1,5 +1,5 @@
 import type { TaskId } from './ids';
-import { flashRows, useApp } from '../store/appStore';
+import { flashRows, touchTasks, useApp } from '../store/appStore';
 import { mergeProjects, mergeTask, mergeUsers, sameJson } from './merge';
 import type { Persister } from './persister';
 import type { ChangeSet, Repository } from './repository';
@@ -27,6 +27,8 @@ function hasNewerThan(local: Task, remote: Task): boolean {
 
 export function integrateTasks(p: Persister, remotes: Task[], removed: TaskId[] = []) {
   if (!remotes.length && !removed.length) return;
+  touchTasks(remotes.map((r) => r.id));
+  touchTasks(removed);
   const s = useApp.getState();
   const tasks = { ...s.tasks };
   const flash: TaskId[] = [];
@@ -76,6 +78,7 @@ export function integrateWrittenTask(p: Persister, written: Task, stored: Task) 
   const s = useApp.getState();
   const cur = s.tasks[written.id];
   if (!cur) return;
+  touchTasks([stored.id]);
   if (cur === written) {
     p.markCleanObject(stored);
     useApp.setState({ tasks: { ...s.tasks, [stored.id]: stored } });

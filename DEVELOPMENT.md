@@ -169,13 +169,15 @@ Baseline with 10,000 tasks (`npm run bench`, one run on the development sandbox;
 
 | Operation | Before | Now |
 | --- | --- | --- |
-| `loadSnapshot` | 11.7 ms | 11.6 ms |
-| `visibleTasks` (called by several components per change) | 4.4 ms | 0.97 ms (memoised by its inputs) |
-| `buildGroups`, project view | 5.9 ms | 3.3 ms |
-| Persister pass over all tasks per change | 4.3 ms | 1.6 ms (`for…in`, no entries array) |
-| `updateTask`, store only | 4.1 ms | 4.5 ms (copies the task record; noise) |
+| `loadSnapshot` | 11.7 ms | 11–21 ms (noisy) |
+| `visibleTasks` (called by several components per change) | 4.4 ms | 1.0 ms (memoised by its inputs) |
+| `buildGroups`, project view | 5.9 ms | 3.3–4.0 ms |
+| Persister work per change | 4.3 ms (pass over all tasks) | about 1 ms (only the touched tasks) |
+| `updateTask`, store only | 4.1 ms | 4.1 ms |
 
-Still open: the persister still visits every task per change (it needs the changed IDs from the actions), and the store copies the whole task record per change (a map with structural sharing would avoid it). Worker-based loading is not justified by `loadSnapshot` at this size; list virtualization needs a browser measurement first.
+The persister finds the changed tasks through `touchTasks` in the store (every write to the task record reports the IDs it touched); a full pass every 10 seconds (`SWEEP_MS`) writes anything that was not reported, so a missed report costs at most that delay. `tests/unit/touched.test.ts` checks both paths.
+
+Still open: the store still copies the whole task record per change (a map with structural sharing would avoid it). Worker-based loading is not justified by `loadSnapshot` at this size; list virtualization needs a browser measurement first.
 
 ## Tests
 

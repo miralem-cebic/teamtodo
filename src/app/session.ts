@@ -16,7 +16,7 @@ import { errorText } from '../lib/labels';
 import { t } from '../i18n';
 import { emptySnapshot, sampleSnapshot } from '../data/seed';
 import type { ID, Task } from '../data/types';
-import { addUser, loadSnapshot, mergeConflictPayload, resetApp, setMe, showToast, useApp } from '../store/appStore';
+import { addUser, loadSnapshot, mergeConflictPayload, resetApp, setMe, showToast, touchTasks, useApp } from '../store/appStore';
 import { loadMe, saveMe } from '../store/prefs';
 import { readStorage } from '../lib/storage';
 
@@ -255,6 +255,7 @@ function recoverEmergencyCopy(workspaceId: ID) {
       return !old || newest(t) > newest(old);
     });
     if (!take.length) return;
+    touchTasks(take.map((t) => t.id));
     useApp.setState({ tasks: { ...cur, ...Object.fromEntries(take.map((t) => [t.id, t])) } });
     showToast(t('toast.restored', { n: take.length }));
   } catch {
