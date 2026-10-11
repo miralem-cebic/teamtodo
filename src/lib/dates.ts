@@ -1,12 +1,35 @@
 import { addDays as dfAddDays, differenceInCalendarDays, format, isSameYear, nextMonday as dfNextMonday, parseISO } from 'date-fns';
 import type { ISODate, ISODateTime } from '../data/types';
-import { fmt, t } from '../i18n';
+import { currentLang, fmt, t } from '../i18n';
 
 // Due dates are calendar days (local time), not timestamps.
 
 export const toIsoDate = (d: Date): ISODate => format(d, 'yyyy-MM-dd');
-export const fromIsoDate = (s: ISODate): Date => parseISO(s);
-export const today = (): ISODate => toIsoDate(new Date());
+// Lists compare the same dates again and again (one per row and change): each string is parsed once.
+// Callers only read these dates, they do not change them.
+const parsed = new Map<ISODate, Date>();
+export const fromIsoDate = (s: ISODate): Date => {
+  let d = parsed.get(s);
+  if (!d) {
+    if (parsed.size > 20_000) parsed.clear();
+    d = parseISO(s);
+    parsed.set(s, d);
+  }
+  return d;
+};
+
+// The calendar day changes at most once a day: format it again only then
+let todayKey = -1;
+let todayIso: ISODate = '';
+export const today = (): ISODate => {
+  const n = new Date();
+  const key = n.getFullYear() * 10_000 + (n.getMonth() + 1) * 100 + n.getDate();
+  if (key !== todayKey) {
+    todayKey = key;
+    todayIso = toIsoDate(n);
+  }
+  return todayIso;
+};
 export const addDays = (iso: ISODate, n: number): ISODate => toIsoDate(dfAddDays(fromIsoDate(iso), n));
 /** a − b in calendar days */
 export const diffDays = (a: ISODate, b: ISODate): number => differenceInCalendarDays(fromIsoDate(a), fromIsoDate(b));
@@ -19,8 +42,14 @@ export function fmtDate(iso: ISODate): string {
 }
 
 /** Relative label for due dates: Today, Tomorrow, Yesterday, weekday (next 6 days), otherwise the date */
+// Every row shows its due date: the label is cached per language, day, date and time
+const dueLabels = new Map<string, string>();
+
 export function fmtDue(iso: ISODate | null, time?: string | null): string {
   if (!iso) return '';
+  const key = `${currentLang()}|${today()}|${iso}|${time ?? ''}`;
+  const hit = dueLabels.get(key);
+  if (hit !== undefined) return hit;
   const dd = diffDays(iso, today());
   let s: string;
   if (dd === 0) s = t('due.today');
@@ -28,7 +57,10 @@ export function fmtDue(iso: ISODate | null, time?: string | null): string {
   else if (dd === -1) s = t('due.yesterday');
   else if (dd > 1 && dd < 7) s = fmt(fromIsoDate(iso), 'EEE');
   else s = fmtDate(iso);
-  return time ? `${s}, ${time}` : s;
+  const out = time ? `${s}, ${time}` : s;
+  if (dueLabels.size > 5_000) dueLabels.clear();
+  dueLabels.set(key, out);
+  return out;
 }
 
 export function fmtMonth(d: Date): string {

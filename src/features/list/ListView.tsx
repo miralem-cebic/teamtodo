@@ -10,6 +10,9 @@ import { toggleCollapsed, usePrefs } from '../../store/prefs';
 import type { Group, View, ViewSettings } from '../../store/selectors';
 import type { ID, TaskState } from '../../data/types';
 import { TaskRow, type ThirdColumn } from './TaskRow';
+import { publishListSnapshot } from './listSnapshot';
+
+const doneCount = (list: TaskState[]) => list.filter((k) => k.completedAt).length;
 import { useDndGroup, useDndRow } from '../dnd/TaskDnd';
 import { t, t as tr } from '../../i18n';
 
@@ -33,6 +36,16 @@ export function ListView({ groups, view, settings, collapseKey, children }: Prop
     requestFocus(addTask({ ...g.defaults, order: last ? last.order + 1 : Date.now() }), 'list');
   };
 
+  // the rows read this in their event handlers (see listSnapshot.ts)
+  const shownSubs = new Map<ID, TaskState[]>();
+  if (view.type === 'project') {
+    for (const g of groups) for (const t of g.tasks) {
+      if (!expanded[t.id]) continue;
+      const all = children[t.id] ?? [];
+      shownSubs.set(t.id, showDoneKids ? all : all.filter((k) => !k.completedAt || recentDone.has(k.id)));
+    }
+  }
+  publishListSnapshot(groups, children, shownSubs);
   return (
     <div className={'list' + (third ? '' : ' no3')} role="grid" aria-label="Tasks">
       <div className="lhead" role="row">
@@ -53,10 +66,10 @@ export function ListView({ groups, view, settings, collapseKey, children }: Prop
                 const open = view.type === 'project' && !!expanded[t.id];
                 return (
                   <div key={t.id} className="row-wrap">
-                    <TaskRow task={t} group={g} siblings={g.tasks} view={view} third={third} manual={manual} kids={allKids} />
+                    <TaskRow task={t} groupKey={g.key} view={view} third={third} manual={manual} kidCount={allKids.length} doneKidCount={doneCount(allKids)} />
                     {open &&
                       kids.map((k) => (
-                        <TaskRow key={k.id} task={k} depth={1} siblings={kids} view={view} third={third} manual kids={children[k.id] ?? []} />
+                        <TaskRow key={k.id} task={k} depth={1} view={view} third={third} manual kidCount={(children[k.id] ?? []).length} doneKidCount={doneCount(children[k.id] ?? [])} />
                       ))}
                     {open && (
                       <div className="row add-row sub">

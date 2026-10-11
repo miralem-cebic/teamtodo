@@ -1,6 +1,6 @@
 // Timings on a 10,000-task workspace. Runs only with BENCH=1 (npm run bench); prints numbers, asserts nothing,
 // because times depend on the machine. Record the numbers in the issue when they change.
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
 import * as A from '../../src/store/appStore';
 import { buildGroups, defaultSettings, visibleTasks } from '../../src/store/selectors';
 import { makeTask } from '../../src/data/schema';

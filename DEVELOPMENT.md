@@ -177,7 +177,20 @@ Baseline with 10,000 tasks (`npm run bench`, one run on the development sandbox;
 
 The persister finds the changed tasks through `touchTasks` in the store (every write to the task record reports the IDs it touched); a full pass every 10 seconds (`SWEEP_MS`) writes anything that was not reported, so a missed report costs at most that delay. `tests/unit/touched.test.ts` checks both paths.
 
-Still open: the store still copies the whole task record per change (a map with structural sharing would avoid it). Worker-based loading is not justified by `loadSnapshot` at this size; list virtualization needs a browser measurement first.
+Browser, 10,000 tasks (Chromium, the e2e folder in localStorage; a throwaway fixture, not committed):
+
+| Step | Before | Now |
+| --- | --- | --- |
+| Typing 5 characters in a row title | 6.7 s | 0.8 s |
+| Rows in the DOM | 2,685 | 2,685 (no virtualization yet) |
+
+What made the difference: a row re-rendered on every change to the list. Three causes, fixed in order:
+
+- `TaskDnd` subscribed to the whole task record and passed new handler objects to the drag context, so every row's drag hooks re-rendered. Handlers are now stable and read the record when they run.
+- Each row passed new `data` objects to dnd-kit. They are now kept stable while their content is the same.
+- Rows rendered again although their task did not change. `TaskRow` is memoised and reads siblings, group defaults and subtasks from a snapshot the list publishes (`listSnapshot.ts`), not from props.
+
+Still open: the store copies the whole task record per change (`Map` would copy about 3× faster, measured 1.2 ms against 3.6 ms at 10,000 keys; not done, since the change touches every reader), and about 160 ms per keystroke remains with 2,685 rows in the DOM. Virtualization is the next step for that; it has to keep keyboard navigation (which finds rows in the DOM) and drag and drop working.
 
 ## Tests
 

@@ -1,5 +1,6 @@
 import { brandId } from '../../data/ids';
-import { useLayoutEffect, useRef, type KeyboardEvent } from 'react';
+import { memo, useLayoutEffect, useRef, type KeyboardEvent } from 'react';
+import { listAllKids, listGroup, listSiblings } from './listSnapshot';
 import { Check } from '../../components/Check';
 import { Icon } from '../../components/Icon';
 import { assign, AssigneeField, DueField, ProjectField, SectionField, StatusField } from '../../components/TaskFields';
@@ -16,7 +17,7 @@ import {
   useApp,
 } from '../../store/appStore';
 import { toggleExpanded, usePrefs } from '../../store/prefs';
-import { orderBetween, type Group, type View } from '../../store/selectors';
+import { orderBetween, type View } from '../../store/selectors';
 import type { TaskState } from '../../data/types';
 import { focusRow, focusTitle, isMod, neighbour, titleOf } from '../../hooks/listNav';
 import { useDndRow } from '../dnd/TaskDnd';
@@ -27,16 +28,21 @@ export type ThirdColumn = 'project' | 'section' | null;
 interface Props {
   task: TaskState;
   depth?: number;
-  group?: Group;
-  /** Siblings in display order (for the Enter chain and moving) */
-  siblings: TaskState[];
+  /** The group of a top-level row. Siblings, group defaults and subtasks are read from the list snapshot when needed. */
+  groupKey?: string;
   view: View;
   third: ThirdColumn;
   manual: boolean;
-  kids: TaskState[];
+  kidCount: number;
+  doneKidCount: number;
 }
 
-export function TaskRow({ task, depth = 0, group, siblings, view, third, manual, kids }: Props) {
+/**
+ * A row. Memoised: a row whose task did not change is not rendered again when the list changes, so typing in one
+ * row does not re-render all the others. Everything that changes with the list is passed as a primitive or read
+ * from the snapshot in the handlers.
+ */
+export const TaskRow = memo(function TaskRow({ task, depth = 0, groupKey = '', view, third, manual, kidCount, doneKidCount }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const rowRef = useRef<HTMLDivElement | null>(null);
   const focusReq = useApp((s) => s.focusReq);
@@ -47,7 +53,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
   const canExpand = view.type === 'project' && depth === 0;
   const dnd = useDndRow(
     `t:${task.id}`,
-    task.parentId && depth > 0 ? { type: 'sub', taskId: task.id, parentId: task.parentId, scope: 'list' } : { type: 'task', taskId: task.id, groupKey: group?.key ?? '' },
+    task.parentId && depth > 0 ? { type: 'sub', taskId: task.id, parentId: task.parentId, scope: 'list' } : { type: 'task', taskId: task.id, groupKey },
     !task.title.trim(),
   );
 
@@ -56,10 +62,10 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
     else if (claimFocus(focusReq, task.id, 'row')) focusRow(rowRef.current);
   }, [focusReq, task.id]);
 
-  const doneKids = kids.filter((k) => k.completedAt).length;
-
   /** New row directly below this one */
   const createAfter = () => {
+    const siblings = listSiblings(task.parentId, groupKey);
+    const group = listGroup(groupKey);
     const i = siblings.findIndex((x) => x.id === task.id);
     const order = orderBetween(task, siblings[i + 1]);
     const fields =
@@ -73,6 +79,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
 
   const addSubtask = () => {
     if (!task.title.trim()) return;
+    const kids = listAllKids(task.id);
     const last = kids[kids.length - 1];
     const id = addTask({ parentId: task.id, projectId: task.projectId, order: last ? last.order + 1 : 1 });
     if (canExpand) {
@@ -89,6 +96,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
       showToast(t('toast.manualOnly'));
       return;
     }
+    const siblings = listSiblings(task.parentId, groupKey);
     const i = siblings.findIndex((x) => x.id === task.id);
     const j = i + dir;
     if (j < 0 || j >= siblings.length) return;
@@ -139,7 +147,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
         return;
       }
       createAfter();
-    } else if (e.key === 'Backspace' && task.title === '' && !kids.length) {
+    } else if (e.key === 'Backspace' && task.title === '' && kidCount === 0) {
       e.preventDefault();
       focusTitle(titleOf(neighbour(row, -1)));
       deleteTask(task.id, { silent: true });
@@ -181,7 +189,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
       const next = neighbour(row, 1) ?? neighbour(row, -1);
       deleteTask(task.id);
       focusRow(next);
-    } else if (e.key === 'ArrowRight' && canExpand && kids.length) {
+    } else if (e.key === 'ArrowRight' && canExpand && kidCount > 0) {
       toggleExpanded(task.id, true);
     } else if (e.key === 'ArrowLeft' && canExpand) {
       toggleExpanded(task.id, false);
@@ -216,7 +224,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
         {canExpand ? (
           <button
             type="button"
-            className={'caret' + (kids.length ? '' : ' hidden')}
+            className={'caret' + (kidCount ? '' : ' hidden')}
             onClick={() => toggleExpanded(task.id)}
             aria-label={expanded ? t('subs.collapse') : t('subs.expand')}
             aria-expanded={expanded}
@@ -247,10 +255,10 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
             <span>{parent.title}</span>
           </button>
         )}
-        {kids.length > 0 && (
+        {kidCount > 0 && (
           <button type="button" className="meta" tabIndex={-1} onClick={() => (canExpand ? toggleExpanded(task.id) : openPanel(task.id))}
-            title={t('subs.progress', { done: doneKids, total: kids.length })}>
-            {doneKids}/{kids.length}
+            title={t('subs.progress', { done: doneKidCount, total: kidCount })}>
+            {doneKidCount}/{kidCount}
             <Icon n="sub" s={13} />
           </button>
         )}
@@ -275,4 +283,4 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
       <div className="c c-status"><StatusField task={task} /></div>
     </div>
   );
-}
+});
