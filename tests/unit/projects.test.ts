@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import * as A from '../../src/store/appStore';
-import { byPinnedThenOrder, reorderWithinGroup } from '../../src/store/selectors';
+import { byPinnedThenOrder, placeProject, reorderWithinGroup } from '../../src/store/selectors';
 import { sampleSnapshot } from '../../src/data/seed';
 import type { Project } from '../../src/data/types';
 
@@ -16,6 +16,26 @@ const proj = (id: string, order: number, over: Partial<Project> = {}): Project =
   ...over,
 });
 const ids = (list: Project[]) => [...list].sort(byPinnedThenOrder).map((p) => p.id);
+
+describe('dropping a project next to another one', () => {
+  const list = () => [proj('p1', 0, { pinned: true }), proj('p2', 1, { pinned: true }), proj('u1', 2), proj('u2', 3)];
+
+  it('lands directly before or after the target', () => {
+    expect(ids(placeProject(list(), 'p2', 'p1', 'before', AT)!)).toEqual(['p2', 'p1', 'u1', 'u2']);
+    expect(ids(placeProject(list(), 'u2', 'u1', 'before', AT)!)).toEqual(['p1', 'p2', 'u2', 'u1']);
+    expect(ids(placeProject(list(), 'u1', 'u2', 'after', AT)!)).toEqual(['p1', 'p2', 'u2', 'u1']);
+  });
+
+  it('never crosses into the other group', () => {
+    expect(placeProject(list(), 'u1', 'p1', 'before', AT)).toBeNull();
+    expect(placeProject(list(), 'p1', 'u1', 'after', AT)).toBeNull();
+  });
+
+  it('does nothing when the project would stay where it is', () => {
+    expect(placeProject(list(), 'p2', 'p1', 'after', AT)).toBeNull();
+    expect(placeProject(list(), 'p1', 'p1', 'before', AT)).toBeNull();
+  });
+});
 
 describe('project order', () => {
   it('pinned projects come first, then by order', () => {

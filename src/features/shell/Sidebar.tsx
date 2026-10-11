@@ -3,6 +3,10 @@ import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { Menu, Popover, usePop } from '../../components/Popover';
 import { archiveProject, moveProject, setProjectPinned, showToast, useApp } from '../../store/appStore';
+import { useDndProject } from '../dnd/TaskDnd';
+import { isMod } from '../../hooks/listNav';
+import type { KeyboardEvent } from 'react';
+import type { Project } from '../../data/types';
 import { byPinnedThenOrder, visibleTasks, type View } from '../../store/selectors';
 import { forgetFolder, switchUser, useSession } from '../../app/session';
 import { useInbox } from '../inbox/InboxView';
@@ -20,11 +24,30 @@ interface Props {
   openTeam: () => void;
 }
 
-/** True if the project at `i` can move in `dir` without leaving its group (pinned or unpinned) */
-const canMove = (list: { pinned?: boolean }[], i: number, dir: -1 | 1) => {
-  const other = list[i + dir];
-  return !!other && !!other.pinned === !!list[i]?.pinned;
-};
+/** A project in the sidebar: a click opens it, the pin button pins it, drag and drop or Ctrl/⌘+Shift+↑/↓ arrange it */
+function ProjectNavItem({ p, on, count, go }: { p: Project; on: boolean; count: number; go: (v: View) => void }) {
+  const dnd = useDndProject(p.id, !!p.pinned);
+  const onKey = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (!isMod(e) || !e.shiftKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    e.preventDefault();
+    moveProject(p.id, e.key === 'ArrowUp' ? -1 : 1);
+  };
+  return (
+    // only the pointer listeners go on the row: the buttons inside keep their own roles
+    <div ref={dnd.ref} {...dnd.listeners} className={'nav-arch' + (dnd.dragging ? ' dragging' : '') + (dnd.dropPos ? ' drop-' + dnd.dropPos : '')}>
+      <button type="button" className={'nav' + (on ? ' on' : '')} onClick={() => go({ type: 'project', id: p.id })} onKeyDown={onKey} aria-current={on ? 'page' : undefined}
+        aria-keyshortcuts="Control+Shift+ArrowUp Control+Shift+ArrowDown">
+        <span className={'sq c-' + p.color} />
+        <span>{p.name}</span>
+        <span className="n">{count}</span>
+      </button>
+      <button type="button" className={'icon-btn' + (p.pinned ? ' on' : '')} onClick={() => setProjectPinned(p.id, !p.pinned)} aria-pressed={!!p.pinned}
+        aria-label={p.pinned ? t('project.unpinNamed', { name: p.name }) : t('project.pinNamed', { name: p.name })} title={p.pinned ? t('project.unpin') : t('project.pin')}>
+        <Icon n="pin" s={14} />
+      </button>
+    </div>
+  );
+}
 
 export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
   const tasks = useApp((s) => s.tasks);
@@ -84,28 +107,8 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
           <Icon n="plus" s={15} />
         </button>
       </div>
-      {active.map((p, i) => (
-        <div key={p.id} className="nav-arch">
-          <button type="button" className={'nav' + (view.type === 'project' && view.id === p.id ? ' on' : '')} onClick={() => go({ type: 'project', id: p.id })}
-            aria-current={view.type === 'project' && view.id === p.id ? 'page' : undefined}>
-            <span className={'sq c-' + p.color} />
-            <span>{p.name}</span>
-            <span className="n">{counts[p.id] ?? 0}</span>
-          </button>
-          <button type="button" className={'icon-btn' + (p.pinned ? ' on' : '')} onClick={() => setProjectPinned(p.id, !p.pinned)} aria-pressed={!!p.pinned}
-            aria-label={p.pinned ? t('project.unpinNamed', { name: p.name }) : t('project.pinNamed', { name: p.name })} title={p.pinned ? t('project.unpin') : t('project.pin')}>
-            <Icon n="pin" s={14} />
-          </button>
-          {/* Arrows only where the project can move: inside its own group */}
-          <button type="button" className="icon-btn" onClick={() => moveProject(p.id, -1)} disabled={!canMove(active, i, -1)}
-            aria-label={t('project.moveUpNamed', { name: p.name })} title={t('project.moveUp')}>
-            <Icon n="chevU" s={14} />
-          </button>
-          <button type="button" className="icon-btn" onClick={() => moveProject(p.id, 1)} disabled={!canMove(active, i, 1)}
-            aria-label={t('project.moveDownNamed', { name: p.name })} title={t('project.moveDown')}>
-            <Icon n="chevD" s={14} />
-          </button>
-        </div>
+      {active.map((p) => (
+        <ProjectNavItem key={p.id} p={p} on={view.type === 'project' && view.id === p.id} count={counts[p.id] ?? 0} go={go} />
       ))}
       {!active.length && <p className="side-empty">{t('side.noProjects')}</p>}
       {archived.length > 0 && (

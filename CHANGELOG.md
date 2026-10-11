@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Tags for tasks: add tags in the task panel, filter every view by a tag. Tags are kept when a project is created from a template.
-- Pin projects to the top of the sidebar, and move projects up or down within their group. Both are undoable.
+- Pin projects to the top of the sidebar. Arrange projects by drag and drop in the sidebar, or with Ctrl/⌘ + Shift + ↑/↓ on a focused project. A project stays in its group: unpinned projects cannot move above pinned ones. Both are undoable.
 - A crash in one part of the screen (the sidebar, a view, the task panel or a dialog) shows a short message with **Try again** and **Copy diagnostics**. The rest of the app keeps working, and unsaved changes are kept.
 
 ### Changed

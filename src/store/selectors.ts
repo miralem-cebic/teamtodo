@@ -41,22 +41,41 @@ export const byPinnedThenOrder = (a: Project, b: Project) => Number(!!b.pinned) 
  * Moves a project one place up or down inside its group (pinned or not). Only the projects of that group
  * that change position get a new `order` and `updatedAt`. Returns null if the project cannot move.
  */
-export function reorderWithinGroup(projects: Project[], id: ID, dir: -1 | 1, at: string): Project[] | null {
-  const group = projects.filter((p) => !p.deletedAt && !p.template && !p.archivedAt).sort(byPinnedThenOrder);
-  const me = group.find((p) => p.id === id);
-  if (!me) return null;
-  const from = group.indexOf(me);
-  const to = from + dir;
-  const target = group[to];
-  if (!target || !!target.pinned !== !!me.pinned) return null;
-  const moved = [...group];
-  moved[from] = target;
-  moved[to] = me;
-  const newOrder = new Map(moved.map((p, i) => [p.id, i]));
+/** The projects that are shown in the sidebar, in their arrangement: pinned first, then by order */
+const arranged = (projects: Project[]) => projects.filter((p) => !p.deletedAt && !p.template && !p.archivedAt).sort(byPinnedThenOrder);
+
+/** Gives the projects in `ordered` the positions 0, 1, 2 …; only projects whose position changes get `updatedAt` */
+function renumber(projects: Project[], ordered: Project[], at: string): Project[] {
+  const position = new Map(ordered.map((p, i) => [p.id, i]));
   return projects.map((p) => {
-    const order = newOrder.get(p.id);
+    const order = position.get(p.id);
     return order === undefined || order === p.order ? p : { ...p, order, updatedAt: at };
   });
+}
+
+/**
+ * Puts project `id` directly before or after `targetId`. Only inside one group: a pinned project cannot go
+ * below an unpinned one, nor an unpinned one above a pinned one. Returns null if nothing would change.
+ */
+export function placeProject(projects: Project[], id: ID, targetId: ID, pos: 'before' | 'after', at: string): Project[] | null {
+  const group = arranged(projects);
+  const me = group.find((p) => p.id === id);
+  const target = group.find((p) => p.id === targetId);
+  if (!me || !target || me.id === target.id || !!me.pinned !== !!target.pinned) return null;
+  const rest = group.filter((p) => p.id !== id);
+  const slot = rest.findIndex((p) => p.id === targetId) + (pos === 'after' ? 1 : 0);
+  const moved = [...rest.slice(0, slot), me, ...rest.slice(slot)];
+  if (moved.every((p, i) => p === group[i])) return null;
+  return renumber(projects, moved, at);
+}
+
+/** Moves a project one place up or down inside its group (the keyboard way). Null if it cannot move. */
+export function reorderWithinGroup(projects: Project[], id: ID, dir: -1 | 1, at: string): Project[] | null {
+  const group = arranged(projects);
+  const i = group.findIndex((p) => p.id === id);
+  const neighbour = group[i + dir];
+  if (i < 0 || !neighbour) return null;
+  return placeProject(projects, id, neighbour.id, dir < 0 ? 'before' : 'after', at);
 }
 export const isDone = (t: Task) => !!t.completedAt;
 export const isOverdue = (t: Task) => !!t.dueDate && !t.completedAt && diffDays(t.dueDate, today()) < 0;

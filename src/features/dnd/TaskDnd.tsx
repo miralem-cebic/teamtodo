@@ -17,20 +17,21 @@ import {
 } from '@dnd-kit/core';
 import { useCallback, type ReactNode } from 'react';
 import { create } from 'zustand';
-import { moveSection, showToast, updateTask, useApp } from '../../store/appStore';
+import { moveProjectNear, moveSection, showToast, updateTask, useApp } from '../../store/appStore';
 import { liveSections, orderBetween, type Group, type ViewSettings } from '../../store/selectors';
 import type { ID, TaskState } from '../../data/types';
 import { t } from '../../i18n';
 
 // Drag and drop for list, board, sections and subtasks.
-// IDs: "t:<id>" task, "g:<key>" group end/column, "s:<id>" section.
+// IDs: "t:<id>" task, "g:<key>" group end/column, "s:<id>" section, "p:<id>" project in the sidebar.
 // Keyboard: move with Ctrl/⌘+Shift+↑/↓, change group via the fields (section, date …).
 
 export type DragData =
   | { type: 'task'; taskId: ID; groupKey: string }
   | { type: 'sub'; taskId: ID; parentId: ID; scope: 'list' | 'panel' }
   | { type: 'group'; groupKey: string }
-  | { type: 'section'; sectionId: ID; projectId: ID };
+  | { type: 'section'; sectionId: ID; projectId: ID }
+  | { type: 'project'; projectId: ID; pinned: boolean };
 
 interface DndUi {
   activeId: string | null;
@@ -74,6 +75,27 @@ export function useDndRow(id: string, data: DragData, disabled = false) {
   };
 }
 
+/** Project row in the sidebar: draggable and a drop target, only within its own group (pinned or not) */
+export function useDndProject(projectId: ID, pinned: boolean) {
+  const id = `p:${projectId}`;
+  const data: DragData = { type: 'project', projectId, pinned };
+  const drag = useDraggable({ id, data });
+  const drop = useDroppable({ id, data });
+  const overId = useDndUi((s) => s.overId);
+  const pos = useDndUi((s) => s.pos);
+  const ref = useCallback(
+    (el: HTMLElement | null) => {
+      drag.setNodeRef(el);
+      drop.setNodeRef(el);
+      if (el) nodes.set(id, el);
+      else nodes.delete(id);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [drag.setNodeRef, drop.setNodeRef, id],
+  );
+  return { ref, listeners: drag.listeners, attributes: drag.attributes, dragging: drag.isDragging, dropPos: overId === id ? pos : null };
+}
+
 export function useDndGroup(key: string, disabled = false) {
   const { setNodeRef } = useDroppable({ id: `g:${key}`, data: { type: 'group', groupKey: key } satisfies DragData, disabled });
   const over = useDndUi((s) => s.overId === `g:${key}`);
@@ -82,6 +104,16 @@ export function useDndGroup(key: string, disabled = false) {
 
 const collision: CollisionDetection = (args) => {
   const type = (args.active.data.current as DragData | undefined)?.type;
+  if (type === 'project') {
+    // only the projects of the same group are targets: a pinned project cannot land among the unpinned ones
+    const pinned = (args.active.data.current as { pinned: boolean }).pinned;
+    const containers = args.droppableContainers.filter((c) => {
+      const d = c.data.current as DragData | undefined;
+      return d?.type === 'project' && d.pinned === pinned;
+    });
+    const within = pointerWithin({ ...args, droppableContainers: containers });
+    return within.length ? within : closestCenter({ ...args, droppableContainers: containers });
+  }
   const prefix = type === 'section' ? 's:' : 't:';
   const containers = args.droppableContainers.filter((c) => {
     const id = String(c.id);
@@ -118,9 +150,11 @@ export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
     const label =
       d.type === 'section'
         ? (useApp.getState().projects.find((p) => p.id === d.projectId)?.sections.find((s) => s.id === d.sectionId)?.name ?? '')
-        : d.type === 'group'
-          ? ''
-          : (tasks[d.taskId]?.title ?? '');
+        : d.type === 'project'
+          ? (useApp.getState().projects.find((p) => p.id === d.projectId)?.name ?? '')
+          : d.type === 'group'
+            ? ''
+            : (tasks[d.taskId]?.title ?? '');
     useDndUi.setState({ activeId: String(e.active.id), label });
   };
 
@@ -151,6 +185,11 @@ export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
       const list = liveSections(proj).filter((s) => s.id !== a.sectionId);
       const i = list.findIndex((s) => s.id === o.sectionId) + (pos === 'after' ? 1 : 0);
       moveSection(a.projectId, a.sectionId, orderBetween(list[i - 1], list[i]));
+      return;
+    }
+
+    if (a.type === 'project' && o.type === 'project') {
+      if (pos) moveProjectNear(a.projectId, o.projectId, pos);
       return;
     }
 

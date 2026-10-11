@@ -138,11 +138,11 @@ export function Workspace() {
 
   return (
     <div className={'app' + (navOpen ? ' nav-open' : '') + (panelId ? ' has-panel' : '')}>
+      <TaskDnd groups={groups} settings={settings} childrenOf={children}>
       <ErrorBoundary name="sidebar">
         <Sidebar view={view} go={go} openKeys={() => setKeysOpen(true)} openData={() => setDataOpen(true)} openTeam={() => setTeamOpen(true)} />
       </ErrorBoundary>
       {navOpen && <div className="scrim" onClick={() => setNavOpen(false)} />}
-      <TaskDnd groups={groups} settings={settings} childrenOf={children}>
       <main className="main">
         <div className="content">
           <Header view={view} onBurger={() => setNavOpen(true)} />

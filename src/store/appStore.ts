@@ -4,7 +4,7 @@ import type { Activity, ActivityType, Attachment, Color, ID, MergeableField, Pro
 import { MERGEABLE_FIELDS } from '../data/types';
 import { withoutTag, withTag } from '../lib/tags';
 import type { StorageErrorKind } from '../data/repository';
-import { descendantIds, liveSections, reorderWithinGroup } from './selectors';
+import { descendantIds, liveSections, reorderWithinGroup, placeProject } from './selectors';
 import { t as tr } from '../i18n';
 
 // Central app state. All changes go through the actions below:
@@ -300,7 +300,13 @@ export function setProjectPinned(id: ID, pinned: boolean) {
   );
 }
 
-/** Moves a project one place up or down within its group (pinned or not) */
+/** Moves a project directly before or after another one of its group (drag and drop, keyboard) */
+export function moveProjectNear(id: ID, targetId: ID, pos: 'before' | 'after') {
+  const next = placeProject(get().projects, id, targetId, pos, nowIso());
+  if (next) setProjects(() => next, { label: tr('undo.change'), toast: false });
+}
+
+/** Moves a project one place up or down within its group (keyboard) */
 export function moveProject(id: ID, dir: -1 | 1) {
   const next = reorderWithinGroup(get().projects, id, dir, nowIso());
   if (next) setProjects(() => next, { label: tr('undo.change'), toast: false });
