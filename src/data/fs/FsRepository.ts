@@ -69,7 +69,19 @@ async function attempt<T>(run: () => Promise<T>): Promise<Result<T, StorageError
 }
 
 export class FsRepository implements Repository {
-  /* The public writes return results: an exception from the browser API becomes a failed result, once, here. */
+  loadAll() {
+    return attempt(() => this.runLoadAll());
+  }
+
+  pullChanges() {
+    return attempt(() => this.runPullChanges());
+  }
+
+  readBackup(name: string) {
+    return attempt(() => this.runReadBackup(name));
+  }
+
+  /* The public reads and writes return results: an exception from the browser API becomes a failed result, once, here. */
   initialize(snapshot: Snapshot) {
     return attempt(() => this.runInitialize(snapshot));
   }
@@ -142,7 +154,7 @@ export class FsRepository implements Repository {
     return JSON.parse(await file.text()) as T;
   }
 
-  async loadAll(): Promise<LoadResult> {
+  private async runLoadAll(): Promise<LoadResult> {
     const issues: LoadIssue[] = [];
     let newerSchema = false;
     const note = (file: string, e: unknown) => {
@@ -182,7 +194,7 @@ export class FsRepository implements Repository {
     return { snapshot: { workspace, users, projects, tasks }, conflictCopies, issues, newerSchema };
   }
 
-  async pullChanges(): Promise<ChangeSet> {
+  private async runPullChanges(): Promise<ChangeSet> {
     const out: ChangeSet = { tasks: [], removedTaskIds: [], conflictCopies: [] };
     const top = await listFiles(this.root);
     const changed = (path: string, lm: number) => this.known.get(path) !== lm;
@@ -352,7 +364,7 @@ export class FsRepository implements Repository {
     await dir.removeEntry(file);
   }
 
-  async readBackup(name: string): Promise<Snapshot> {
+  private async runReadBackup(name: string): Promise<Snapshot> {
     const fh = await (await this.dir(DIRS.backups)).getFileHandle(`${name}.json`);
     const raw = JSON.parse(await (await fh.getFile()).text()) as Snapshot;
     return {

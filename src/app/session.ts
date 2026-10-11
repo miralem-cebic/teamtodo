@@ -211,7 +211,7 @@ export async function initialize(opts: { samples: boolean; subfolder: boolean })
 }
 
 async function load() {
-  const res = await requireRepo().loadAll();
+  const res = must(await requireRepo().loadAll());
   if (res.newerSchema) {
     set({ phase: 'failed', error: errorText('newerSchema') });
     return;

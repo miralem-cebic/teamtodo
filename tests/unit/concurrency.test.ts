@@ -65,14 +65,14 @@ describe('lost update between two clients', () => {
     const snap = sampleSnapshot('teamtodo');
     const setup = new FsRepository(root.asHandle());
     must(await setup.initialize(snap));
-    const base = (await setup.loadAll()).snapshot.tasks.find((t) => !t.parentId)!;
+    const base = (must(await setup.loadAll())).snapshot.tasks.find((t) => !t.parentId)!;
 
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
     const repoA = new FsRepository(gated(root, () => gate));
     const repoB = new FsRepository(root.asHandle());
-    await repoA.loadAll();
-    await repoB.loadAll();
+    must(await repoA.loadAll());
+    must(await repoB.loadAll());
 
     const stamp = (n: number) => `2026-10-11T10:00:0${n}.000Z`;
     const aVersion: Task = { ...base, description: 'written by A', fieldUpdatedAt: { ...base.fieldUpdatedAt, description: stamp(2) } };
@@ -87,7 +87,7 @@ describe('lost update between two clients', () => {
     expect((await readTask(root, base.id)).title).toBe(base.title);
 
     // B's next poll: its own copy is saved (clean), the file has changed, so B merges instead of replacing
-    const change = await repoB.pullChanges();
+    const change = must(await repoB.pullChanges());
     A.resetApp();
     A.loadSnapshot({ ...snap, tasks: [bVersion] });
     integrateTasks(cleanPersister(bVersion), change.tasks, change.removedTaskIds);

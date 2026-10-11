@@ -24,8 +24,8 @@ describe('Two people, one folder (repository level)', () => {
     await new FsRepository(root.asHandle()).initialize(snap);
     a = new FsRepository(root.asHandle());
     b = new FsRepository(root.asHandle());
-    await a.loadAll();
-    await b.loadAll();
+    must(await a.loadAll());
+    must(await b.loadAll());
     task = snap.tasks[0]!;
   });
 
@@ -38,21 +38,21 @@ describe('Two people, one folder (repository level)', () => {
     expect(stored.title).toBe('Titel von A');
     expect(stored.assigneeId).toBe('jemand');
 
-    const changes = await a.pullChanges();
+    const changes = must(await a.pullChanges());
     const seen = changes.tasks.find((t) => t.id === task.id)!;
     expect(seen.title).toBe('Titel von A');
     expect(seen.assigneeId).toBe('jemand');
     // a second sync finds nothing new
-    expect((await a.pullChanges()).tasks).toEqual([]);
+    expect((must(await a.pullChanges())).tasks).toEqual([]);
   });
 
   it('new tasks, removed tasks and projects are detected', async () => {
     const extra = { ...task, id: crypto.randomUUID(), title: 'Neu von B' };
     must(await b.saveTask(extra));
     must(await b.removeTask(task.id));
-    const snap = await b.loadAll();
+    const snap = must(await b.loadAll());
     must(await b.saveProjects([...snap.snapshot.projects.slice(1)]));
-    const c = await a.pullChanges();
+    const c = must(await a.pullChanges());
     expect(c.tasks.map((t) => t.title)).toContain('Neu von B');
     expect(c.removedTaskIds).toContain(task.id);
     expect(c.projects).toBeDefined();
@@ -60,7 +60,7 @@ describe('Two people, one folder (repository level)', () => {
 
   it('detects conflict copies during sync', async () => {
     await (await root.getDirectoryHandle('tasks')).getFileHandle(`${task.id}-LAPTOP-2.json`, { create: true });
-    expect((await a.pullChanges()).conflictCopies).toEqual([`tasks/${task.id}-LAPTOP-2.json`]);
+    expect((must(await a.pullChanges())).conflictCopies).toEqual([`tasks/${task.id}-LAPTOP-2.json`]);
   });
 
   it('attachments: unique names, read, remove', async () => {
@@ -82,7 +82,7 @@ describe('Maintenance: backups and cleanup', () => {
     repo = new FsRepository(root.asHandle());
     must(await repo.initialize(sampleSnapshot('T')));
     A.resetApp();
-    A.loadSnapshot((await repo.loadAll()).snapshot);
+    A.loadSnapshot((must(await repo.loadAll())).snapshot);
     A.setMe(A.useApp.getState().users[0]!.id);
   });
 
@@ -113,7 +113,7 @@ describe('Maintenance: backups and cleanup', () => {
     expect(removed).toBeGreaterThanOrEqual(1);
     expect(A.useApp.getState().tasks[oldDel!.id]).toBeUndefined();
     expect(A.useApp.getState().tasks[newDel!.id]).toBeDefined();
-    expect((await repo.loadAll()).snapshot.tasks.some((t) => t.id === oldDel!.id)).toBe(false);
+    expect((must(await repo.loadAll())).snapshot.tasks.some((t) => t.id === oldDel!.id)).toBe(false);
     expect(await purge(repo)).toBe(0); // at most once a day
   });
 

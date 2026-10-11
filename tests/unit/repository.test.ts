@@ -15,7 +15,7 @@ describe('FsRepository', () => {
 
     expect(await repo.hasWorkspace()).toBe(true);
     expect([...root.children.keys()].sort()).toEqual(['attachments', 'backups', 'projects.json', 'tasks', 'users.json', 'workspace.json']);
-    const res = await repo.loadAll();
+    const res = must(await repo.loadAll());
     expect(res.issues).toEqual([]);
     expect(res.snapshot.tasks).toHaveLength(snap.tasks.length);
     expect(res.snapshot.users.map((u) => u.name)).toContain('Pia');
@@ -37,7 +37,7 @@ describe('FsRepository', () => {
     await tasks.getFileHandle(`${t.id}.json.crswap`, { create: true });
     await root.getFileHandle('users-MacBook.json', { create: true });
 
-    const res = await repo.loadAll();
+    const res = must(await repo.loadAll());
     expect(res.snapshot.tasks).toHaveLength(snap.tasks.length);
     expect(res.conflictCopies.sort()).toEqual([`tasks/${t.id}-LAPTOP-123.json`, 'users-MacBook.json'].sort());
   });
@@ -54,7 +54,7 @@ describe('FsRepository', () => {
     const w = await fh.createWritable();
     await w.write(JSON.stringify({ ...t, schemaVersion: 99 }));
     await w.close();
-    const res = await repo.loadAll();
+    const res = must(await repo.loadAll());
     expect(res.newerSchema).toBe(true);
     expect(res.issues).toHaveLength(1);
   });

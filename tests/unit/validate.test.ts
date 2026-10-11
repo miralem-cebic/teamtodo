@@ -124,7 +124,7 @@ describe('IDs from file content', () => {
     must(await repo.initialize(sampleSnapshot('teamtodo')));
     const tasks = await root.getDirectoryHandle('tasks');
     await writeJson(tasks as unknown as FileSystemDirectoryHandle, `${UUID}.json`, { ...goodTask(), id: '__proto__' });
-    const res = await repo.loadAll();
+    const res = must(await repo.loadAll());
     expect(res.snapshot.tasks.some((t) => t.id === '__proto__')).toBe(false);
     expect(res.issues.some((i) => i.file.includes(UUID))).toBe(true);
   });
@@ -138,7 +138,7 @@ describe('IDs from file content', () => {
       schemaVersion: SCHEMA_VERSION,
       users: [...snap.users, { id: 'broken', name: 42 }],
     });
-    const res = await repo.loadAll();
+    const res = must(await repo.loadAll());
     expect(res.snapshot.users).toHaveLength(snap.users.length);
     expect(res.snapshot.tasks).toHaveLength(snap.tasks.length);
     expect(res.issues).toEqual([expect.objectContaining({ file: 'users.json › users[' + snap.users.length + ']' })]);

@@ -42,4 +42,19 @@ describe('a failed write is a value, not an exception', () => {
       expect(res.error.cause).toBe(denied);
     }
   });
+
+  it('a refused folder makes loading a failed result, not an exception', async () => {
+    const denied = new DOMException('denied', 'NotAllowedError');
+    const refusing = {
+      getDirectoryHandle: async () => {
+        throw denied;
+      },
+      getFileHandle: async () => {
+        throw denied;
+      },
+    } as unknown as FileSystemDirectoryHandle;
+    const res = await new FsRepository(refusing).loadAll();
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error.kind).toBe('permission');
+  });
 });

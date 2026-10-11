@@ -151,9 +151,13 @@ export class SyncEngine {
     try {
       if (this.persister.pending) await this.persister.flush();
       if (this.persister.pending) return;
-      const changes = await this.repo.pullChanges();
-      applyChanges(this.persister, changes);
-      this.onConflictCopies(changes.conflictCopies);
+      const r = await this.repo.pullChanges();
+      if (!r.ok) {
+        console.warn('Sync failed', r.error.cause ?? r.error.kind);
+        return;
+      }
+      applyChanges(this.persister, r.value);
+      this.onConflictCopies(r.value.conflictCopies);
     } catch (e) {
       console.warn('Sync failed', e);
     } finally {

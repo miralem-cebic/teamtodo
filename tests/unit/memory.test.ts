@@ -73,7 +73,7 @@ describe('backup writing (budget)', () => {
     const repo = new FsRepository(root.asHandle());
     must(await repo.initialize(sampleSnapshot('teamtodo')));
     must(await repo.writeBackup('2026-10-10', snap));
-    const back = await repo.readBackup('2026-10-10');
+    const back = must(await repo.readBackup('2026-10-10'));
     expect(back.tasks).toHaveLength(2_000);
     expect(back.tasks.map((t) => t.id).sort()).toEqual(snap.tasks.map((t) => t.id).sort());
   });

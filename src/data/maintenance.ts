@@ -102,7 +102,7 @@ export async function restoreBackup(repo: Repository, name: string) {
   const snapshot = currentSnapshot();
   if (!snapshot) throw new Error('Restore needs a loaded workspace');
   must(await repo.writeBackup(`before-restore-${stamp}`, snapshot));
-  const b = await repo.readBackup(name);
+  const b = must(await repo.readBackup(name));
   const at = nowIso();
   const s = useApp.getState();
   const allFields = Object.fromEntries(MERGEABLE_FIELDS.map((f) => [f, at])) as Task['fieldUpdatedAt'];

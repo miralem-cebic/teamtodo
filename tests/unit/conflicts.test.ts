@@ -25,7 +25,7 @@ describe('conflict copies in the shared folder', () => {
     const copy: Task = { ...base, id: COPY, title: 'Copy of the task', fieldUpdatedAt: { title: '2026-10-11T09:00:00.000Z' } };
     await writeJson((await root.getDirectoryHandle('tasks')) as unknown as FileSystemDirectoryHandle, `${COPY}-LAPTOP-1.json`, copy);
 
-    const res = await repo.loadAll();
+    const res = must(await repo.loadAll());
     const name = `tasks/${COPY}-LAPTOP-1.json`;
     expect(res.conflictCopies).toContain(name);
 
@@ -34,7 +34,7 @@ describe('conflict copies in the shared folder', () => {
     if (payload.kind === 'task') expect(payload.task.title).toBe('Copy of the task');
 
     await repo.removeConflictCopy(name);
-    expect((await repo.loadAll()).conflictCopies).not.toContain(name);
+    expect((must(await repo.loadAll())).conflictCopies).not.toContain(name);
   });
 
   it('a users copy is read as the users it holds', async () => {

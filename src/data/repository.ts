@@ -59,9 +59,9 @@ export interface Repository {
   hasWorkspace(): Promise<boolean>;
   isEmpty(): Promise<boolean>;
   initialize(snapshot: Snapshot): Promise<Result<void, StorageError>>;
-  loadAll(): Promise<LoadResult>;
+  loadAll(): Promise<Result<LoadResult, StorageError>>;
   /** Files changed since the last read/write */
-  pullChanges(): Promise<ChangeSet>;
+  pullChanges(): Promise<Result<ChangeSet, StorageError>>;
   saveWorkspace(ws: WorkspaceFile): Promise<Result<WorkspaceFile, StorageError>>;
   saveUsers(users: User[]): Promise<Result<User[], StorageError>>;
   saveProjects(projects: Project[]): Promise<Result<Project[], StorageError>>;
@@ -74,7 +74,7 @@ export interface Repository {
   /** Reads a conflict copy (name as listed in `LoadResult.conflictCopies`); a copy that cannot be read is returned as `unreadable` */
   readConflictCopy(name: string): Promise<ConflictPayload>;
   removeConflictCopy(name: string): Promise<void>;
-  readBackup(name: string): Promise<Snapshot>;
+  readBackup(name: string): Promise<Result<Snapshot, StorageError>>;
   removeBackup(name: string): Promise<void>;
 
   /** Saves a file as attachment and returns its file name (made unique if needed) */

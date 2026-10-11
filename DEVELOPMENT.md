@@ -78,7 +78,7 @@ src/
 1. The UI calls actions in `store/appStore.ts`. They change the state immediately (optimistic) and immutably (new objects).
 2. `Persister` compares object references between the old and new state and queues changed tasks, `projects.json`, and `users.json`. Objects that are already saved are tracked in a `WeakSet`.
 3. After 400 ms of inactivity it writes through the `Repository`. Status → `save` in the store → header.
-4. The repository writes return a `Result` (`data/result.ts`): a failed write is a value that the persister must handle, not an exception. Exceptions from the browser API are turned into results once, in `FsRepository`. Code that wants exceptions (startup, maintenance) calls `must()` explicitly.
+4. The repository reads and writes return a `Result` (`data/result.ts`): a failed operation is a value that the caller must handle, not an exception. The persister and the sync engine handle failures explicitly. Exceptions from the browser API are turned into results once, in `FsRepository`. Code that wants exceptions (startup, maintenance) calls `must()` explicitly.
 5. Failed writes stay in the queue. An emergency copy is kept in `localStorage` (`teamtodo.unsaved.v1`) and restored on the next start.
 
 ### Synchronization and merging
