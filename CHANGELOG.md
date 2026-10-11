@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-11
+
 ### Added
 
 - Tags for tasks: add tags in the task panel, filter every view by a tag. Tags are kept when a project is created from a template.

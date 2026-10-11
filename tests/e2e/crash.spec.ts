@@ -11,6 +11,8 @@ test('a crash in the main view leaves the sidebar working and can be retried', a
   const uncaught: string[] = [];
   page.on('pageerror', (e) => uncaught.push(e.message));
   await startFresh(page);
+  // Wait for the start-up writes: a save that finishes after the crash would clear the emergency copy
+  await expect(page.getByText('Saved')).toBeVisible();
   await injectCrash(page, 'view');
   await nav(page).getByRole('button', { name: /^Inbox/ }).click();
 
