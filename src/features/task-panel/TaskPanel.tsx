@@ -1,3 +1,4 @@
+import type { TaskId } from '../../data/ids';
 import { useEffect, useLayoutEffect, useMemo, useRef, type KeyboardEvent } from 'react';
 import { AutoText } from '../../components/AutoText';
 import { Check } from '../../components/Check';
@@ -18,7 +19,7 @@ import {
   useApp,
 } from '../../store/appStore';
 import { orderBetween, visibleTasks } from '../../store/selectors';
-import type { ID, TaskState } from '../../data/types';
+import type { TaskState } from '../../data/types';
 import { Attachments } from './Attachments';
 import { CommentBox, Feed } from './Feed';
 import { t as tr } from '../../i18n';
@@ -33,7 +34,7 @@ const short = (s: string) => {
 };
 
 /** `order`: the tasks of the current list in display order; the arrows go to the previous and next one */
-export function TaskPanel({ id, order }: { id: ID; order: ID[] }) {
+export function TaskPanel({ id, order }: { id: TaskId; order: TaskId[] }) {
   const t = useApp((s) => s.tasks[id]);
   const parent = useApp((s) => (t?.parentId ? s.tasks[t.parentId] : undefined));
   const focusReq = useApp((s) => s.focusReq);

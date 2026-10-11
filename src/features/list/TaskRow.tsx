@@ -1,3 +1,4 @@
+import { brandId } from '../../data/ids';
 import { useLayoutEffect, useRef, type KeyboardEvent } from 'react';
 import { Check } from '../../components/Check';
 import { Icon } from '../../components/Icon';
@@ -166,7 +167,8 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
       const next = neighbour(row, e.key === 'ArrowUp' ? -1 : 1);
       if (next) {
         focusRow(next);
-        if (useApp.getState().panelId && next.dataset['row']) openPanel(next.dataset['row']);
+        const rowId = next.dataset['row'];
+        if (useApp.getState().panelId && rowId) openPanel(brandId<'TaskId'>(rowId));
       }
     } else if (e.key === 'Enter') {
       e.preventDefault();

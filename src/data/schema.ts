@@ -1,4 +1,5 @@
 import { stampNow } from './clock';
+import { newProjectId, newSectionId, newTaskId, newUserId, type UserId } from './ids';
 import type { Color, ID, Project, Section, Task, User, WorkspaceFile } from './types';
 import { COLORS } from './types';
 
@@ -7,11 +8,11 @@ export const SCHEMA_VERSION = 1;
 export const newId = (): ID => crypto.randomUUID();
 export const nowIso = () => stampNow();
 
-export function makeTask(fields: Partial<Task> & { createdBy: ID }): Task {
+export function makeTask(fields: Partial<Task> & { createdBy: UserId }): Task {
   const at = nowIso();
   return {
     schemaVersion: SCHEMA_VERSION,
-    id: newId(),
+    id: newTaskId(),
     parentId: null,
     projectId: null,
     sectionId: null,
@@ -36,17 +37,17 @@ export function makeTask(fields: Partial<Task> & { createdBy: ID }): Task {
 
 export function makeUser(name: string, color: Color): User {
   const at = nowIso();
-  return { id: newId(), name, color, createdAt: at, updatedAt: at, deletedAt: null };
+  return { id: newUserId(), name, color, createdAt: at, updatedAt: at, deletedAt: null };
 }
 
 export function makeSection(name: string, order: number): Section {
-  return { id: newId(), name, order, updatedAt: nowIso(), deletedAt: null };
+  return { id: newSectionId(), name, order, updatedAt: nowIso(), deletedAt: null };
 }
 
 export function makeProject(name: string, color: Color, order: number, sectionNames: string[] = ['Tasks']): Project {
   const at = nowIso();
   return {
-    id: newId(),
+    id: newProjectId(),
     name,
     color,
     order,

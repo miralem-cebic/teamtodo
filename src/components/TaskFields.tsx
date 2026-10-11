@@ -1,7 +1,8 @@
+import type { UserId } from '../data/ids';
 import { toggleDone, updateTask, useApp } from '../store/appStore';
 import { byOrder, isOverdue, liveSections } from '../store/selectors';
 import { diffDays, fmtDue, today } from '../lib/dates';
-import { type ID, type TaskState } from '../data/types';
+import type { TaskState } from '../data/types';
 import { statusLabel, STATUSES } from '../lib/labels';
 import { t } from '../i18n';
 import { AssigneePicker } from './AssigneePicker';
@@ -13,7 +14,7 @@ import { Menu, Popover, usePop } from './Popover';
 // Inline fields of a task. Each field is a button that opens a popover.
 // `data-field` lets keyboard shortcuts (Alt+P, Alt+D) find the field of a row.
 
-export function assign(task: TaskState, id: ID | null) {
+export function assign(task: TaskState, id: UserId | null) {
   const s = useApp.getState();
   const leavesMe = !!s.meId && task.assigneeId === s.meId && id !== s.meId;
   // stays visible in "My tasks" until the view is left

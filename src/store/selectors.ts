@@ -1,11 +1,12 @@
 import { addDays, diffDays, nextMonday, today } from '../lib/dates';
+import type { ProjectId, TaskId, UserId } from '../data/ids';
 import type { ID, Project, Section, Task, TaskState, TaskStatus, User } from '../data/types';
 import { statusLabel, STATUSES } from '../lib/labels';
 import { t } from '../i18n';
 
 // Pure functions: visibility, hierarchy, grouping, filters, sorting.
 
-export type View = { type: 'my' } | { type: 'inbox' } | { type: 'templates' } | { type: 'project'; id: ID };
+export type View = { type: 'my' } | { type: 'inbox' } | { type: 'templates' } | { type: 'project'; id: ProjectId };
 export type GroupBy = 'section' | 'due' | 'status' | 'assignee' | 'project' | 'none';
 export type SortBy = 'manual' | 'due' | 'title' | 'assignee' | 'created';
 export type CompletedFilter = 'open' | 'all' | 'done';
@@ -99,11 +100,11 @@ export function isVisible(t: TaskState, tasks: Record<ID, TaskState>, deletedPro
 }
 
 /** parent ID → child IDs, per task state. The store replaces the state object on every change, so the cache never goes stale. */
-const childIndexCache = new WeakMap<Record<ID, TaskState>, Map<ID, ID[]>>();
-function childIndex(tasks: Record<ID, TaskState>): Map<ID, ID[]> {
+const childIndexCache = new WeakMap<Record<TaskId, TaskState>, Map<TaskId, TaskId[]>>();
+function childIndex(tasks: Record<TaskId, TaskState>): Map<TaskId, TaskId[]> {
   let index = childIndexCache.get(tasks);
   if (!index) {
-    index = new Map();
+    index = new Map<TaskId, TaskId[]>();
     for (const t of Object.values(tasks)) {
     if (!t.parentId) continue;
     const siblings = index.get(t.parentId) ?? [];
@@ -116,11 +117,11 @@ function childIndex(tasks: Record<ID, TaskState>): Map<ID, ID[]> {
 }
 
 /** All subtasks below a task (any depth), in depth-first order */
-export function descendantIds(tasks: Record<ID, TaskState>, id: ID): ID[] {
+export function descendantIds(tasks: Record<TaskId, TaskState>, id: TaskId): TaskId[] {
   const kids = childIndex(tasks);
-  const out: ID[] = [];
-  const seen = new Set<ID>([id]);
-  const walk = (pid: ID) => {
+  const out: TaskId[] = [];
+  const seen = new Set<TaskId>([id]);
+  const walk = (pid: TaskId) => {
     for (const k of kids.get(pid) ?? []) {
       if (seen.has(k)) continue;
       seen.add(k);
@@ -196,7 +197,7 @@ export interface BuildInput {
   tasks: Record<ID, TaskState>;
   projects: Project[];
   users: User[];
-  meId: ID | null;
+  meId: UserId | null;
   view: View;
   settings: ViewSettings;
   search: string;
@@ -230,8 +231,10 @@ export function buildGroups(inp: BuildInput): Group[] {
     return true;
   });
 
-  const baseDef: Partial<Task> = view.type === 'project' ? { projectId: view.id } : { assigneeId: meId };
-  const firstSection = (pid: ID) => liveSections(inp.projects.find((p) => p.id === pid))[0]?.id ?? null;
+  const baseDef: Partial<Task> = {};
+  if (view.type === 'project') baseDef.projectId = view.id;
+  else if (meId) baseDef.assigneeId = meId;
+  const firstSection = (pid: ProjectId) => liveSections(inp.projects.find((p) => p.id === pid))[0]?.id ?? null;
   type Proto = Omit<Group, 'tasks' | 'collapsed'>;
   let groups: Proto[];
   let keyOf: (t: TaskState) => string;

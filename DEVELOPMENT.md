@@ -112,6 +112,7 @@ src/
 - Everything read from the data folder, a backup or the `localStorage` emergency copy goes through `validate.ts` (via `migrate` in `data/migrations.ts`). Wrong types and unknown values are errors; a missing field is filled in, an explicit `null` is only accepted where null is allowed.
 - Users and projects are read leniently on load: a broken record is left out and reported as a load issue (`LoadResult.issues`). Writes, backups and restores are strict.
 - IDs from file content must match `[A-Za-z0-9_-]` and must not be names that exist on every object (`__proto__`, `constructor`, …).
+- Task, project, section and user IDs are branded types (`data/ids.ts`: `TaskId`, `ProjectId`, `SectionId`, `UserId`). The brand is added in the validators (after the check) and by the generators. The UI brands an ID only where it reads one from the DOM or from storage it has just checked. Comment, activity and attachment IDs are still plain strings.
 - Attachment names read from a task file are checked (`fileNames.ts`) before any file access.
 
 ### Important rules

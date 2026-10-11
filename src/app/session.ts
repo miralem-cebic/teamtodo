@@ -1,3 +1,5 @@
+import { brandId } from '../data/ids';
+import { isValidId } from '../data/validate';
 import { create } from 'zustand';
 import { FsRepository } from '../data/fs/FsRepository';
 import { clearDirHandle, loadDirHandle, saveDirHandle } from '../data/fs/handleStore';
@@ -226,7 +228,7 @@ async function load() {
 
   const me = loadMe(res.snapshot.workspace.id);
   if (me && res.snapshot.users.some((u) => u.id === me && !u.deletedAt)) {
-    setMe(me);
+    setMe(isValidId(me) ? brandId<'UserId'>(me) : null);
     set({ phase: 'ready' });
   } else set({ phase: 'who' });
 }
@@ -283,7 +285,7 @@ async function maintenance() {
 export function chooseUser(id: ID) {
   const ws = useApp.getState().workspace;
   if (ws) saveMe(ws.id, id);
-  setMe(id);
+  setMe(isValidId(id) ? brandId<'UserId'>(id) : null);
   set({ phase: 'ready' });
 }
 

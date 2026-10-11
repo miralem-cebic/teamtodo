@@ -1,3 +1,4 @@
+import type { TaskId } from '../data/ids';
 import { openPanel, useApp } from '../store/appStore';
 import { setNotifications, usePrefs } from '../store/prefs';
 import { t } from '../i18n';
@@ -15,7 +16,7 @@ const SEEN_MAX = 300;
 
 export interface Notice {
   key: string;
-  taskId: ID;
+  taskId: TaskId;
   title: string;
   body: string;
 }

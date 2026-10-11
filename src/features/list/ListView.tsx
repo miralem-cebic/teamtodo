@@ -1,3 +1,6 @@
+import { brandId } from '../../data/ids';
+const emptySection = brandId<'SectionId'>('');
+const emptyProject = brandId<'ProjectId'>('');
 import { useEffect, useState, type ReactNode } from 'react';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
@@ -128,7 +131,7 @@ function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseK
   }, [focusReq, sectionId]);
 
   const projectId = view.type === 'project' ? view.id : null;
-  const dnd = useDndRow(`s:${g.key}`, { type: 'section', sectionId: g.section?.id ?? '', projectId: projectId ?? '' }, !g.section || !projectId);
+  const dnd = useDndRow(`s:${g.key}`, { type: 'section', sectionId: g.section?.id ?? emptySection, projectId: projectId ?? emptyProject }, !g.section || !projectId);
   const commit = () => {
     setEditing(false);
     if (g.section && projectId && name.trim() && name !== g.label) renameSection(projectId, g.section.id, name.trim());

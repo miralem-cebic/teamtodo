@@ -1,6 +1,8 @@
 // Data model of teamtodo. Every file in the data folder carries `schemaVersion`.
 
 export type ID = string;
+export type { TaskId, ProjectId, SectionId, UserId } from './ids';
+import type { ProjectId, SectionId, TaskId, UserId } from './ids';
 /** Calendar date without time, e.g. "2026-10-02" */
 export type ISODate = string;
 /** Timestamp, e.g. "2026-10-02T14:03:11.123Z" */
@@ -19,7 +21,7 @@ export interface WorkspaceFile {
 }
 
 export interface User {
-  id: ID;
+  id: UserId;
   name: string;
   color: Color;
   createdAt: ISODateTime;
@@ -32,14 +34,14 @@ export interface UsersFile {
 }
 
 export interface Section {
-  id: ID;
+  id: SectionId;
   name: string;
   order: number;
   updatedAt: ISODateTime;
   deletedAt?: ISODateTime | null;
 }
 export interface Project {
-  id: ID;
+  id: ProjectId;
   name: string;
   color: Color;
   order: number;
@@ -67,15 +69,15 @@ export interface Attachment {
   size: number;
   mimeType: string;
   addedAt: ISODateTime;
-  addedBy: ID;
+  addedBy: UserId;
   removedAt?: ISODateTime | null;
 }
 
 export interface Comment {
   id: ID;
-  userId: ID;
+  userId: UserId;
   text: string;
-  mentions: ID[];
+  mentions: UserId[];
   at: ISODateTime;
   editedAt?: ISODateTime | null;
   deletedAt?: ISODateTime | null;
@@ -100,7 +102,7 @@ export type ActivityType =
 
 export interface Activity {
   id: ID;
-  userId: ID;
+  userId: UserId;
   type: ActivityType;
   data?: Record<string, string | null>;
   at: ISODateTime;
@@ -133,24 +135,24 @@ export interface RecurrenceRule {
 
 export interface Task {
   schemaVersion: number;
-  id: ID;
-  parentId: ID | null;
-  projectId: ID | null;
-  sectionId: ID | null;
+  id: TaskId;
+  parentId: TaskId | null;
+  projectId: ProjectId | null;
+  sectionId: SectionId | null;
   title: string;
   description: string;
-  assigneeId: ID | null;
+  assigneeId: UserId | null;
   dueDate: ISODate | null;
   dueTime: string | null;
   status: TaskStatus;
   completedAt: ISODateTime | null;
   order: number;
-  followerIds: ID[];
+  followerIds: UserId[];
   attachments: Attachment[];
   comments: Comment[];
   activity: Activity[];
   createdAt: ISODateTime;
-  createdBy: ID;
+  createdBy: UserId;
   deletedAt: ISODateTime | null;
   fieldUpdatedAt: Partial<Record<MergeableField, ISODateTime>>;
   /** Short names, see lib/tags.ts */

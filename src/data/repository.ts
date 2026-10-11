@@ -1,3 +1,4 @@
+import type { TaskId } from './ids';
 import type { ID, Project, Snapshot, Task, User, WorkspaceFile } from './types';
 import type { Result } from './result';
 
@@ -19,7 +20,7 @@ export interface LoadResult {
 /** What changed in storage since the last read/write */
 export interface ChangeSet {
   tasks: Task[];
-  removedTaskIds: ID[];
+  removedTaskIds: TaskId[];
   users?: User[];
   projects?: Project[];
   workspace?: WorkspaceFile;

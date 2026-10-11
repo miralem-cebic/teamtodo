@@ -1,3 +1,4 @@
+import { brandId } from '../ids';
 import { mergeProjects, mergeTask, mergeUsers, sameJson } from '../merge';
 import { migrate, migrateCollection, NewerSchemaError, type RejectedRecord } from '../migrations';
 import { classifyError, type BackupInfo, type ChangeSet, type ConflictPayload, type LoadIssue, type LoadResult, type Repository, type StorageError } from '../repository';
@@ -220,7 +221,7 @@ export class FsRepository implements Repository {
     for (const path of [...this.known.keys()]) {
       if (path.startsWith(`${DIRS.tasks}/`) && !seen.has(path)) {
         this.known.delete(path);
-        out.removedTaskIds.push(path.slice(DIRS.tasks.length + 1, -5));
+        out.removedTaskIds.push(brandId<'TaskId'>(path.slice(DIRS.tasks.length + 1, -5)));
       }
     }
     return out;

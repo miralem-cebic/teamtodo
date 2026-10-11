@@ -1,3 +1,4 @@
+import type { TaskId } from './ids';
 import { showToast, useApp } from '../store/appStore';
 import { today } from '../lib/dates';
 import { mergeUsers } from './merge';
@@ -65,7 +66,7 @@ export async function purge(repo: Repository, now = Date.now()): Promise<number>
     return false;
   };
 
-  const remove: ID[] = Object.values(s.tasks).filter((t) => !t.draft && isDead(t)).map((t) => t.id);
+  const remove: TaskId[] = Object.values(s.tasks).filter((t) => !t.draft && isDead(t)).map((t) => t.id);
   for (const id of remove) must(await repo.removeTask(id));
 
   // permanently delete removed attachments

@@ -20,6 +20,7 @@ import { create } from 'zustand';
 import { moveProjectNear, moveSection, showToast, updateTask, useApp } from '../../store/appStore';
 import { liveSections, orderBetween, type Group, type ViewSettings } from '../../store/selectors';
 import type { ID, TaskState } from '../../data/types';
+import type { ProjectId, SectionId, TaskId } from '../../data/ids';
 import { t } from '../../i18n';
 
 // Drag and drop for list, board, sections and subtasks.
@@ -27,11 +28,11 @@ import { t } from '../../i18n';
 // Keyboard: move with Ctrl/⌘+Shift+↑/↓, change group via the fields (section, date …).
 
 export type DragData =
-  | { type: 'task'; taskId: ID; groupKey: string }
-  | { type: 'sub'; taskId: ID; parentId: ID; scope: 'list' | 'panel' }
+  | { type: 'task'; taskId: TaskId; groupKey: string }
+  | { type: 'sub'; taskId: TaskId; parentId: TaskId; scope: 'list' | 'panel' }
   | { type: 'group'; groupKey: string }
-  | { type: 'section'; sectionId: ID; projectId: ID }
-  | { type: 'project'; projectId: ID; pinned: boolean };
+  | { type: 'section'; sectionId: SectionId; projectId: ProjectId }
+  | { type: 'project'; projectId: ProjectId; pinned: boolean };
 
 interface DndUi {
   activeId: string | null;
@@ -76,7 +77,7 @@ export function useDndRow(id: string, data: DragData, disabled = false) {
 }
 
 /** Project row in the sidebar: draggable and a drop target, only within its own group (pinned or not) */
-export function useDndProject(projectId: ID, pinned: boolean) {
+export function useDndProject(projectId: ProjectId, pinned: boolean) {
   const id = `p:${projectId}`;
   const data: DragData = { type: 'project', projectId, pinned };
   const drag = useDraggable({ id, data });

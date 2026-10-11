@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { makeProject, makeSection, makeTask, makeUser, newId, nowIso, pickColor } from '../data/schema';
 import type { Activity, ActivityType, Attachment, Color, ID, MergeableField, Project, Section, Snapshot, Task, TaskState, User, WorkspaceFile } from '../data/types';
 import { MERGEABLE_FIELDS } from '../data/types';
+import { brandId, keysOf, newTaskId, type ProjectId, type SectionId, type TaskId, type UserId } from '../data/ids';
 import { mergeProjects, mergeTask, mergeUsers } from '../data/merge';
 import type { ConflictPayload } from '../data/repository';
 import { withoutTag, withTag } from '../lib/tags';
@@ -29,9 +30,9 @@ export interface FocusRequest {
 
 interface UndoEntry {
   label: string;
-  tasks: Record<ID, TaskState | undefined>;
+  tasks: Record<TaskId, TaskState | undefined>;
   projects?: Project[];
-  users?: Record<ID, User | undefined>;
+  users?: Record<UserId, User | undefined>;
   /** Estimated size of the stored state, for the byte budget of the undo stack */
   bytes?: number;
 }
@@ -57,19 +58,19 @@ export interface AppState {
   workspace: WorkspaceFile | null;
   users: User[];
   projects: Project[];
-  tasks: Record<ID, TaskState>;
-  meId: ID | null;
+  tasks: Record<TaskId, TaskState>;
+  meId: UserId | null;
 
   // UI state shared by several views
-  panelId: ID | null;
+  panelId: TaskId | null;
   focusReq: FocusRequest | null;
   toast: Toast | null;
   /** Freshly completed or handed-off tasks stay visible until the view is left */
-  recentDone: Set<ID>;
+  recentDone: Set<TaskId>;
   save: SaveStatus;
   undoStack: UndoEntry[];
   /** Recently changed tasks by others (briefly highlighted) */
-  flash: Set<ID>;
+  flash: Set<TaskId>;
 }
 
 const initial: AppState = {
@@ -93,19 +94,22 @@ const set = useApp.setState;
 
 /* ---------- Helpers ---------- */
 
+/** Author of changes made before anyone signed in (never shown as a person) */
+const UNKNOWN_USER = brandId<'UserId'>('unbekannt');
+
 const short = (s: string) => {
   const v = s.trim() || tr('task.untitled');
   return v.length > 40 ? v.slice(0, 38) + '…' : v;
 };
 const act = (type: ActivityType, data?: Activity['data']): Activity => ({
   id: newId(),
-  userId: get().meId ?? 'unbekannt',
+  userId: get().meId ?? UNKNOWN_USER,
   type,
   ...(data ? { data } : {}),
   at: nowIso(),
 });
 const projectName = (id: ID | null) => get().projects.find((p) => p.id === id)?.name ?? null;
-const sectionName = (projectId: ID | null, sectionId: ID | null) =>
+const sectionName = (projectId: ProjectId | null, sectionId: SectionId | null) =>
   get().projects.find((p) => p.id === projectId)?.sections.find((s) => s.id === sectionId)?.name ?? null;
 
 let toastSeq = 0;
@@ -124,7 +128,7 @@ function pushUndo(entry: UndoEntry, toast: boolean) {
 
 export function loadSnapshot(snap: Snapshot) {
   // Null prototype: an ID can never resolve to an Object.prototype member such as `constructor`
-  const tasks: Record<ID, TaskState> = Object.create(null);
+  const tasks: Record<TaskId, TaskState> = Object.create(null);
   for (const t of snap.tasks) tasks[t.id] = t;
   set({ workspace: snap.workspace, users: snap.users, projects: snap.projects, tasks, undoStack: [], panelId: null });
 }
@@ -133,14 +137,14 @@ export function resetApp() {
   set({ ...initial, recentDone: new Set(), flash: new Set() });
 }
 
-export const setMe = (id: ID | null) => set({ meId: id });
+export const setMe = (id: UserId | null) => set({ meId: id });
 export const setSaveStatus = (save: SaveStatus) => set({ save });
 
 /* ---------- Tasks ---------- */
 
-export function addTask(fields: Partial<Task> = {}): ID {
+export function addTask(fields: Partial<Task> = {}): TaskId {
   const t: TaskState = {
-    ...makeTask({ createdBy: get().meId ?? 'unbekannt', ...fields }),
+    ...makeTask({ createdBy: get().meId ?? UNKNOWN_USER, ...fields }),
     draft: !fields.title?.trim(),
   };
   const me = get().meId;
@@ -169,14 +173,14 @@ function applyPatch(t: TaskState, patch: TaskPatch, at: string): TaskState {
     if (key === 'assigneeId') {
       const name = get().users.find((u) => u.id === v)?.name ?? null;
       log.push(act(v ? 'assigned' : 'unassigned', { userId: v as string | null, name }));
-      if (v && !next.followerIds.includes(v as string)) {
-        next.followerIds = [...next.followerIds, v as string];
+      if (v && !next.followerIds.includes(v as UserId)) {
+        next.followerIds = [...next.followerIds, v as UserId];
         next.fieldUpdatedAt.followerIds = at;
       }
     } else if (key === 'dueDate') log.push(act(v ? 'due' : 'dueRemoved', { date: v as string | null }));
     else if (key === 'status') log.push(act('status', { status: v as string }));
     else if (key === 'completedAt') log.push(act(v ? 'completed' : 'reopened'));
-    else if (key === 'sectionId' && v) log.push(act('section', { name: sectionName(next.projectId, v as string) }));
+    else if (key === 'sectionId' && v) log.push(act('section', { name: sectionName(next.projectId, v as SectionId) }));
     else if (key === 'projectId') log.push(act(v ? 'project' : 'projectRemoved', { name: projectName(v as string | null) }));
   }
   if (typeof patch.title === 'string' && patch.title.trim()) next.draft = false;
@@ -190,7 +194,7 @@ export interface UpdateOptions {
   toast?: boolean;
 }
 
-export function addTag(id: ID, name: string) {
+export function addTag(id: TaskId, name: string) {
   const t = get().tasks[id];
   if (!t) return;
   const current = t.tags ?? [];
@@ -198,18 +202,18 @@ export function addTag(id: ID, name: string) {
   if (tags !== current) updateTask(id, { tags });
 }
 
-export function removeTag(id: ID, name: string) {
+export function removeTag(id: TaskId, name: string) {
   const t = get().tasks[id];
   if (!t?.tags?.includes(name)) return;
   updateTask(id, { tags: withoutTag(t.tags, name) });
 }
 
-export function updateTask(id: ID, patch: TaskPatch, opts: UpdateOptions = {}) {
+export function updateTask(id: TaskId, patch: TaskPatch, opts: UpdateOptions = {}) {
   const s = get();
   const t = s.tasks[id];
   if (!t) return;
   const at = nowIso();
-  const changed: Record<ID, TaskState> = { [id]: applyPatch(t, patch, at) };
+  const changed: Record<TaskId, TaskState> = { [id]: applyPatch(t, patch, at) };
   // Subtasks follow their parent task into the project
   if ('projectId' in patch) {
     for (const d of descendantIds(s.tasks, id)) {
@@ -221,13 +225,13 @@ export function updateTask(id: ID, patch: TaskPatch, opts: UpdateOptions = {}) {
   const tracked = Object.keys(patch).some((k) => k !== 'title' && k !== 'description');
   if (tracked && !t.draft) {
     const before: UndoEntry['tasks'] = {};
-    for (const k of Object.keys(changed)) before[k] = s.tasks[k];
+    for (const k of keysOf(changed)) before[k] = s.tasks[k];
     pushUndo({ label: opts.undo ?? tr('undo.change'), tasks: before }, !!opts.toast);
   }
   set({ tasks: { ...s.tasks, ...changed } });
 }
 
-export function toggleDone(id: ID, value?: boolean) {
+export function toggleDone(id: TaskId, value?: boolean) {
   const t = get().tasks[id];
   if (!t) return;
   const done = value ?? !t.completedAt;
@@ -237,11 +241,11 @@ export function toggleDone(id: ID, value?: boolean) {
 }
 
 /** Soft delete including subtasks. Drafts are removed directly. */
-export function deleteTask(id: ID, opts: { silent?: boolean } = {}) {
+export function deleteTask(id: TaskId, opts: { silent?: boolean } = {}) {
   const s = get();
   const t = s.tasks[id];
   if (!t) return;
-  const ids = [id, ...descendantIds(s.tasks, id)];
+  const ids: TaskId[] = [id, ...descendantIds(s.tasks, id)];
   const before: UndoEntry['tasks'] = {};
   const tasks = { ...s.tasks };
   const at = nowIso();
@@ -256,7 +260,7 @@ export function deleteTask(id: ID, opts: { silent?: boolean } = {}) {
   if (!t.draft) pushUndo({ label: tr('undo.deleted', { title: short(t.title) }), tasks: before }, !opts.silent);
 }
 
-export function removeIfEmptyDraft(id: ID) {
+export function removeIfEmptyDraft(id: TaskId) {
   const s = get();
   const t = s.tasks[id];
   if (!t || !t.draft || t.title.trim() || descendantIds(s.tasks, id).length) return;
@@ -274,22 +278,22 @@ function setProjects(fn: (projects: Project[]) => Project[], undo?: { label: str
 }
 
 const touch = (p: Project): Project => ({ ...p, updatedAt: nowIso() });
-const mapProject = (id: ID, fn: (p: Project) => Project) => (list: Project[]) => list.map((p) => (p.id === id ? touch(fn(p)) : p));
+const mapProject = (id: ProjectId, fn: (p: Project) => Project) => (list: Project[]) => list.map((p) => (p.id === id ? touch(fn(p)) : p));
 /** Only change sections: the project's `updatedAt` stays, so that concurrent renames of the project are not lost */
-const mapSections = (id: ID, fn: (s: Section[]) => Section[]) => (list: Project[]) => list.map((p) => (p.id === id ? { ...p, sections: fn(p.sections) } : p));
+const mapSections = (id: ProjectId, fn: (s: Section[]) => Section[]) => (list: Project[]) => list.map((p) => (p.id === id ? { ...p, sections: fn(p.sections) } : p));
 
-export function addProject(name: string): ID {
+export function addProject(name: string): ProjectId {
   const list = get().projects;
   const p = makeProject(name, pickColor(list.length), Math.max(0, ...list.map((x) => x.order)) + 1);
   setProjects((l) => [...l, p]);
   return p.id;
 }
 
-export const renameProject = (id: ID, name: string) => setProjects(mapProject(id, (p) => ({ ...p, name })));
-export const setProjectColor = (id: ID, color: Color) => setProjects(mapProject(id, (p) => ({ ...p, color })));
+export const renameProject = (id: ProjectId, name: string) => setProjects(mapProject(id, (p) => ({ ...p, name })));
+export const setProjectColor = (id: ProjectId, color: Color) => setProjects(mapProject(id, (p) => ({ ...p, color })));
 
 /** Pinning puts the project at the end of the pinned group, unpinning at the start of the unpinned group. */
-export function setProjectPinned(id: ID, pinned: boolean) {
+export function setProjectPinned(id: ProjectId, pinned: boolean) {
   const current = get().projects.find((p) => p.id === id);
   if (!current || !!current.pinned === pinned) return;
   setProjects(
@@ -316,18 +320,18 @@ export function mergeConflictPayload(p: ConflictPayload) {
 }
 
 /** Moves a project directly before or after another one of its group (drag and drop, keyboard) */
-export function moveProjectNear(id: ID, targetId: ID, pos: 'before' | 'after') {
+export function moveProjectNear(id: ProjectId, targetId: ProjectId, pos: 'before' | 'after') {
   const next = placeProject(get().projects, id, targetId, pos, nowIso());
   if (next) setProjects(() => next, { label: tr('undo.change'), toast: false });
 }
 
 /** Moves a project one place up or down within its group (keyboard) */
-export function moveProject(id: ID, dir: -1 | 1) {
+export function moveProject(id: ProjectId, dir: -1 | 1) {
   const next = reorderWithinGroup(get().projects, id, dir, nowIso());
   if (next) setProjects(() => next, { label: tr('undo.change'), toast: false });
 }
 
-export function archiveProject(id: ID, archived: boolean) {
+export function archiveProject(id: ProjectId, archived: boolean) {
   const p = get().projects.find((x) => x.id === id);
   if (!p) return;
   setProjects(mapProject(id, (x) => ({ ...x, archivedAt: archived ? nowIso() : null })), {
@@ -337,13 +341,13 @@ export function archiveProject(id: ID, archived: boolean) {
 }
 
 /** Soft delete: the project disappears with its tasks from all views. Cleaned up after 30 days. */
-export function deleteProject(id: ID) {
+export function deleteProject(id: ProjectId) {
   const p = get().projects.find((x) => x.id === id);
   if (!p) return;
   setProjects(mapProject(id, (x) => ({ ...x, deletedAt: nowIso() })), { label: tr('undo.projectDeleted', { name: p.name }), toast: true });
 }
 
-export function addSection(projectId: ID, name: string, afterOrder?: number): ID {
+export function addSection(projectId: ProjectId, name: string, afterOrder?: number): ID {
   const p = get().projects.find((x) => x.id === projectId);
   const live = (p?.sections ?? []).filter((s) => !s.deletedAt).sort((a, b) => a.order - b.order);
   let order: number;
@@ -357,18 +361,18 @@ export function addSection(projectId: ID, name: string, afterOrder?: number): ID
   return sec.id;
 }
 
-export function renameSection(projectId: ID, sectionId: ID, name: string) {
+export function renameSection(projectId: ProjectId, sectionId: SectionId, name: string) {
   setProjects(mapSections(projectId, (list) => list.map((s) => (s.id === sectionId ? { ...s, name, updatedAt: nowIso() } : s))));
 }
 
-export function moveSection(projectId: ID, sectionId: ID, order: number) {
+export function moveSection(projectId: ProjectId, sectionId: SectionId, order: number) {
   const sec = get().projects.find((p) => p.id === projectId)?.sections.find((s) => s.id === sectionId);
   if (!sec) return;
   setProjects(mapSections(projectId, (list) => list.map((s) => (s.id === sectionId ? { ...s, order, updatedAt: nowIso() } : s))), { label: tr('undo.sectionMoved', { name: sec.name }), toast: false });
 }
 
 /** Deletes the section and (softly) all its tasks, with undo. */
-export function deleteSection(projectId: ID, sectionId: ID) {
+export function deleteSection(projectId: ProjectId, sectionId: SectionId) {
   const s = get();
   const sec = s.projects.find((p) => p.id === projectId)?.sections.find((x) => x.id === sectionId);
   if (!sec) return;
@@ -396,26 +400,26 @@ export function deleteSection(projectId: ID, sectionId: ID) {
 /* ---------- Templates ---------- */
 
 /** Open tasks and subtasks of a project, including completed ones, as they are stored */
-const liveTasksOf = (projectId: ID): TaskState[] =>
+const liveTasksOf = (projectId: ProjectId): TaskState[] =>
   Object.values(get().tasks).filter((t) => t.projectId === projectId && !t.deletedAt && !t.draft);
 
 /**
  * Copies a task tree into another project. Only the structure is copied: title, description, order, subtask relation
  * and section. Assignee, due date, status, followers, comments, attachments and activity are not copied.
  */
-function copyTaskTree(src: TaskState[], projectId: ID, sectionMap: Map<ID, ID>): Record<ID, TaskState> {
+function copyTaskTree(src: TaskState[], projectId: ProjectId, sectionMap: Map<SectionId, SectionId>): Record<TaskId, TaskState> {
   const me = get().meId;
-  const ids = new Map(src.map((t) => [t.id, newId()] as const));
-  const out: Record<ID, TaskState> = {};
+  const ids = new Map(src.map((t) => [t.id, newTaskId()] as const));
+  const out: Record<TaskId, TaskState> = {};
   for (const t of src) {
     const id = ids.get(t.id);
     if (!id) continue;
     out[id] = {
-      ...makeTask({ createdBy: me ?? 'unbekannt', id, projectId, title: t.title, description: t.description, order: t.order }),
+      ...makeTask({ createdBy: me ?? UNKNOWN_USER, id, projectId, title: t.title, description: t.description, order: t.order }),
       // tags are part of the structure of a template; assignees, dates and status are not copied
       ...(t.tags ? { tags: [...t.tags] } : {}),
       parentId: t.parentId ? (ids.get(t.parentId) ?? null) : null,
-      sectionId: t.parentId ? null : (sectionMap.get(t.sectionId ?? '') ?? null),
+      sectionId: t.parentId || !t.sectionId ? null : (sectionMap.get(t.sectionId) ?? null),
       followerIds: me ? [me] : [],
       activity: [act('created')],
       draft: false,
@@ -425,12 +429,12 @@ function copyTaskTree(src: TaskState[], projectId: ID, sectionMap: Map<ID, ID>):
 }
 
 /** Saves a project as a template: its sections and tasks (subtasks included), without the project in the project list. */
-export function saveAsTemplate(projectId: ID, name: string): ID | null {
+export function saveAsTemplate(projectId: ProjectId, name: string): ID | null {
   const s = get();
   const src = s.projects.find((p) => p.id === projectId && !p.deletedAt && !p.template);
   if (!src || !name.trim()) return null;
   const tpl: Project = { ...makeProject(name.trim(), src.color, Math.max(0, ...s.projects.map((x) => x.order)) + 1, []), template: true };
-  const sectionMap = new Map<ID, ID>();
+  const sectionMap = new Map<SectionId, SectionId>();
   tpl.sections = liveSections(src).map((sec) => {
     const copy = makeSection(sec.name, sec.order);
     sectionMap.set(sec.id, copy.id);
@@ -442,12 +446,12 @@ export function saveAsTemplate(projectId: ID, name: string): ID | null {
 }
 
 /** Creates a project from a template. Sections and tasks are copied; due dates and assignments are not. */
-export function addProjectFromTemplate(templateId: ID, name: string): ID | null {
+export function addProjectFromTemplate(templateId: ProjectId, name: string): ProjectId | null {
   const s = get();
   const tpl = s.projects.find((p) => p.id === templateId && p.template && !p.deletedAt);
   if (!tpl || !name.trim()) return null;
   const p = makeProject(name.trim(), pickColor(s.projects.length), Math.max(0, ...s.projects.map((x) => x.order)) + 1, []);
-  const sectionMap = new Map<ID, ID>();
+  const sectionMap = new Map<SectionId, SectionId>();
   p.sections = liveSections(tpl).map((sec) => {
     const copy = makeSection(sec.name, sec.order);
     sectionMap.set(sec.id, copy.id);
@@ -461,7 +465,7 @@ export function addProjectFromTemplate(templateId: ID, name: string): ID | null 
 /* ---------- Comments, followers, attachments ---------- */
 
 /** @Name in the text → user IDs (longest names first, so that "@Lena Hoffmann" wins over "@Lena") */
-export function findMentions(text: string, users: User[]): ID[] {
+export function findMentions(text: string, users: User[]): UserId[] {
   const lower = text.toLowerCase();
   return users
     .filter((u) => !u.deletedAt)
@@ -470,13 +474,13 @@ export function findMentions(text: string, users: User[]): ID[] {
     .map((u) => u.id);
 }
 
-function patchTask(id: ID, fn: (t: TaskState) => TaskState) {
+function patchTask(id: TaskId, fn: (t: TaskState) => TaskState) {
   const t = get().tasks[id];
   if (!t) return;
   set((s) => ({ tasks: { ...s.tasks, [id]: fn(t) } }));
 }
 
-export function addComment(taskId: ID, text: string) {
+export function addComment(taskId: TaskId, text: string) {
   const s = get();
   const me = s.meId;
   if (!me || !text.trim()) return;
@@ -495,22 +499,22 @@ export function addComment(taskId: ID, text: string) {
   });
 }
 
-export function deleteComment(taskId: ID, commentId: ID) {
+export function deleteComment(taskId: TaskId, commentId: ID) {
   const at = nowIso();
   patchTask(taskId, (t) => ({ ...t, comments: t.comments.map((c) => (c.id === commentId ? { ...c, deletedAt: at } : c)) }));
 }
 
-export function setFollowing(taskId: ID, userId: ID, follow: boolean) {
+export function setFollowing(taskId: TaskId, userId: UserId, follow: boolean) {
   const t = get().tasks[taskId];
   if (!t || t.followerIds.includes(userId) === follow) return;
   updateTask(taskId, { followerIds: follow ? [...t.followerIds, userId] : t.followerIds.filter((x) => x !== userId) });
 }
 
-export function addAttachmentMeta(taskId: ID, a: Attachment) {
+export function addAttachmentMeta(taskId: TaskId, a: Attachment) {
   patchTask(taskId, (t) => ({ ...t, attachments: [...t.attachments, a], activity: [...t.activity, act('attachment', { name: a.fileName })] }));
 }
 
-export function removeAttachment(taskId: ID, attachmentId: ID) {
+export function removeAttachment(taskId: TaskId, attachmentId: ID) {
   const t = get().tasks[taskId];
   const a = t?.attachments.find((x) => x.id === attachmentId);
   if (!t || !a) return;
@@ -521,13 +525,13 @@ export function removeAttachment(taskId: ID, attachmentId: ID) {
 
 /* ---------- People ---------- */
 
-export function addUser(name: string): ID {
+export function addUser(name: string): UserId {
   const u = makeUser(name.trim(), pickColor(get().users.length));
   set((s) => ({ users: [...s.users, u] }));
   return u.id;
 }
 
-export function renameUser(id: ID, name: string) {
+export function renameUser(id: UserId, name: string) {
   const trimmed = name.trim();
   const u = get().users.find((x) => x.id === id);
   if (!u || !trimmed || trimmed === u.name) return;
@@ -575,7 +579,8 @@ export function undo() {
   if (!entry) return;
   const at = nowIso();
   const tasks = { ...s.tasks };
-  for (const [id, before] of Object.entries(entry.tasks)) {
+  for (const id of keysOf(entry.tasks)) {
+    const before = entry.tasks[id];
     const cur = s.tasks[id];
     if (!before) {
       delete tasks[id];
@@ -626,7 +631,7 @@ export function undo() {
 
 /* ---------- Panel and focus ---------- */
 
-export function openPanel(id: ID) {
+export function openPanel(id: TaskId) {
   if (get().panelId !== id) set({ panelId: id });
 }
 export function closePanel() {
@@ -652,7 +657,7 @@ export const peekFocus = (req: FocusRequest | null, id: ID, scope: FocusScope) =
 
 export const clearRecentDone = () => set({ recentDone: new Set() });
 
-export function flashRows(ids: ID[]) {
+export function flashRows(ids: TaskId[]) {
   set((s) => ({ flash: new Set([...s.flash, ...ids]) }));
   setTimeout(() => set((s) => ({ flash: new Set([...s.flash].filter((x) => !ids.includes(x))) })), 1600);
 }

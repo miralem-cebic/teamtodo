@@ -1,6 +1,6 @@
+import type { UserId } from '../data/ids';
 import { useState } from 'react';
 import { addUser, useApp } from '../store/appStore';
-import type { ID } from '../data/types';
 import { Avatar } from './Avatar';
 import { Icon } from './Icon';
 import { t } from '../i18n';
@@ -8,14 +8,14 @@ import { t } from '../i18n';
 interface Item {
   k: string;
   label: string;
-  id?: ID | null;
+  id?: UserId | null;
   me?: boolean;
   isNew?: boolean;
   none?: boolean;
 }
 
 /** Person picker: "Assign to me" at the top, typing filters, unknown name → new person. */
-export function AssigneePicker({ value, onPick }: { value: ID | null; onPick: (id: ID | null) => void }) {
+export function AssigneePicker({ value, onPick }: { value: UserId | null; onPick: (id: UserId | null) => void }) {
   const users = useApp((s) => s.users);
   const meId = useApp((s) => s.meId);
   const [q, setQ] = useState('');

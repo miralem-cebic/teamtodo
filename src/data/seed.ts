@@ -1,6 +1,18 @@
 import { addDays, today } from '../lib/dates';
 import { makeProject, makeTask, makeUser, makeWorkspace, newId, nowIso } from './schema';
-import type { Snapshot, Task, TaskStatus } from './types';
+import type { ProjectId, SectionId, TaskId, UserId } from './ids';
+import type { Snapshot, Task, TaskStatus, User } from './types';
+
+/** The IDs of the sample users, in the order they were created */
+function userIds(users: User[]): [UserId, UserId, UserId, UserId, UserId] {
+  const ids = users.map((u) => u.id);
+  const at = (i: number): UserId => {
+    const id = ids[i];
+    if (!id) throw new Error(`No sample user ${i}`);
+    return id;
+  };
+  return [at(0), at(1), at(2), at(3), at(4)];
+}
 
 /** Empty workspace without any sample data (used when sample data is unchecked). */
 export function emptySnapshot(workspaceName: string): Snapshot {
@@ -17,12 +29,12 @@ export function sampleSnapshot(workspaceName: string): Snapshot {
     makeUser('Sami Yilmaz', 'rose'),
     makeUser('Mara Schulz', 'blue'),
   ];
-  const [pia, jonas, lena, sami, mara] = users.map((u) => u.id) as [string, string, string, string, string];
+  const [pia, jonas, lena, sami, mara] = userIds(users);
 
   const marketing = makeProject('Marketing', 'teal', 1, ['Events', 'Add-ons', 'Do next week', 'Do later']);
   const website = makeProject('Website relaunch', 'violet', 2, ['Concept', 'Copy', 'Design', 'Launch']);
   const messe = makeProject('Trade fair 2026', 'amber', 3, ['Preparation', 'On site', 'Follow-up']);
-  const sec = (p: typeof marketing, i: number) => {
+  const sec = (p: typeof marketing, i: number): SectionId => {
     const s = p.sections[i];
     if (!s) throw new Error(`No section ${i} in ${p.name}`);
     return s.id;
@@ -33,8 +45,8 @@ export function sampleSnapshot(workspaceName: string): Snapshot {
   let order = 1;
   const mk = (
     title: string,
-    where: { projectId: string; sectionId?: string | null; parentId?: string | null },
-    assigneeId: string | null,
+    where: { projectId: ProjectId; sectionId?: SectionId | null; parentId?: TaskId | null },
+    assigneeId: UserId | null,
     dueOffset: number | null,
     status: TaskStatus = 'todo',
     done = false,

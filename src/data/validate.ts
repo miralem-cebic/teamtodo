@@ -4,6 +4,7 @@
 
 import { normalizeTag } from '../lib/tags';
 import { observeStamp } from './clock';
+import { brandId, type Brand } from './ids';
 import {
   COLORS,
   type Activity,
@@ -68,6 +69,15 @@ const fail = (path: string, reason: string): never => {
 };
 
 const id: Check<string> = (v, path) => (isValidId(v) ? v : fail(path, `expected an ID, got ${describe(v)}`));
+/** Branded IDs: the brand is added here, after the check, and nowhere else from file content */
+const idOf =
+  <B extends string>(): Check<Brand<string, B>> =>
+  (v, path) =>
+    isValidId(v) ? brandId<B>(v) : fail(path, `expected an ID, got ${describe(v)}`);
+const taskId = idOf<'TaskId'>();
+const projectId = idOf<'ProjectId'>();
+const sectionId = idOf<'SectionId'>();
+const userId = idOf<'UserId'>();
 const str: Check<string> = (v, path) => (typeof v === 'string' ? v : fail(path, `expected a string, got ${describe(v)}`));
 const num: Check<number> = (v, path) => (typeof v === 'number' && Number.isFinite(v) ? v : fail(path, `expected a number, got ${describe(v)}`));
 const bool: Check<boolean> = (v, path) => (typeof v === 'boolean' ? v : fail(path, `expected a boolean, got ${describe(v)}`));
@@ -145,15 +155,15 @@ const attachment = objectOf<Attachment>({
   size: num,
   mimeType: str,
   addedAt: dateTime,
-  addedBy: id,
+  addedBy: userId,
   removedAt: optional(nullable(dateTime)),
 });
 
 const comment = objectOf<Comment>({
   id,
-  userId: id,
+  userId,
   text: str,
-  mentions: arrayOf(id),
+  mentions: arrayOf(userId),
   at: dateTime,
   editedAt: optional(nullable(dateTime)),
   deletedAt: optional(nullable(dateTime)),
@@ -161,7 +171,7 @@ const comment = objectOf<Comment>({
 
 const activity = objectOf<Activity>({
   id,
-  userId: id,
+  userId,
   type: oneOf(ACTIVITY_TYPES),
   data: optional((v, path) => {
     if (!isRecord(v)) return fail(path, `expected an object, got ${describe(v)}`);
@@ -173,24 +183,24 @@ const activity = objectOf<Activity>({
 
 export const validateTask: Check<Task> = objectOf<Task>({
   schemaVersion: num,
-  id,
-  parentId: nullable(id),
-  projectId: nullable(id),
-  sectionId: nullable(id),
+  id: taskId,
+  parentId: nullable(taskId),
+  projectId: nullable(projectId),
+  sectionId: nullable(sectionId),
   title: str,
   description: str,
-  assigneeId: nullable(id),
+  assigneeId: nullable(userId),
   dueDate: nullable(date),
   dueTime: nullable(time),
   status: oneOf(TASK_STATUSES),
   completedAt: nullable(dateTime),
   order: num,
-  followerIds: arrayOf(id),
+  followerIds: arrayOf(userId),
   attachments: arrayOf(attachment),
   comments: arrayOf(comment),
   activity: arrayOf(activity),
   createdAt: dateTime,
-  createdBy: id,
+  createdBy: userId,
   deletedAt: nullable(dateTime),
   fieldUpdatedAt: fieldTimestamps,
   tags: optional(arrayOf(tagName)),
@@ -198,7 +208,7 @@ export const validateTask: Check<Task> = objectOf<Task>({
 }) as Check<Task>;
 
 export const validateSection: Check<Section> = objectOf<Section>({
-  id,
+  id: sectionId,
   name: str,
   order: num,
   updatedAt: dateTime,
@@ -206,7 +216,7 @@ export const validateSection: Check<Section> = objectOf<Section>({
 });
 
 export const validateProject: Check<Project> = objectOf<Project>({
-  id,
+  id: projectId,
   name: str,
   color: oneOf(COLORS),
   order: num,
@@ -220,7 +230,7 @@ export const validateProject: Check<Project> = objectOf<Project>({
 });
 
 export const validateUser: Check<User> = objectOf<User>({
-  id,
+  id: userId,
   name: str,
   color: oneOf(COLORS),
   createdAt: dateTime,

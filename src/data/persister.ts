@@ -1,3 +1,4 @@
+import { keysOf } from './ids';
 import { setSaveStatus, useApp, type AppState } from '../store/appStore';
 import { classifyError, type Repository, type StorageError } from './repository';
 import { err, ok, type Result } from './result';
@@ -65,7 +66,7 @@ export class Persister {
   private diff(next: AppState, prev: AppState) {
     if (next.tasks !== prev.tasks) {
       // for…in: no array of entries per change, which matters with thousands of tasks
-      for (const id in next.tasks) {
+      for (const id of keysOf(next.tasks)) {
         const t = next.tasks[id];
         if (!t || t === prev.tasks[id] || t.draft || this.clean.has(t)) continue;
         this.enqueue(`task:${id}`, async () => {

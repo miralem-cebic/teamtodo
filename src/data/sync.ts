@@ -1,8 +1,9 @@
+import type { TaskId } from './ids';
 import { flashRows, useApp } from '../store/appStore';
 import { mergeProjects, mergeTask, mergeUsers, sameJson } from './merge';
 import type { Persister } from './persister';
 import type { ChangeSet, Repository } from './repository';
-import { MERGEABLE_FIELDS, type ID, type MergeableField, type Project, type Task, type TaskState, type User } from './types';
+import { MERGEABLE_FIELDS, type MergeableField, type Project, type Task, type TaskState, type User } from './types';
 
 // Multi-user sync: every 10 seconds and on window focus, read the changed files
 // and apply them to the state. Own unsaved changes are merged field by field.
@@ -24,11 +25,11 @@ function hasNewerThan(local: Task, remote: Task): boolean {
   return [...ids(local)].some((id) => !remoteIds.has(id));
 }
 
-export function integrateTasks(p: Persister, remotes: Task[], removed: ID[] = []) {
+export function integrateTasks(p: Persister, remotes: Task[], removed: TaskId[] = []) {
   if (!remotes.length && !removed.length) return;
   const s = useApp.getState();
   const tasks = { ...s.tasks };
-  const flash: ID[] = [];
+  const flash: TaskId[] = [];
   let changed = false;
   for (const r of remotes) {
     const local = tasks[r.id];
