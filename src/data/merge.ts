@@ -35,11 +35,11 @@ export function mergeTask(local: Task, remote: Task): Task {
   for (const f of MERGEABLE_FIELDS) {
     const tl = stamp(local, f);
     const tr = stamp(remote, f);
+    // A missing timestamp counts as the task's creation time. An older remote timestamp is never copied
+    // onto the local value: that would make the field look older than it is and lose the next newer change.
     if (tr > tl) {
       takeField(out, remote, f);
       out.fieldUpdatedAt[f] = tr;
-    } else if (local.fieldUpdatedAt[f] === undefined && remote.fieldUpdatedAt[f] !== undefined) {
-      out.fieldUpdatedAt[f] = remote.fieldUpdatedAt[f];
     }
   }
   out.comments = unionById(local.comments, remote.comments, pickComment).sort((a, b) => a.at.localeCompare(b.at));
