@@ -9,6 +9,7 @@ import { ListView } from '../list/ListView';
 import { Header } from '../shell/Header';
 import { Toolbar } from '../shell/Toolbar';
 import { DataDialog } from '../shell/DataDialog';
+import { ConflictDialog } from '../shell/ConflictDialog';
 import { t } from '../../i18n';
 import { TeamDialog } from '../team/TeamDialog';
 import { BoardView } from '../board/BoardView';
@@ -36,6 +37,7 @@ export function Workspace() {
   const [keysOpen, setKeysOpen] = useState(false);
   const [dataOpen, setDataOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
+  const [conflictsOpen, setConflictsOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const workspaceId = useApp((s) => s.workspace?.id);
   useEffect(() => {
@@ -140,7 +142,7 @@ export function Workspace() {
     <div className={'app' + (navOpen ? ' nav-open' : '') + (panelId ? ' has-panel' : '')}>
       <TaskDnd groups={groups} settings={settings} childrenOf={children}>
       <ErrorBoundary name="sidebar">
-        <Sidebar view={view} go={go} openKeys={() => setKeysOpen(true)} openData={() => setDataOpen(true)} openTeam={() => setTeamOpen(true)} />
+        <Sidebar view={view} go={go} openKeys={() => setKeysOpen(true)} openData={() => setDataOpen(true)} openTeam={() => setTeamOpen(true)} openConflicts={() => setConflictsOpen(true)} />
       </ErrorBoundary>
       {navOpen && <div className="scrim" onClick={() => setNavOpen(false)} />}
       <main className="main">
@@ -193,7 +195,12 @@ export function Workspace() {
       )}
       {dataOpen && (
         <ErrorBoundary name="dialog">
-          <DataDialog onClose={() => setDataOpen(false)} />
+          <DataDialog onClose={() => setDataOpen(false)} onConflicts={() => setConflictsOpen(true)} />
+        </ErrorBoundary>
+      )}
+      {conflictsOpen && (
+        <ErrorBoundary name="dialog">
+          <ConflictDialog onClose={() => setConflictsOpen(false)} />
         </ErrorBoundary>
       )}
       {teamOpen && (

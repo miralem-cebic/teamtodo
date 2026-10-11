@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { makeProject, makeSection, makeTask, makeUser, newId, nowIso, pickColor } from '../data/schema';
 import type { Activity, ActivityType, Attachment, Color, ID, MergeableField, Project, Section, Snapshot, Task, TaskState, User, WorkspaceFile } from '../data/types';
 import { MERGEABLE_FIELDS } from '../data/types';
+import { mergeProjects, mergeTask, mergeUsers } from '../data/merge';
+import type { ConflictPayload } from '../data/repository';
 import { withoutTag, withTag } from '../lib/tags';
 import type { StorageErrorKind } from '../data/repository';
 import { descendantIds, liveSections, reorderWithinGroup, placeProject } from './selectors';
@@ -298,6 +300,19 @@ export function setProjectPinned(id: ID, pinned: boolean) {
     },
     { label: tr('undo.change'), toast: false },
   );
+}
+
+/** Merges what a conflict copy holds into the workspace. The caller writes the copy's content through the persister and then removes the copy. */
+export function mergeConflictPayload(p: ConflictPayload) {
+  const s = get();
+  if (p.kind === 'task') {
+    const cur = s.tasks[p.task.id];
+    set({ tasks: { ...s.tasks, [p.task.id]: cur ? mergeTask(cur, p.task) : p.task } });
+  } else if (p.kind === 'users') {
+    set({ users: mergeUsers(s.users, p.users) });
+  } else if (p.kind === 'projects') {
+    set({ projects: mergeProjects(s.projects, p.projects) });
+  }
 }
 
 /** Moves a project directly before or after another one of its group (drag and drop, keyboard) */

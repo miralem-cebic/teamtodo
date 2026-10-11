@@ -15,7 +15,7 @@ const label = (name: string) => {
 };
 const size = (b: number) => (b < 1048576 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1048576).toFixed(1)} MB`);
 
-export function DataDialog({ onClose }: { onClose: () => void }) {
+export function DataDialog({ onClose, onConflicts }: { onClose: () => void; onConflicts: () => void }) {
   const dirName = useSession((s) => s.dirName);
   const conflicts = useSession((s) => s.conflictCopies);
   const [backups, setBackups] = useState<BackupInfo[] | null>(null);
@@ -86,15 +86,9 @@ export function DataDialog({ onClose }: { onClose: () => void }) {
       )}
 
       {conflicts.length > 0 && (
-        <>
-          <h3 className="d-h">{t('data.conflicts')}</h3>
-          <p className="d-text">{t('data.conflictText')}</p>
-          <ul className="conflicts">
-            {conflicts.map((c) => (
-              <li key={c}><code>{c}</code></li>
-            ))}
-          </ul>
-        </>
+        <p className="d-text">
+          <button type="button" className="link" onClick={onConflicts}>{t('data.conflictsOpen', { n: conflicts.length })}</button>
+        </p>
       )}
     </Dialog>
   );

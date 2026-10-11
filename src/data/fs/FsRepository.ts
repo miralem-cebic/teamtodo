@@ -1,6 +1,6 @@
 import { mergeProjects, mergeTask, mergeUsers, sameJson } from '../merge';
 import { migrate, migrateCollection, NewerSchemaError, type RejectedRecord } from '../migrations';
-import type { BackupInfo, ChangeSet, LoadIssue, LoadResult, Repository } from '../repository';
+import type { BackupInfo, ChangeSet, ConflictPayload, LoadIssue, LoadResult, Repository } from '../repository';
 import { SCHEMA_VERSION } from '../schema';
 import type { ID, Project, ProjectsFile, Snapshot, Task, User, UsersFile, WorkspaceFile } from '../types';
 import { writeJson, writeLargeJson } from './jsonFile';
@@ -283,6 +283,33 @@ export class FsRepository implements Repository {
       .filter(([n]) => n.endsWith('.json'))
       .map(([n, f]) => ({ name: n.slice(0, -5), lastModified: f.lastModified, size: f.size }))
       .sort((a, b) => b.name.localeCompare(a.name));
+  }
+
+  /** A conflict copy of a task is listed as `tasks/<file>`, all others are in the top folder */
+  private async conflictLocation(name: string) {
+    if (name.startsWith(`${DIRS.tasks}/`)) return { dir: await this.dir(DIRS.tasks), file: name.slice(DIRS.tasks.length + 1) };
+    return { dir: this.root, file: name };
+  }
+
+  async readConflictCopy(name: string): Promise<ConflictPayload> {
+    const { dir, file } = await this.conflictLocation(name);
+    const f = await (await dir.getFileHandle(file)).getFile();
+    const modified = f.lastModified;
+    try {
+      const raw = JSON.parse(await f.text()) as unknown;
+      if (name.startsWith(`${DIRS.tasks}/`)) return { kind: 'task', task: migrate<Task>('task', raw), modified };
+      if (/^users/i.test(name)) return { kind: 'users', users: migrate<UsersFile>('users', raw).users, modified };
+      if (/^projects/i.test(name)) return { kind: 'projects', projects: migrate<ProjectsFile>('projects', raw).projects, modified };
+      migrate<WorkspaceFile>('workspace', raw);
+      return { kind: 'workspace', modified };
+    } catch (e) {
+      return { kind: 'unreadable', message: e instanceof Error ? e.message : String(e), modified };
+    }
+  }
+
+  async removeConflictCopy(name: string) {
+    const { dir, file } = await this.conflictLocation(name);
+    await dir.removeEntry(file);
   }
 
   async readBackup(name: string): Promise<Snapshot> {

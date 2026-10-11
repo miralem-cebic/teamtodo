@@ -22,6 +22,7 @@ interface Props {
   openKeys: () => void;
   openData: () => void;
   openTeam: () => void;
+  openConflicts: () => void;
 }
 
 /** A project in the sidebar: a click opens it, the pin button pins it, drag and drop or Ctrl/⌘+Shift+↑/↓ arrange it */
@@ -49,7 +50,7 @@ function ProjectNavItem({ p, on, count, go }: { p: Project; on: boolean; count: 
   );
 }
 
-export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
+export function Sidebar({ view, go, openKeys, openData, openTeam, openConflicts }: Props) {
   const tasks = useApp((s) => s.tasks);
   const projects = useApp((s) => s.projects);
   const users = useApp((s) => s.users);
@@ -144,7 +145,7 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
 
       <span className="sp" />
       {conflicts > 0 && (
-        <p className="side-note" role="button" tabIndex={0} onClick={openData} onKeyDown={(e) => e.key === 'Enter' && openData()} title={t('side.conflictHint')}>
+        <p className="side-note" role="button" tabIndex={0} onClick={openConflicts} onKeyDown={(e) => e.key === 'Enter' && openConflicts()} title={t('side.conflictHint')}>
           <Icon n="alert" s={14} />
           {conflicts === 1 ? t('side.conflict1') : t('side.conflictN', { n: conflicts })}
         </p>

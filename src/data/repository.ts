@@ -25,6 +25,14 @@ export interface ChangeSet {
   conflictCopies: string[];
 }
 
+/** A conflict copy as read for the conflict dialog. `modified` is the time the copy was written. */
+export type ConflictPayload =
+  | { kind: 'task'; task: Task; modified: number }
+  | { kind: 'users'; users: User[]; modified: number }
+  | { kind: 'projects'; projects: Project[]; modified: number }
+  | { kind: 'workspace'; modified: number }
+  | { kind: 'unreadable'; message: string; modified: number };
+
 export interface BackupInfo {
   name: string;
   lastModified: number;
@@ -55,6 +63,9 @@ export interface Repository {
 
   writeBackup(name: string, snapshot: Snapshot): Promise<void>;
   listBackups(): Promise<BackupInfo[]>;
+  /** Reads a conflict copy (name as listed in `LoadResult.conflictCopies`); a copy that cannot be read is returned as `unreadable` */
+  readConflictCopy(name: string): Promise<ConflictPayload>;
+  removeConflictCopy(name: string): Promise<void>;
   readBackup(name: string): Promise<Snapshot>;
   removeBackup(name: string): Promise<void>;
 

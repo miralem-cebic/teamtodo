@@ -13,7 +13,7 @@ import { errorText } from '../lib/labels';
 import { t } from '../i18n';
 import { emptySnapshot, sampleSnapshot } from '../data/seed';
 import type { ID, Task } from '../data/types';
-import { addUser, loadSnapshot, resetApp, setMe, showToast, useApp } from '../store/appStore';
+import { addUser, loadSnapshot, mergeConflictPayload, resetApp, setMe, showToast, useApp } from '../store/appStore';
 import { loadMe, saveMe } from '../store/prefs';
 import { readStorage } from '../lib/storage';
 
@@ -74,6 +74,25 @@ if (E2E) {
     sync: () => sync?.poll(),
     repo: () => repo,
   };
+}
+
+export const readConflictCopy = (name: string) => requireRepo().readConflictCopy(name);
+
+/**
+ * "merge": the content of the copy is merged into the workspace and saved first; the copy is removed only
+ * after that save succeeded, so nothing is lost if the save fails. "discard": the copy is removed.
+ */
+export async function resolveConflictCopy(name: string, action: 'merge' | 'discard') {
+  const r = requireRepo();
+  if (action === 'merge') {
+    const payload = await r.readConflictCopy(name);
+    if (payload.kind === 'unreadable' || payload.kind === 'workspace') throw new Error(`Copy ${name} can only be discarded`);
+    mergeConflictPayload(payload);
+    await persister?.flush();
+    if (useApp.getState().save.state === 'error') throw new Error('The merged state could not be saved');
+  }
+  await r.removeConflictCopy(name);
+  useSession.setState((s) => ({ conflictCopies: s.conflictCopies.filter((n) => n !== name) }));
 }
 
 /** Keeps unsaved edits in the browser before anything else happens (used when the UI crashed). */

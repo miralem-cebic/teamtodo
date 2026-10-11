@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Tags for tasks: add tags in the task panel, filter every view by a tag. Tags are kept when a project is created from a template.
 - Pin projects to the top of the sidebar. Arrange projects by drag and drop in the sidebar, or with Ctrl/⌘ + Shift + ↑/↓ on a focused project. A project stays in its group: unpinned projects cannot move above pinned ones. Both are undoable.
+- Conflicting copies from the shared folder (for example OneDrive's `…-LAPTOP.json`) are listed in a dialog. Each copy can be merged into the workspace or discarded. A copy is removed only after its merged content was saved.
 - A crash in one part of the screen (the sidebar, a view, the task panel or a dialog) shows a short message with **Try again** and **Copy diagnostics**. The rest of the app keeps working, and unsaved changes are kept.
 
 ### Changed
