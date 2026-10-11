@@ -133,7 +133,22 @@ export function descendantIds(tasks: Record<ID, TaskState>, id: ID): ID[] {
 }
 
 /** Visible tasks + children per parent task (sorted) */
-export function visibleTasks(tasks: Record<ID, TaskState>, projects: Project[]) {
+type Visible = ReturnType<typeof computeVisible>;
+let visibleMemo: { tasks: Record<ID, TaskState>; projects: Project[]; result: Visible } | null = null;
+
+/**
+ * The tasks that are shown, and the children of each task. Several components ask for the same result with the
+ * same state objects in one render, so the last answer is kept while both inputs are the same objects.
+ * The result must not be changed by the caller.
+ */
+export function visibleTasks(tasks: Record<ID, TaskState>, projects: Project[]): Visible {
+  if (visibleMemo && visibleMemo.tasks === tasks && visibleMemo.projects === projects) return visibleMemo.result;
+  const result = computeVisible(tasks, projects);
+  visibleMemo = { tasks, projects, result };
+  return result;
+}
+
+function computeVisible(tasks: Record<ID, TaskState>, projects: Project[]) {
   const deleted = hiddenProjectIds(projects);
   const visible: TaskState[] = [];
   const children: Record<ID, TaskState[]> = {};

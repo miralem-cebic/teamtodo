@@ -161,6 +161,20 @@ OneDrive conflict copies (file names that are not a UUID, for example `<uuid>-LA
 
 To introduce a new schema version, increase `SCHEMA_VERSION` in `data/schema.ts` and add `{ from: n, up(raw) }` in `data/migrations.ts` for each affected file type. Files are migrated up when read and saved in the new version on the next write. Files from a newer version block startup with a message.
 
+## Performance
+
+Baseline with 10,000 tasks (`npm run bench`, one run on the development sandbox; numbers vary by machine):
+
+| Operation | Before | Now |
+| --- | --- | --- |
+| `loadSnapshot` | 11.7 ms | 11.6 ms |
+| `visibleTasks` (called by several components per change) | 4.4 ms | 0.97 ms (memoised by its inputs) |
+| `buildGroups`, project view | 5.9 ms | 3.3 ms |
+| Persister pass over all tasks per change | 4.3 ms | 1.6 ms (`for…in`, no entries array) |
+| `updateTask`, store only | 4.1 ms | 4.5 ms (copies the task record; noise) |
+
+Still open: the persister still visits every task per change (it needs the changed IDs from the actions), and the store copies the whole task record per change (a map with structural sharing would avoid it). Worker-based loading is not justified by `loadSnapshot` at this size; list virtualization needs a browser measurement first.
+
 ## Tests
 
 - **Property-based** (`tests/unit/properties.test.ts`, fast-check): merge rules, link safety and migrations for generated inputs. CI uses a fixed seed (`CI` is set); locally the seed is random. Use `FC_SEED=<seed>` to repeat a failing run and `FC_RUNS=<n>` for more cases.

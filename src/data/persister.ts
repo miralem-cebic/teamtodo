@@ -63,8 +63,10 @@ export class Persister {
 
   private diff(next: AppState, prev: AppState) {
     if (next.tasks !== prev.tasks) {
-      for (const [id, t] of Object.entries(next.tasks)) {
-        if (t === prev.tasks[id] || t.draft || this.clean.has(t)) continue;
+      // for…in: no array of entries per change, which matters with thousands of tasks
+      for (const id in next.tasks) {
+        const t = next.tasks[id];
+        if (!t || t === prev.tasks[id] || t.draft || this.clean.has(t)) continue;
         this.enqueue(`task:${id}`, async () => {
           const stored = await this.repo.saveTask(t);
           if (stored === t) this.clean.add(t);
