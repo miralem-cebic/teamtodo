@@ -5,7 +5,7 @@ import { MERGEABLE_FIELDS } from '../data/types';
 import { brandId, keysOf, newTaskId, type ProjectId, type SectionId, type TaskId, type UserId } from '../data/ids';
 import { mergeProjects, mergeTask, mergeUsers } from '../data/merge';
 import type { ConflictPayload } from '../data/repository';
-import { withoutTag, withTag } from '../lib/tags';
+import { normalizeTag, renameInList, withoutTag, withoutTagEverywhere, withTag } from '../lib/tags';
 import type { StorageErrorKind } from '../data/repository';
 import { descendantIds, liveSections, reorderWithinGroup, placeProject } from './selectors';
 import { t as tr } from '../i18n';
@@ -231,6 +231,38 @@ export function removeTag(id: TaskId, name: string) {
   const t = get().tasks[id];
   if (!t?.tags?.includes(name)) return;
   updateTask(id, { tags: withoutTag(t.tags, name) });
+}
+
+/** Changes the tags of every live task for which `change` returns a new list. One undo step. */
+function changeTagsEverywhere(change: (tags: string[]) => string[] | null, label: string) {
+  const s = get();
+  const before: UndoEntry['tasks'] = {};
+  const tasks = { ...s.tasks };
+  const at = nowIso();
+  for (const t of Object.values(s.tasks)) {
+    if (t.deletedAt) continue;
+    const next = change(t.tags ?? []);
+    if (!next) continue;
+    before[t.id] = t;
+    tasks[t.id] = applyPatch(t, { tags: next }, at);
+  }
+  const changed = keysOf(before);
+  if (!changed.length) return;
+  touchTasks(changed);
+  set({ tasks });
+  pushUndo({ label, tasks: before }, true);
+}
+
+/** Renames a tag on every task. A name that is already used merges the two tags. */
+export function renameTag(from: string, to: string) {
+  const name = normalizeTag(to);
+  if (!name) return;
+  changeTagsEverywhere((tags) => renameInList(tags, from, name), tr('undo.tagRenamed', { name }));
+}
+
+/** Removes a tag from every task */
+export function removeTagEverywhere(name: string) {
+  changeTagsEverywhere((tags) => withoutTagEverywhere(tags, name), tr('undo.tagRemoved', { name }));
 }
 
 export function updateTask(id: TaskId, patch: TaskPatch, opts: UpdateOptions = {}) {

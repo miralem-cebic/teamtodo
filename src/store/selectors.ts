@@ -2,12 +2,13 @@ import { addDays, diffDays, nextMonday, today } from '../lib/dates';
 import type { ProjectId, TaskId, UserId } from '../data/ids';
 import type { ID, Project, Section, Task, TaskState, TaskStatus, User } from '../data/types';
 import { statusLabel, STATUSES } from '../lib/labels';
+import { uniqueTags } from '../lib/tags';
 import { t } from '../i18n';
 
 // Pure functions: visibility, hierarchy, grouping, filters, sorting.
 
 export type View = { type: 'my' } | { type: 'inbox' } | { type: 'templates' } | { type: 'project'; id: ProjectId };
-export type GroupBy = 'section' | 'due' | 'status' | 'assignee' | 'project' | 'none';
+export type GroupBy = 'section' | 'due' | 'status' | 'assignee' | 'project' | 'tag' | 'none';
 export type SortBy = 'manual' | 'due' | 'title' | 'assignee' | 'created';
 export type CompletedFilter = 'open' | 'all' | 'done';
 export type DueFilter = 'all' | 'overdue' | 'today' | 'week' | 'none';
@@ -205,6 +206,9 @@ export interface BuildInput {
   collapsed: Record<string, boolean>;
 }
 
+/** Group key of a tag. Lower case: tags are unique without regard to case. */
+const tagGroupKey = (tag: string) => `tag:${tag.toLowerCase()}`;
+
 export function buildGroups(inp: BuildInput): Group[] {
   const { view, settings: s, meId } = inp;
   const t0 = today();
@@ -292,6 +296,14 @@ export function buildGroups(inp: BuildInput): Group[] {
       { key: '__none', label: t('group.noProject'), apply: { projectId: null, sectionId: null }, defaults: { ...baseDef, projectId: null, sectionId: null }, keep: true },
     ];
     keyOf = (t) => t.projectId ?? '__none';
+  } else if (g === 'tag') {
+    // A task is listed under its first tag: one row, one group (drag and drop needs unique rows)
+    const tags = uniqueTags(base.map((x) => (x.tags?.[0] ? [x.tags[0]] : [])));
+    groups = [
+      ...tags.map((tag) => ({ key: tagGroupKey(tag), label: tag, apply: null, defaults: { ...baseDef, tags: [tag] }, keep: true })),
+      { key: '__none', label: t('group.noTag'), apply: null, defaults: { ...baseDef }, keep: true },
+    ];
+    keyOf = (x) => (x.tags?.[0] ? tagGroupKey(x.tags[0]) : '__none');
   } else {
     groups = [{ key: 'all', label: t('filter.all'), apply: {}, defaults: { ...baseDef }, keep: true }];
     keyOf = () => 'all';

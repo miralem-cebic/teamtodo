@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import { Icon } from '../../components/Icon';
 import { Menu, Popover, usePop } from '../../components/Popover';
@@ -9,6 +9,7 @@ import type { TaskStatus } from '../../data/types';
 import { statusLabel, STATUSES } from '../../lib/labels';
 import { t } from '../../i18n';
 import { uniqueTags } from '../../lib/tags';
+import { TagsDialog } from './TagsDialog';
 
 interface Props {
   view: View;
@@ -45,8 +46,8 @@ const dueOptions = (): [DueFilter, string][] => [
 
 export function groupOptions(view: View): [GroupBy, string][] {
   return view.type === 'project'
-    ? [['section', t('group.section')], ['assignee', t('group.assignee')], ['due', t('sort.due')], ['status', t('group.status')], ['none', t('group.none')]]
-    : [['due', t('sort.due')], ['project', t('group.project')], ['status', t('group.status')], ['none', t('group.none')]];
+    ? [['section', t('group.section')], ['assignee', t('group.assignee')], ['due', t('sort.due')], ['status', t('group.status')], ['tag', t('group.tag')], ['none', t('group.none')]]
+    : [['due', t('sort.due')], ['project', t('group.project')], ['status', t('group.status')], ['tag', t('group.tag')], ['none', t('group.none')]];
 }
 
 export const activeFilterCount = (s: ViewSettings) => (s.due !== 'all' ? 1 : 0) + (s.status.length ? 1 : 0) + (s.assignee ? 1 : 0) + (s.tag ? 1 : 0);
@@ -63,9 +64,11 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
   const nFilters = activeFilterCount(s);
   const def = defaultSettings(view);
   const groups = groupOptions(view);
+  const [tagsOpen, setTagsOpen] = useState(false);
   const toggleStatus = (k: TaskStatus | 'done') => setSettings({ status: s.status.includes(k) ? s.status.filter((x) => x !== k) : [...s.status, k] });
 
   return (
+    <>
     <div className="toolbar" role="toolbar" aria-label={t('toolbar.label')}>
       <button type="button" className="btn primary" onClick={onAdd}>
         <Icon n="plus" s={15} />
@@ -177,6 +180,7 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
                     <Chip key={x} on={s.tag.toLowerCase() === x.toLowerCase()} onClick={() => setSettings({ tag: x })}>{x}</Chip>
                   ))}
                 </div>
+                <button type="button" className="link f-reset" onClick={() => setTagsOpen(true)}>{t('tags.manage')}</button>
               </>
             )}
             <div className="f-sec" id="f-status">{t('group.status')}</div>
@@ -194,6 +198,8 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
         </Popover>
       )}
     </div>
+    {tagsOpen && <TagsDialog onClose={() => setTagsOpen(false)} />}
+    </>
   );
 }
 
