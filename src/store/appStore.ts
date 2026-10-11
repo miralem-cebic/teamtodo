@@ -100,7 +100,8 @@ function pushUndo(entry: UndoEntry, toast: boolean) {
 /* ---------- Loading / session ---------- */
 
 export function loadSnapshot(snap: Snapshot) {
-  const tasks: Record<ID, TaskState> = {};
+  // Null prototype: an ID can never resolve to an Object.prototype member such as `constructor`
+  const tasks: Record<ID, TaskState> = Object.create(null);
   for (const t of snap.tasks) tasks[t.id] = t;
   set({ workspace: snap.workspace, users: snap.users, projects: snap.projects, tasks, undoStack: [], panelId: null });
 }

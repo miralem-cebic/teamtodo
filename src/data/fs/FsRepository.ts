@@ -1,5 +1,5 @@
 import { mergeProjects, mergeTask, mergeUsers, sameJson } from '../merge';
-import { migrate, NewerSchemaError } from '../migrations';
+import { migrate, migrateCollection, NewerSchemaError } from '../migrations';
 import type { BackupInfo, ChangeSet, LoadIssue, LoadResult, Repository } from '../repository';
 import { SCHEMA_VERSION } from '../schema';
 import type { ID, Project, ProjectsFile, Snapshot, Task, User, UsersFile, WorkspaceFile } from '../types';
@@ -104,18 +104,19 @@ export class FsRepository implements Repository {
     };
 
     const workspace = migrate<WorkspaceFile>('workspace', await this.readJson(await this.root.getFileHandle(FILES.workspace), FILES.workspace));
-    let users: User[] = [];
-    try {
-      users = migrate<UsersFile>('users', await this.readJson(await this.root.getFileHandle(FILES.users), FILES.users)).users;
-    } catch (e) {
-      note(FILES.users, e);
-    }
-    let projects: Project[] = [];
-    try {
-      projects = migrate<ProjectsFile>('projects', await this.readJson(await this.root.getFileHandle(FILES.projects), FILES.projects)).projects;
-    } catch (e) {
-      note(FILES.projects, e);
-    }
+    // A broken user or project is left out and reported; the rest of the file still loads
+    const loadCollection = async <T>(kind: 'users' | 'projects', file: string): Promise<T[]> => {
+      try {
+        const res = migrateCollection(kind, await this.readJson(await this.root.getFileHandle(file), file));
+        for (const r of res.rejected) issues.push({ file: `${file} › ${r.path}`, message: r.message });
+        return res.items as T[];
+      } catch (e) {
+        note(file, e);
+        return [];
+      }
+    };
+    const users = await loadCollection<User>('users', FILES.users);
+    const projects = await loadCollection<Project>('projects', FILES.projects);
 
     const conflictCopies = [...(await listFiles(this.root)).keys()].filter((n) => TOP_CONFLICT.test(n));
     const tasks: Task[] = [];
@@ -265,7 +266,7 @@ export class FsRepository implements Repository {
     const raw = JSON.parse(await (await fh.getFile()).text()) as Snapshot;
     return {
       workspace: migrate<WorkspaceFile>('workspace', raw.workspace),
-      users: raw.users ?? [],
+      users: migrate<UsersFile>('users', { schemaVersion: SCHEMA_VERSION, users: raw.users ?? [] }).users,
       projects: migrate<ProjectsFile>('projects', { schemaVersion: SCHEMA_VERSION, projects: raw.projects ?? [] }).projects,
       tasks: (raw.tasks ?? []).map((t) => migrate<Task>('task', t)),
     };

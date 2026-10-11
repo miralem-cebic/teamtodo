@@ -6,6 +6,7 @@ import { ensureReadWrite } from '../data/fs/permission';
 import { checkSupport } from '../data/fs/support';
 import { EMERGENCY_KEY, LEGACY_EMERGENCY_KEY, Persister } from '../data/persister';
 import { dailyBackup, purge, restoreBackup } from '../data/maintenance';
+import { migrate } from '../data/migrations';
 import { SyncEngine } from '../data/sync';
 import { classifyError, type LoadResult } from '../data/repository';
 import { errorText } from '../lib/labels';
@@ -204,11 +205,19 @@ function recoverEmergencyCopy(workspaceId: ID) {
   try {
     const raw = readStorage(EMERGENCY_KEY, LEGACY_EMERGENCY_KEY);
     if (!raw) return;
-    const copy = JSON.parse(raw) as { workspaceId?: ID; tasks?: Task[] };
+    const copy = JSON.parse(raw) as { workspaceId?: ID; tasks?: unknown[] };
     if (copy.workspaceId !== workspaceId || !copy.tasks?.length) return;
+    // The copy is data like any other file: only tasks that pass the same checks as the folder are restored
+    const tasks = copy.tasks.flatMap((x): Task[] => {
+      try {
+        return [migrate<Task>('task', x)];
+      } catch {
+        return [];
+      }
+    });
     const newest = (t: Task) => Object.values(t.fieldUpdatedAt).sort().pop() ?? t.createdAt;
     const cur = useApp.getState().tasks;
-    const take = copy.tasks.filter((t) => !cur[t.id] || newest(t) > newest(cur[t.id]!));
+    const take = tasks.filter((t) => !cur[t.id] || newest(t) > newest(cur[t.id]!));
     if (!take.length) return;
     useApp.setState({ tasks: { ...cur, ...Object.fromEntries(take.map((t) => [t.id, t])) } });
     showToast(t('toast.restored', { n: take.length }));
