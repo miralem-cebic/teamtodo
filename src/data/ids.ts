@@ -9,6 +9,9 @@ export type TaskId = Brand<string, 'TaskId'>;
 export type ProjectId = Brand<string, 'ProjectId'>;
 export type SectionId = Brand<string, 'SectionId'>;
 export type UserId = Brand<string, 'UserId'>;
+export type CommentId = Brand<string, 'CommentId'>;
+export type ActivityId = Brand<string, 'ActivityId'>;
+export type AttachmentId = Brand<string, 'AttachmentId'>;
 
 /** Adds a brand to a string that has been checked by the caller. The one place where the brand is added. */
 export const brandId = <B extends string>(value: string): Brand<string, B> => value as Brand<string, B>;
@@ -17,6 +20,9 @@ export const newTaskId = (): TaskId => brandId<'TaskId'>(crypto.randomUUID());
 export const newProjectId = (): ProjectId => brandId<'ProjectId'>(crypto.randomUUID());
 export const newSectionId = (): SectionId => brandId<'SectionId'>(crypto.randomUUID());
 export const newUserId = (): UserId => brandId<'UserId'>(crypto.randomUUID());
+export const newCommentId = (): CommentId => brandId<'CommentId'>(crypto.randomUUID());
+export const newActivityId = (): ActivityId => brandId<'ActivityId'>(crypto.randomUUID());
+export const newAttachmentId = (): AttachmentId => brandId<'AttachmentId'>(crypto.randomUUID());
 
 /** The keys of a record, typed as the record's key type. Object.keys only knows `string`; the record was built with these keys. */
 export const keysOf = <K extends string>(record: Partial<Record<K, unknown>>): K[] => Object.keys(record) as K[];

@@ -7,7 +7,7 @@ import { fmtDate } from '../../lib/dates';
 import { COLORS, type Project } from '../../data/types';
 import { errorText } from '../../lib/labels';
 import { reconnectAndRetry, retrySave } from '../../app/session';
-import type { View } from '../../store/selectors';
+import { projectState, type View } from '../../store/selectors';
 import { t } from '../../i18n';
 
 const colorName = (c: (typeof COLORS)[number]) => t(`color.${c}` as 'color.teal');
@@ -101,7 +101,7 @@ function ProjectTitle({ proj }: { proj: Project }) {
           }
         }}
       />
-      {proj.archivedAt && <span className="badge">{t('project.archived')}</span>}
+      {projectState(proj) === 'archived' && <span className="badge">{t('project.archived')}</span>}
       <button type="button" className="icon-btn" onClick={p.open} aria-label={t('project.options')}>
         <Icon n="dots" />
       </button>
@@ -113,7 +113,7 @@ function ProjectTitle({ proj }: { proj: Project }) {
               { head: t('project.color') },
               ...COLORS.map((c) => ({ label: colorName(c), dot: c, active: proj.color === c, onClick: () => setProjectColor(proj.id, c) })),
               { sep: true as const },
-              proj.archivedAt
+              projectState(proj) === 'archived'
                 ? { label: t('project.restore'), icon: 'archive' as const, onClick: () => archiveProject(proj.id, false) }
                 : { label: t('project.archive'), icon: 'archive' as const, onClick: () => archiveProject(proj.id, true) },
               { label: t('templates.saveAs'), icon: 'copy' as const, onClick: () => saveAsTemplate(proj.id, proj.name) && showToast(t('templates.saved', { name: proj.name })) },

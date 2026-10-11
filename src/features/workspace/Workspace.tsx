@@ -46,7 +46,10 @@ export function Workspace() {
 
   // view of a deleted project → back to "My tasks"
   let view: View = prefs.view;
-  if (view.type === 'project' && !projects.some((p) => p.id === (view as { id: string }).id && !p.deletedAt)) view = { type: 'my' };
+  if (view.type === 'project') {
+    const id = view.id;
+    if (!projects.some((p) => p.id === id && !p.deletedAt)) view = { type: 'my' };
+  }
   const settings = settingsFor(prefs, view);
   const cKey = collapseKey(view, settings);
   const collapsed = prefs.collapsed[cKey] ?? {};
@@ -66,7 +69,8 @@ export function Workspace() {
   const listIds = useMemo(() => (view.type === 'inbox' || view.type === 'templates' ? [] : groups.filter((g) => !g.collapsed).flatMap((g) => g.tasks.map((x) => x.id))), [groups, view.type]);
   /** Open tasks of the view after filters: the calendar and the calendar export use them */
   const openTasks = useMemo(() => groups.flatMap((g) => g.tasks).filter((x) => !x.completedAt), [groups]);
-  const viewName = useApp((s) => (view.type === 'project' ? s.projects.find((p) => p.id === (view as { id: string }).id)?.name : undefined));
+  const viewProjectId = view.type === 'project' ? view.id : null;
+  const viewName = useApp((s) => (viewProjectId ? s.projects.find((p) => p.id === viewProjectId)?.name : undefined));
 
   const go = useCallback((v: View) => {
     setView(v);

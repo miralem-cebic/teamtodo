@@ -7,7 +7,7 @@ import { useDndProject } from '../dnd/TaskDnd';
 import { isMod } from '../../hooks/listNav';
 import type { KeyboardEvent } from 'react';
 import type { Project } from '../../data/types';
-import { byPinnedThenOrder, visibleTasks, type View } from '../../store/selectors';
+import { byPinnedThenOrder, projectState, visibleTasks, type View } from '../../store/selectors';
 import { forgetFolder, switchUser, useSession } from '../../app/session';
 import { useInbox } from '../inbox/InboxView';
 import { LANGS, LANG_NAMES, currentLang, t } from '../../i18n';
@@ -76,9 +76,9 @@ export function Sidebar({ view, go, openKeys, openData, openTeam, openConflicts 
     return c;
   }, [tasks, projects, meId]);
 
-  const live = projects.filter((p) => !p.deletedAt && !p.template).sort(byPinnedThenOrder);
-  const active = live.filter((p) => !p.archivedAt);
-  const archived = live.filter((p) => p.archivedAt);
+  const shown = projects.filter((p) => projectState(p) === 'active' || projectState(p) === 'archived').sort(byPinnedThenOrder);
+  const active = shown.filter((p) => projectState(p) === 'active');
+  const archived = shown.filter((p) => projectState(p) === 'archived');
 
   return (
     <nav className="side" aria-label={t('nav.label')}>

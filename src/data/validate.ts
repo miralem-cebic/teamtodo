@@ -78,6 +78,9 @@ const taskId = idOf<'TaskId'>();
 const projectId = idOf<'ProjectId'>();
 const sectionId = idOf<'SectionId'>();
 const userId = idOf<'UserId'>();
+const commentId = idOf<'CommentId'>();
+const activityId = idOf<'ActivityId'>();
+const attachmentId = idOf<'AttachmentId'>();
 const str: Check<string> = (v, path) => (typeof v === 'string' ? v : fail(path, `expected a string, got ${describe(v)}`));
 const num: Check<number> = (v, path) => (typeof v === 'number' && Number.isFinite(v) ? v : fail(path, `expected a number, got ${describe(v)}`));
 const bool: Check<boolean> = (v, path) => (typeof v === 'boolean' ? v : fail(path, `expected a boolean, got ${describe(v)}`));
@@ -150,7 +153,7 @@ const fieldTimestamps: Check<Record<string, string>> = (v, path) => {
 };
 
 const attachment = objectOf<Attachment>({
-  id,
+  id: attachmentId,
   fileName: str,
   size: num,
   mimeType: str,
@@ -160,7 +163,7 @@ const attachment = objectOf<Attachment>({
 });
 
 const comment = objectOf<Comment>({
-  id,
+  id: commentId,
   userId,
   text: str,
   mentions: arrayOf(userId),
@@ -170,7 +173,7 @@ const comment = objectOf<Comment>({
 });
 
 const activity = objectOf<Activity>({
-  id,
+  id: activityId,
   userId,
   type: oneOf(ACTIVITY_TYPES),
   data: optional((v, path) => {

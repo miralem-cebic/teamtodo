@@ -1,6 +1,6 @@
 import { addDays, today } from '../lib/dates';
-import { makeProject, makeTask, makeUser, makeWorkspace, newId, nowIso } from './schema';
-import type { ProjectId, SectionId, TaskId, UserId } from './ids';
+import { makeProject, makeTask, makeUser, makeWorkspace, nowIso } from './schema';
+import { newActivityId, newCommentId, type ProjectId, type SectionId, type TaskId, type UserId } from './ids';
 import type { Snapshot, Task, TaskStatus, User } from './types';
 
 /** The IDs of the sample users, in the order they were created */
@@ -65,7 +65,7 @@ export function sampleSnapshot(workspaceName: string): Snapshot {
       order: order++,
       createdAt: created,
       createdBy: pia,
-      activity: [{ id: newId(), userId: pia, type: 'created', at: created }],
+      activity: [{ id: newActivityId(), userId: pia, type: 'created', at: created }],
     });
     tasks.push(t);
     return t;
@@ -100,7 +100,7 @@ export function sampleSnapshot(workspaceName: string): Snapshot {
   mk('Transfer leads to the CRM', { projectId: x, sectionId: sec(messe, 2) }, mara, 21);
 
   webinar.comments.push({
-    id: newId(),
+    id: newCommentId(),
     userId: jonas,
     text: '@Pia The landing page will be ready as a draft by tomorrow.',
     mentions: [pia],

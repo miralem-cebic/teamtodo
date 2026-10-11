@@ -5,7 +5,8 @@ import { getRepo } from '../../app/session';
 import { classifyError } from '../../data/repository';
 import { errorText } from '../../lib/labels';
 import { t } from '../../i18n';
-import { newId, nowIso } from '../../data/schema';
+import { nowIso } from '../../data/schema';
+import { newAttachmentId } from '../../data/ids';
 import type { Attachment, TaskState } from '../../data/types';
 
 // Attachments are stored as real files in attachments/<taskId>/<file name>.
@@ -36,7 +37,7 @@ export async function addFiles(task: TaskState, files: FileList | File[]) {
   for (const f of [...files]) {
     try {
       const fileName = await repo.writeAttachment(task.id, f.name, f);
-      addAttachmentMeta(task.id, { id: newId(), fileName, size: f.size, mimeType: f.type || 'application/octet-stream', addedAt: nowIso(), addedBy: me });
+      addAttachmentMeta(task.id, { id: newAttachmentId(), fileName, size: f.size, mimeType: f.type || 'application/octet-stream', addedAt: nowIso(), addedBy: me });
     } catch (e) {
       showToast(t('attach.saveFailed', { name: f.name, reason: errorText(classifyError(e)) }));
     }

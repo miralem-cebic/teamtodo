@@ -1,13 +1,13 @@
 import { create } from 'zustand';
-import { makeProject, makeSection, makeTask, makeUser, newId, nowIso, pickColor } from '../data/schema';
+import { makeProject, makeSection, makeTask, makeUser, nowIso, pickColor } from '../data/schema';
 import type { Activity, ActivityType, Attachment, Color, ID, MergeableField, Project, Section, Snapshot, Task, TaskState, User, WorkspaceFile } from '../data/types';
 import { MERGEABLE_FIELDS } from '../data/types';
-import { brandId, keysOf, newTaskId, type ProjectId, type SectionId, type TaskId, type UserId } from '../data/ids';
+import { brandId, keysOf, newActivityId, newCommentId, newTaskId, type ProjectId, type SectionId, type TaskId, type UserId } from '../data/ids';
 import { mergeProjects, mergeTask, mergeUsers } from '../data/merge';
 import type { ConflictPayload } from '../data/repository';
 import { normalizeTag, renameInList, withoutTag, withoutTagEverywhere, withTag } from '../lib/tags';
 import type { StorageErrorKind } from '../data/repository';
-import { descendantIds, liveSections, reorderWithinGroup, placeProject } from './selectors';
+import { descendantIds, liveSections, projectState, reorderWithinGroup, placeProject } from './selectors';
 import { t as tr } from '../i18n';
 
 // Central app state. All changes go through the actions below:
@@ -102,7 +102,7 @@ const short = (s: string) => {
   return v.length > 40 ? v.slice(0, 38) + '…' : v;
 };
 const act = (type: ActivityType, data?: Activity['data']): Activity => ({
-  id: newId(),
+  id: newActivityId(),
   userId: get().meId ?? UNKNOWN_USER,
   type,
   ...(data ? { data } : {}),
@@ -361,7 +361,7 @@ export function setProjectPinned(id: ProjectId, pinned: boolean) {
   if (!current || !!current.pinned === pinned) return;
   setProjects(
     (list) => {
-      const group = list.filter((p) => p.id !== id && !p.deletedAt && !p.template && !p.archivedAt && !!p.pinned === pinned);
+      const group = list.filter((p) => p.id !== id && projectState(p) === 'active' && !!p.pinned === pinned);
       const order = pinned ? Math.max(-1, ...group.map((p) => p.order)) + 1 : Math.min(0, ...group.map((p) => p.order)) - 1;
       return list.map((p) => (p.id === id ? touch({ ...p, pinned, order }) : p));
     },
@@ -560,7 +560,7 @@ export function addComment(taskId: TaskId, text: string) {
     return {
       ...t,
       draft: false,
-      comments: [...t.comments, { id: newId(), userId: me, text: text.trim(), mentions, at }],
+      comments: [...t.comments, { id: newCommentId(), userId: me, text: text.trim(), mentions, at }],
       followerIds: followers,
       fieldUpdatedAt: changed ? { ...t.fieldUpdatedAt, followerIds: at } : t.fieldUpdatedAt,
     };

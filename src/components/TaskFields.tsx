@@ -1,6 +1,6 @@
 import type { UserId } from '../data/ids';
 import { toggleDone, updateTask, useApp } from '../store/appStore';
-import { byOrder, isOverdue, liveSections } from '../store/selectors';
+import { byOrder, isOverdue, liveSections, projectState } from '../store/selectors';
 import { diffDays, fmtDue, today } from '../lib/dates';
 import type { TaskState } from '../data/types';
 import { statusLabel, STATUSES } from '../lib/labels';
@@ -115,7 +115,7 @@ export function ProjectField({ task, showSection = true }: { task: TaskState; sh
   const proj = projects.find((x) => x.id === task.projectId && !x.deletedAt);
   const sec = proj?.sections.find((x) => x.id === task.sectionId && !x.deletedAt);
   const locked = !!task.parentId;
-  const choices = projects.filter((x) => !x.deletedAt && !x.archivedAt && !x.template).sort(byOrder);
+  const choices = projects.filter((x) => projectState(x) === 'active').sort(byOrder);
   return (
     <>
       <button type="button" data-field="project" className={'fld' + (proj ? '' : ' empty')} onClick={locked ? undefined : p.open}

@@ -2,7 +2,7 @@
 
 export type ID = string;
 export type { TaskId, ProjectId, SectionId, UserId } from './ids';
-import type { ProjectId, SectionId, TaskId, UserId } from './ids';
+import type { ActivityId, AttachmentId, CommentId, ProjectId, SectionId, TaskId, UserId } from './ids';
 /** Calendar date without time, e.g. "2026-10-02" */
 export type ISODate = string;
 /** Timestamp, e.g. "2026-10-02T14:03:11.123Z" */
@@ -64,7 +64,7 @@ export interface ProjectsFile {
 export type TaskStatus = 'todo' | 'doing' | 'waiting';
 
 export interface Attachment {
-  id: ID;
+  id: AttachmentId;
   fileName: string;
   size: number;
   mimeType: string;
@@ -74,7 +74,7 @@ export interface Attachment {
 }
 
 export interface Comment {
-  id: ID;
+  id: CommentId;
   userId: UserId;
   text: string;
   mentions: UserId[];
@@ -101,7 +101,7 @@ export type ActivityType =
   | 'attachment';
 
 export interface Activity {
-  id: ID;
+  id: ActivityId;
   userId: UserId;
   type: ActivityType;
   data?: Record<string, string | null>;

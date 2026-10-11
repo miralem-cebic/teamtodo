@@ -43,8 +43,21 @@ export const byPinnedThenOrder = (a: Project, b: Project) => Number(!!b.pinned) 
  * Moves a project one place up or down inside its group (pinned or not). Only the projects of that group
  * that change position get a new `order` and `updatedAt`. Returns null if the project cannot move.
  */
+/**
+ * What a project is now. Derived from the file's fields (`deletedAt`, `template`, `archivedAt`), which stay as they are
+ * in the file. Each project has exactly one kind; deleted wins over template, template over archived.
+ */
+export type ProjectState = 'deleted' | 'template' | 'archived' | 'active';
+
+export function projectState(p: Project): ProjectState {
+  if (p.deletedAt) return 'deleted';
+  if (p.template) return 'template';
+  if (p.archivedAt) return 'archived';
+  return 'active';
+}
+
 /** The projects that are shown in the sidebar, in their arrangement: pinned first, then by order */
-const arranged = (projects: Project[]) => projects.filter((p) => !p.deletedAt && !p.template && !p.archivedAt).sort(byPinnedThenOrder);
+const arranged = (projects: Project[]) => projects.filter((p) => projectState(p) === 'active').sort(byPinnedThenOrder);
 
 /** Gives the projects in `ordered` the positions 0, 1, 2 …; only projects whose position changes get `updatedAt` */
 function renumber(projects: Project[], ordered: Project[], at: string): Project[] {
@@ -291,7 +304,7 @@ export function buildGroups(inp: BuildInput): Group[] {
         .sort(byOrder)
         .map((p) => {
           const apply = { projectId: p.id, sectionId: firstSection(p.id) };
-          return { key: p.id, label: p.name, project: p, apply, defaults: { ...baseDef, ...apply }, keep: !p.archivedAt };
+          return { key: p.id, label: p.name, project: p, apply, defaults: { ...baseDef, ...apply }, keep: projectState(p) !== 'archived' };
         }),
       { key: '__none', label: t('group.noProject'), apply: { projectId: null, sectionId: null }, defaults: { ...baseDef, projectId: null, sectionId: null }, keep: true },
     ];
