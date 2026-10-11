@@ -15,6 +15,7 @@ import { BoardView } from '../board/BoardView';
 import { TaskDnd } from '../dnd/TaskDnd';
 import { Sidebar } from '../shell/Sidebar';
 import { TaskPanel } from '../task-panel/TaskPanel';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { InboxView } from '../inbox/InboxView';
 import { loadInboxRead } from '../inbox/inbox';
 import { CalendarView } from '../calendar/CalendarView';
@@ -137,12 +138,15 @@ export function Workspace() {
 
   return (
     <div className={'app' + (navOpen ? ' nav-open' : '') + (panelId ? ' has-panel' : '')}>
-      <Sidebar view={view} go={go} openKeys={() => setKeysOpen(true)} openData={() => setDataOpen(true)} openTeam={() => setTeamOpen(true)} />
+      <ErrorBoundary name="sidebar">
+        <Sidebar view={view} go={go} openKeys={() => setKeysOpen(true)} openData={() => setDataOpen(true)} openTeam={() => setTeamOpen(true)} />
+      </ErrorBoundary>
       {navOpen && <div className="scrim" onClick={() => setNavOpen(false)} />}
       <TaskDnd groups={groups} settings={settings} childrenOf={children}>
       <main className="main">
         <div className="content">
           <Header view={view} onBurger={() => setNavOpen(true)} />
+          <ErrorBoundary key={viewKey(view)} name="view">
           {view.type === 'inbox' || view.type === 'templates' ? (
             <div className="scroll" data-testid="list-scroll">
               {view.type === 'inbox' ? <InboxView /> : <TemplatesView onCreated={(id) => go({ type: 'project', id })} />}
@@ -172,14 +176,31 @@ export function Workspace() {
               </div>
             </>
           )}
+          </ErrorBoundary>
         </div>
-        {panelId && <TaskPanel key={panelId} id={panelId} order={listIds} />}
+        {panelId && (
+          <ErrorBoundary key={panelId} name="panel">
+            <TaskPanel key={panelId} id={panelId} order={listIds} />
+          </ErrorBoundary>
+        )}
       </main>
       </TaskDnd>
       <ToastHost />
-      {keysOpen && <KeysDialog onClose={() => setKeysOpen(false)} />}
-      {dataOpen && <DataDialog onClose={() => setDataOpen(false)} />}
-      {teamOpen && <TeamDialog onClose={() => setTeamOpen(false)} />}
+      {keysOpen && (
+        <ErrorBoundary name="dialog">
+          <KeysDialog onClose={() => setKeysOpen(false)} />
+        </ErrorBoundary>
+      )}
+      {dataOpen && (
+        <ErrorBoundary name="dialog">
+          <DataDialog onClose={() => setDataOpen(false)} />
+        </ErrorBoundary>
+      )}
+      {teamOpen && (
+        <ErrorBoundary name="dialog">
+          <TeamDialog onClose={() => setTeamOpen(false)} />
+        </ErrorBoundary>
+      )}
     </div>
   );
 }

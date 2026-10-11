@@ -71,6 +71,11 @@ if (E2E) {
   };
 }
 
+/** Keeps unsaved edits in the browser before anything else happens (used when the UI crashed). */
+export function saveEmergencyCopy() {
+  persister?.writeEmergencyCopy();
+}
+
 /* ---------- Start ---------- */
 
 export async function boot() {

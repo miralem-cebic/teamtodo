@@ -111,3 +111,9 @@
 .bk-confirm{display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;font-size:13px;color:var(--text-2);background:var(--warn-soft);padding:8px 10px;border-radius:var(--r)}
 .conflicts li{padding:3px 0;font-size:12px}
 .side-note{cursor:pointer}
+
+/* Error boundary: shown in place of a part of the screen that crashed */
+.crash{margin:24px;padding:16px 18px;border:1px solid var(--danger);border-radius:var(--r);background:var(--danger-soft);color:var(--text);max-width:520px}
+.crash-title{font-weight:600;margin:0 0 4px}
+.crash-text{margin:0 0 12px;color:var(--text-2);font-size:13px}
+.crash-actions{display:flex;gap:8px;flex-wrap:wrap}

@@ -151,8 +151,8 @@ export class Persister {
     return this.flush();
   }
 
-  /** Emergency copy of unsaved tasks in the browser, in case the folder cannot be reached */
-  private writeEmergencyCopy() {
+  /** Emergency copy of unsaved tasks in the browser, in case the folder cannot be reached (also used after a crash) */
+  writeEmergencyCopy() {
     try {
       const s = useApp.getState();
       const dirty = Object.values(s.tasks).filter((t) => !t.draft && !this.clean.has(t));
