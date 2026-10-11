@@ -3,6 +3,7 @@
 // Hand-written on purpose: the app has no runtime dependencies beyond the UI stack.
 
 import { normalizeTag } from '../lib/tags';
+import { observeStamp } from './clock';
 import {
   COLORS,
   type Activity,
@@ -70,8 +71,13 @@ const id: Check<string> = (v, path) => (isValidId(v) ? v : fail(path, `expected 
 const str: Check<string> = (v, path) => (typeof v === 'string' ? v : fail(path, `expected a string, got ${describe(v)}`));
 const num: Check<number> = (v, path) => (typeof v === 'number' && Number.isFinite(v) ? v : fail(path, `expected a number, got ${describe(v)}`));
 const bool: Check<boolean> = (v, path) => (typeof v === 'boolean' ? v : fail(path, `expected a boolean, got ${describe(v)}`));
-const dateTime: Check<string> = (v, path) =>
-  typeof v === 'string' && v.length <= 40 && !Number.isNaN(Date.parse(v)) ? v : fail(path, `expected an ISO timestamp, got ${describe(v)}`);
+const dateTime: Check<string> = (v, path) => {
+  if (typeof v === 'string' && v.length <= 40 && !Number.isNaN(Date.parse(v))) {
+    observeStamp(v);
+    return v;
+  }
+  return fail(path, `expected an ISO timestamp, got ${describe(v)}`);
+};
 const date: Check<string> = (v, path) =>
   typeof v === 'string' && DATE_PATTERN.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) ? v : fail(path, `expected a date YYYY-MM-DD, got ${describe(v)}`);
 const time: Check<string> = (v, path) => (typeof v === 'string' && TIME_PATTERN.test(v) ? v : fail(path, `expected a time HH:MM, got ${describe(v)}`));

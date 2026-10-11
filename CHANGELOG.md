@@ -21,6 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Attachment names read from task files are checked before they are used. HTML, SVG and XML attachments are always downloaded, never opened as a page.
+- A change made at the same moment as another one is no longer lost: when another client overwrites the shared file, the next poll brings the change back and writes it again.
+- A device with a slow clock no longer makes its later edits lose against earlier edits from other devices.
+- One broken user or project record in the shared folder no longer blocks saving users and projects.
 - Merging a task no longer keeps an older change timestamp on a field. Such a timestamp could let an older edit win over a newer one later.
 
 ## [0.3.0] - 2026-10-10

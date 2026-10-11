@@ -86,6 +86,9 @@ src/
 - **Writing** (`writeChecked`): if the file is newer than the known version, it is read and merged with `merge.ts`, and the result is written. The persister takes it into the store (`integrateWrittenTask`).
 - **Polling** (`SyncEngine.poll`, every 10 s, on `focus` / `visibilitychange`): waits for ongoing writes, reads only changed files (`pullChanges`), and detects removed tasks and conflict copies. `applyChanges`: if the local task is clean, it is replaced; if it has unsaved changes, the two are merged and then written. Visibly changed rows briefly flash (`flash`).
 - **Tasks:** per field, the newer `fieldUpdatedAt` value wins (on a tie, the local value). Comments, activity, and attachments are combined by ID. `removedAt` / `deletedAt` stay set.
+- **Clean local tasks are merged, not replaced:** if a saved task holds a newer value that the file lacks (another client wrote the file at the same moment and overwrote it), the poll keeps that value and writes it again.
+- **Timestamps** come from `data/clock.ts`: a hybrid clock. Every timestamp read from the folder is observed, and a new one is never earlier than the newest seen. A device with a slow clock therefore cannot make its later edits look older. Limit: a device with a clock far in the future moves the stamps of everyone after it.
+- **Users and projects** are saved leniently: a broken record from another client is kept in the file unchanged, and the valid records are merged and saved.
 - **Projects:** project fields follow the project's `updatedAt`; sections are merged individually by their own `updatedAt`. Section changes do not touch the project's `updatedAt`.
 - **Team:** combined by ID; the newer entry wins.
 

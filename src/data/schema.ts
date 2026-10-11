@@ -1,10 +1,11 @@
+import { stampNow } from './clock';
 import type { Color, ID, Project, Section, Task, User, WorkspaceFile } from './types';
 import { COLORS } from './types';
 
 export const SCHEMA_VERSION = 1;
 
 export const newId = (): ID => crypto.randomUUID();
-export const nowIso = () => new Date().toISOString();
+export const nowIso = () => stampNow();
 
 export function makeTask(fields: Partial<Task> & { createdBy: ID }): Task {
   const at = nowIso();

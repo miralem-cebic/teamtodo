@@ -1,5 +1,5 @@
 import { mergeProjects, mergeTask, mergeUsers, sameJson } from '../merge';
-import { migrate, migrateCollection, NewerSchemaError } from '../migrations';
+import { migrate, migrateCollection, NewerSchemaError, type RejectedRecord } from '../migrations';
 import type { BackupInfo, ChangeSet, LoadIssue, LoadResult, Repository } from '../repository';
 import { SCHEMA_VERSION } from '../schema';
 import type { ID, Project, ProjectsFile, Snapshot, Task, User, UsersFile, WorkspaceFile } from '../types';
@@ -11,6 +11,13 @@ import { isSafeFileName, toSafeFileName, UnsafeFileNameError } from './fileNames
 //   tasks/<taskId>.json
 //   attachments/<taskId>/<dateiname>
 //   backups/<JJJJ-MM-TT>.json
+
+/** The raw entries of a collection file that were rejected, to write them back unchanged */
+function brokenEntries(raw: unknown, kind: 'users' | 'projects', rejected: RejectedRecord[]): unknown[] {
+  const list = (raw as Record<string, unknown>)[kind];
+  if (!Array.isArray(list)) return [];
+  return rejected.map((r) => list[Number(/\[(\d+)\]$/.exec(r.path)?.[1])]).filter((x) => x !== undefined);
+}
 
 export const FILES = { workspace: 'workspace.json', users: 'users.json', projects: 'projects.json' } as const;
 export const DIRS = { tasks: 'tasks', attachments: 'attachments', backups: 'backups' } as const;
@@ -145,8 +152,9 @@ export class FsRepository implements Repository {
       else if (!changed(name, f.lastModified)) continue;
       else
         try {
-          if (name === FILES.users) out.users = migrate<UsersFile>('users', await this.readJson(f.handle, name)).users;
-          else if (name === FILES.projects) out.projects = migrate<ProjectsFile>('projects', await this.readJson(f.handle, name)).projects;
+          // broken records are reported on load; the valid ones are applied here
+          if (name === FILES.users) out.users = migrateCollection('users', await this.readJson(f.handle, name)).items as User[];
+          else if (name === FILES.projects) out.projects = migrateCollection('projects', await this.readJson(f.handle, name)).items as Project[];
           else if (name === FILES.workspace) out.workspace = migrate<WorkspaceFile>('workspace', await this.readJson(f.handle, name));
         } catch {
           /* half-written file (OneDrive) → retried on the next pass */
@@ -207,27 +215,41 @@ export class FsRepository implements Repository {
   }
 
   async saveUsers(users: User[]) {
-    const merged = await this.writeChecked<UsersFile>(
-      this.root,
-      FILES.users,
-      FILES.users,
-      { schemaVersion: SCHEMA_VERSION, users },
-      (raw) => migrate<UsersFile>('users', raw),
-      (l, r) => ({ ...l, users: mergeUsers(l.users, r.users) }),
-    );
-    return sameJson(merged.users, users) ? users : merged.users;
+    const merged = await this.writeCollection('users', users, mergeUsers);
+    return sameJson(merged, users) ? users : merged;
   }
 
   async saveProjects(projects: Project[]) {
-    const merged = await this.writeChecked<ProjectsFile>(
-      this.root,
-      FILES.projects,
-      FILES.projects,
-      { schemaVersion: SCHEMA_VERSION, projects },
-      (raw) => migrate<ProjectsFile>('projects', raw),
-      (l, r) => ({ ...l, projects: mergeProjects(l.projects, r.projects) }),
-    );
-    return sameJson(merged.projects, projects) ? projects : merged.projects;
+    const merged = await this.writeCollection('projects', projects, mergeProjects);
+    return sameJson(merged, projects) ? projects : merged;
+  }
+
+  /**
+   * Users and projects, with the same conflict check as `writeChecked`. A broken record in the file
+   * from another client does not block the save: the valid records are merged, and the broken ones are
+   * written back unchanged, so nothing is lost.
+   */
+  private async writeCollection<T>(kind: 'users' | 'projects', local: T[], merge: (local: T[], remote: T[]) => T[]): Promise<T[]> {
+    const name = kind === 'users' ? FILES.users : FILES.projects;
+    let next = local;
+    let broken: unknown[] = [];
+    try {
+      const file = await (await this.root.getFileHandle(name)).getFile();
+      const known = this.known.get(name);
+      if (known === undefined || file.lastModified > known) {
+        const text = await file.text();
+        if (text.trim()) {
+          const raw = JSON.parse(text) as unknown;
+          const res = migrateCollection(kind, raw);
+          broken = brokenEntries(raw, kind, res.rejected);
+          next = merge(local, res.items as T[]);
+        }
+      }
+    } catch (e) {
+      if (!isNotFound(e) && !(e instanceof SyntaxError)) throw e;
+    }
+    this.known.set(name, await writeJson(this.root, name, { schemaVersion: SCHEMA_VERSION, [kind]: [...next, ...broken] }));
+    return next;
   }
 
   async saveTask(task: Task) {
