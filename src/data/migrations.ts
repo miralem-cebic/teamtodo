@@ -45,7 +45,7 @@ const isDoc = (v: unknown): v is Doc => !!v && typeof v === 'object' && !Array.i
 function upgrade(kind: FileKind, raw: unknown): Doc {
   if (!isDoc(raw)) throw new InvalidFileError(`Invalid ${kind} file`);
   let doc = raw;
-  let version = typeof doc.schemaVersion === 'number' ? doc.schemaVersion : 1;
+  let version = typeof doc['schemaVersion'] === 'number' ? doc['schemaVersion'] : 1;
   if (version > SCHEMA_VERSION) throw new NewerSchemaError(kind, version);
   while (version < SCHEMA_VERSION) {
     const step = MIGRATIONS[kind].find((m) => m.from === version);
@@ -63,28 +63,28 @@ function fillMissingTask(doc: Doc): Doc {
   const t = doc;
   return {
     ...t,
-    parentId: or(t.parentId, null),
-    projectId: or(t.projectId, null),
-    sectionId: or(t.sectionId, null),
-    title: or(t.title, ''),
-    description: or(t.description, ''),
-    assigneeId: or(t.assigneeId, null),
-    dueDate: or(t.dueDate, null),
-    dueTime: or(t.dueTime, null),
-    status: or(t.status, 'todo'),
-    completedAt: or(t.completedAt, null),
-    order: or(t.order, 0),
-    followerIds: or(t.followerIds, []),
-    attachments: or(t.attachments, []),
-    comments: or(t.comments, []),
-    activity: or(t.activity, []),
-    deletedAt: or(t.deletedAt, null),
-    fieldUpdatedAt: or(t.fieldUpdatedAt, {}),
+    parentId: or(t['parentId'], null),
+    projectId: or(t['projectId'], null),
+    sectionId: or(t['sectionId'], null),
+    title: or(t['title'], ''),
+    description: or(t['description'], ''),
+    assigneeId: or(t['assigneeId'], null),
+    dueDate: or(t['dueDate'], null),
+    dueTime: or(t['dueTime'], null),
+    status: or(t['status'], 'todo'),
+    completedAt: or(t['completedAt'], null),
+    order: or(t['order'], 0),
+    followerIds: or(t['followerIds'], []),
+    attachments: or(t['attachments'], []),
+    comments: or(t['comments'], []),
+    activity: or(t['activity'], []),
+    deletedAt: or(t['deletedAt'], null),
+    fieldUpdatedAt: or(t['fieldUpdatedAt'], {}),
   };
 }
 
 function fillMissingProject(doc: Doc): Doc {
-  return { ...doc, sections: or(doc.sections, []) };
+  return { ...doc, sections: or(doc['sections'], []) };
 }
 
 /** Strict: every record must be valid, otherwise the whole file is rejected. Used for writes and backups. */
@@ -98,7 +98,8 @@ export function migrate<T>(kind: FileKind, raw: unknown): T {
     case 'users':
     case 'projects': {
       const { items, rejected } = collection(kind, doc);
-      if (rejected.length) throw new InvalidFileError(`${kind}: ${rejected[0]!.message}`);
+      const [first] = rejected;
+      if (first) throw new InvalidFileError(`${kind}: ${first.message}`);
       return { schemaVersion: SCHEMA_VERSION, [kind]: items } as T;
     }
   }

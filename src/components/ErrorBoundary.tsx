@@ -14,8 +14,7 @@ interface State {
 }
 
 /** Test hook (only with ?e2e): the named boundary throws while rendering its children. */
-const injectedCrash = (name: string) =>
-  location.search.includes('e2e') && (window as unknown as { __e2eCrash?: string }).__e2eCrash === name;
+const injectedCrash = (name: string) => location.search.includes('e2e') && window.__e2eCrash === name;
 
 function Explode({ name }: { name: string }): never {
   throw new Error(`Injected crash in ${name}`);

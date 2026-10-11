@@ -22,7 +22,11 @@ export function sampleSnapshot(workspaceName: string): Snapshot {
   const marketing = makeProject('Marketing', 'teal', 1, ['Events', 'Add-ons', 'Do next week', 'Do later']);
   const website = makeProject('Website relaunch', 'violet', 2, ['Concept', 'Copy', 'Design', 'Launch']);
   const messe = makeProject('Trade fair 2026', 'amber', 3, ['Preparation', 'On site', 'Follow-up']);
-  const sec = (p: typeof marketing, i: number) => p.sections[i]!.id;
+  const sec = (p: typeof marketing, i: number) => {
+    const s = p.sections[i];
+    if (!s) throw new Error(`No section ${i} in ${p.name}`);
+    return s.id;
+  };
 
   const created = new Date(Date.now() - 3 * 86400000).toISOString();
   const tasks: Task[] = [];

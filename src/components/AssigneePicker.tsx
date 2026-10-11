@@ -42,7 +42,7 @@ export function AssigneePicker({ value, onPick }: { value: ID | null; onPick: (i
         role="combobox"
         aria-expanded="true"
         aria-controls="pk-people"
-        aria-activedescendant={items[hi] ? `pk-${items[hi]!.k}` : undefined}
+        aria-activedescendant={items[hi] ? `pk-${items[hi].k}` : undefined}
         onChange={(e) => {
           setQ(e.target.value);
           setHi(0);
@@ -56,7 +56,7 @@ export function AssigneePicker({ value, onPick }: { value: ID | null; onPick: (i
             setHi((h) => Math.max(0, h - 1));
           } else if (e.key === 'Enter' && items[hi]) {
             e.preventDefault();
-            pick(items[hi]!);
+            pick(items[hi]);
           }
         }}
       />

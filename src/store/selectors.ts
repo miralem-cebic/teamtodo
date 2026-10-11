@@ -58,7 +58,12 @@ function childIndex(tasks: Record<ID, TaskState>): Map<ID, ID[]> {
   let index = childIndexCache.get(tasks);
   if (!index) {
     index = new Map();
-    for (const t of Object.values(tasks)) if (t.parentId) (index.get(t.parentId) ?? index.set(t.parentId, []).get(t.parentId)!).push(t.id);
+    for (const t of Object.values(tasks)) {
+    if (!t.parentId) continue;
+    const siblings = index.get(t.parentId) ?? [];
+    index.set(t.parentId, siblings);
+    siblings.push(t.id);
+  }
     childIndexCache.set(tasks, index);
   }
   return index;

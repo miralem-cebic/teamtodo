@@ -6,7 +6,7 @@ import type { ID } from '../../data/types';
 import { t } from '../../i18n';
 
 /** New project: from scratch or from a template. Template tasks come without assignments and due dates. */
-export function NewProjectDialog({ onClose, onCreated, templateId }: { onClose: () => void; onCreated: (id: ID) => void; templateId?: ID }) {
+export function NewProjectDialog({ onClose, onCreated, templateId }: { onClose: () => void; onCreated: (id: ID) => void; templateId?: ID | undefined }) {
   const projects = useApp((s) => s.projects);
   const templates = useMemo(() => projects.filter((p) => p.template && !p.deletedAt).sort(byOrder), [projects]);
   const [name, setName] = useState('');

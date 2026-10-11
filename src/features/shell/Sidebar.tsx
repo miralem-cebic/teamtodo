@@ -40,7 +40,7 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
     const c: Record<string, number> = { my: 0 };
     for (const t of visible) {
       if (t.completedAt) continue;
-      if (t.assigneeId === meId) c.my! += 1;
+      if (t.assigneeId === meId) c['my'] = (c['my'] ?? 0) + 1;
       if (t.projectId && !t.parentId) c[t.projectId] = (c[t.projectId] ?? 0) + 1;
     }
     return c;
@@ -59,7 +59,7 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
       <button type="button" className={'nav' + (view.type === 'my' ? ' on' : '')} onClick={() => go({ type: 'my' })} aria-current={view.type === 'my' ? 'page' : undefined}>
         <Icon n="mine" />
         <span>{t('nav.myTasks')}</span>
-        <span className="n">{counts.my}</span>
+        <span className="n">{counts['my']}</span>
       </button>
       <button type="button" className={'nav' + (view.type === 'inbox' ? ' on' : '')} onClick={() => go({ type: 'inbox' })} aria-current={view.type === 'inbox' ? 'page' : undefined}
         aria-label={unread ? t('nav.inboxUnread', { n: unread }) : t('nav.inbox')}>

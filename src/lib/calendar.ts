@@ -17,7 +17,9 @@ export function tasksByDay<T extends Task>(tasks: T[]): Map<ISODate, T[]> {
   const map = new Map<ISODate, T[]>();
   for (const t of tasks) {
     if (!t.dueDate) continue;
-    (map.get(t.dueDate) ?? map.set(t.dueDate, []).get(t.dueDate)!).push(t);
+    const bucket = map.get(t.dueDate) ?? [];
+  map.set(t.dueDate, bucket);
+  bucket.push(t);
   }
   for (const list of map.values()) {
     list.sort((a, b) => (a.dueTime ?? '99:99').localeCompare(b.dueTime ?? '99:99') || a.order - b.order);

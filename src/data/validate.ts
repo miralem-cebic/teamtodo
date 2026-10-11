@@ -116,8 +116,11 @@ function describe(v: unknown): string {
   return typeof v === 'object' ? 'an object' : String(v);
 }
 
-/** Reserved for recurring tasks: only the shape is checked for now. */
-const recurrence: Check<RecurrenceRule> = (v, path) => (isRecord(v) ? (v as unknown as RecurrenceRule) : fail(path, `expected an object, got ${describe(v)}`));
+/** Reserved for recurring tasks, checked so that the shape is known once they are used. */
+const recurrence = objectOf<RecurrenceRule>({
+  freq: oneOf<RecurrenceRule['freq']>(['daily', 'weekly', 'monthly', 'yearly']),
+  interval: num,
+});
 
 const fieldTimestamps: Check<Record<string, string>> = (v, path) => {
   if (!isRecord(v)) return fail(path, `expected an object, got ${describe(v)}`);

@@ -11,23 +11,23 @@ export function activityText(a: Activity, users: User[]): string {
     case 'created':
       return t('act.created');
     case 'assigned':
-      return t('act.assigned', { name: name(d.userId, d.name) });
+      return t('act.assigned', { name: name(d['userId'], d['name']) });
     case 'unassigned':
       return t('act.unassigned');
     case 'due':
-      return d.date ? t('act.due', { date: fmtDate(d.date) }) : t('act.dueChanged');
+      return d['date'] ? t('act.due', { date: fmtDate(d['date']) }) : t('act.dueChanged');
     case 'dueRemoved':
       return t('act.dueRemoved');
     case 'status':
-      return t('act.status', { status: statusLabel(d.status as TaskStatus) });
+      return t('act.status', { status: statusLabel(d['status'] as TaskStatus) });
     case 'completed':
       return t('act.completed');
     case 'reopened':
       return t('act.reopened');
     case 'section':
-      return t('act.section', { name: d.name ?? '?' });
+      return t('act.section', { name: d['name'] ?? '?' });
     case 'project':
-      return t('act.project', { name: d.name ?? '?' });
+      return t('act.project', { name: d['name'] ?? '?' });
     case 'projectRemoved':
       return t('act.projectRemoved');
     case 'renamed':
@@ -37,6 +37,6 @@ export function activityText(a: Activity, users: User[]): string {
     case 'restored':
       return t('act.restored');
     case 'attachment':
-      return t('act.attachment', { name: d.name ?? t('act.file') });
+      return t('act.attachment', { name: d['name'] ?? t('act.file') });
   }
 }

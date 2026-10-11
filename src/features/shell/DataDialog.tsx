@@ -11,7 +11,7 @@ import { t } from '../../i18n';
 const label = (name: string) => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(name)) return t('data.daily', { date: fmtDate(name) });
   const m = /^before-restore-(\d{4}-\d{2}-\d{2})-(\d{2})-(\d{2})/.exec(name);
-  return m ? t('data.beforeRestore', { date: `${fmtDate(m[1]!)} ${m[2]}:${m[3]}` }) : name;
+  return m ? t('data.beforeRestore', { date: `${fmtDate(m[1] ?? '')} ${m[2]}:${m[3]}` }) : name;
 };
 const size = (b: number) => (b < 1048576 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1048576).toFixed(1)} MB`);
 

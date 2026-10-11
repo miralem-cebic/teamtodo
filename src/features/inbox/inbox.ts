@@ -30,7 +30,7 @@ export function deriveInbox(tasks: Record<ID, TaskState>, users: User[], meId: I
     const follows = task.followerIds.includes(meId);
     for (const a of task.activity) {
       if (a.userId === meId || a.at < since) continue;
-      if (a.type === 'assigned' && a.data?.userId === meId) {
+      if (a.type === 'assigned' && a.data?.['userId'] === meId) {
         out.push({ id: a.id, kind: 'assigned', taskId: task.id, userId: a.userId, at: a.at, text: t('inbox.assigned') });
       } else if (a.type === 'completed' && follows) {
         out.push({ id: a.id, kind: 'completed', taskId: task.id, userId: a.userId, at: a.at, text: activityText(a, users) });

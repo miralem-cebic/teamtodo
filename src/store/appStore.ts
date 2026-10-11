@@ -44,7 +44,7 @@ export function trimUndo(stack: UndoEntry[]): UndoEntry[] {
   let out = stack.slice(-UNDO_LIMIT);
   let total = out.reduce((sum, e) => sum + (e.bytes ?? 0), 0);
   while (out.length > 1 && total > UNDO_MAX_BYTES) {
-    total -= out[0]!.bytes ?? 0;
+    total -= out[0]?.bytes ?? 0;
     out = out.slice(1);
   }
   return out;
@@ -98,7 +98,7 @@ const act = (type: ActivityType, data?: Activity['data']): Activity => ({
   id: newId(),
   userId: get().meId ?? 'unbekannt',
   type,
-  data,
+  ...(data ? { data } : {}),
   at: nowIso(),
 });
 const projectName = (id: ID | null) => get().projects.find((p) => p.id === id)?.name ?? null;
@@ -160,7 +160,7 @@ function applyPatch(t: TaskState, patch: TaskPatch, at: string): TaskState {
   for (const key of Object.keys(patch) as MergeableField[]) {
     const v = patch[key];
     if (JSON.stringify(t[key]) === JSON.stringify(v)) continue;
-    (next as unknown as Record<string, unknown>)[key] = v;
+    Object.assign(next, { [key]: v });
     next.fieldUpdatedAt[key] = at;
     if (t.draft) continue;
     if (key === 'assigneeId') {
@@ -195,7 +195,10 @@ export function updateTask(id: ID, patch: TaskPatch, opts: UpdateOptions = {}) {
   const changed: Record<ID, TaskState> = { [id]: applyPatch(t, patch, at) };
   // Subtasks follow their parent task into the project
   if ('projectId' in patch) {
-    for (const d of descendantIds(s.tasks, id)) changed[d] = applyPatch(s.tasks[d]!, { projectId: patch.projectId ?? null }, at);
+    for (const d of descendantIds(s.tasks, id)) {
+      const child = s.tasks[d];
+      if (child) changed[d] = applyPatch(child, { projectId: patch.projectId ?? null }, at);
+    }
   }
   if (patch.completedAt) s.recentDone.add(id);
   const tracked = Object.keys(patch).some((k) => k !== 'title' && k !== 'description');
@@ -213,7 +216,7 @@ export function toggleDone(id: ID, value?: boolean) {
   const done = value ?? !t.completedAt;
   if (done === !!t.completedAt) return;
   updateTask(id, { completedAt: done ? nowIso() : null }, done ? { undo: tr('undo.completed', { title: short(t.title) }), toast: true } : { undo: tr('undo.reopened') });
-  if (t.draft && done) set((s) => ({ tasks: { ...s.tasks, [id]: { ...s.tasks[id]!, draft: false } } }));
+  if (t.draft && done) set((s) => ({ tasks: { ...s.tasks, [id]: { ...(s.tasks[id] ?? t), draft: false } } }));
 }
 
 /** Soft delete including subtasks. Drafts are removed directly. */
@@ -226,7 +229,8 @@ export function deleteTask(id: ID, opts: { silent?: boolean } = {}) {
   const tasks = { ...s.tasks };
   const at = nowIso();
   for (const k of ids) {
-    const x = s.tasks[k]!;
+    const x = s.tasks[k];
+    if (!x) continue;
     before[k] = x;
     if (x.draft) delete tasks[k];
     else tasks[k] = { ...x, deletedAt: at, fieldUpdatedAt: { ...x.fieldUpdatedAt, deletedAt: at }, activity: [...x.activity, act('deleted')] };
@@ -318,8 +322,8 @@ export function deleteSection(projectId: ID, sectionId: ID) {
   const roots = Object.values(s.tasks).filter((t) => t.projectId === projectId && t.sectionId === sectionId && !t.deletedAt);
   for (const r of roots) {
     for (const k of [r.id, ...descendantIds(s.tasks, r.id)]) {
-      const x = s.tasks[k]!;
-      if (x.deletedAt) continue;
+      const x = s.tasks[k];
+      if (!x || x.deletedAt) continue;
       before[k] = x;
       if (x.draft) delete tasks[k];
       else tasks[k] = { ...x, deletedAt: at, fieldUpdatedAt: { ...x.fieldUpdatedAt, deletedAt: at } };
@@ -348,7 +352,8 @@ function copyTaskTree(src: TaskState[], projectId: ID, sectionMap: Map<ID, ID>):
   const ids = new Map(src.map((t) => [t.id, newId()] as const));
   const out: Record<ID, TaskState> = {};
   for (const t of src) {
-    const id = ids.get(t.id)!;
+    const id = ids.get(t.id);
+    if (!id) continue;
     out[id] = {
       ...makeTask({ createdBy: me ?? 'unbekannt', id, projectId, title: t.title, description: t.description, order: t.order }),
       parentId: t.parentId ? (ids.get(t.parentId) ?? null) : null,
@@ -539,16 +544,23 @@ export function undo() {
         const old = before.get(x.id);
         return old && JSON.stringify(old) !== JSON.stringify(x) ? { ...old, updatedAt: at } : x;
       });
-      return fieldsChanged
-        ? { ...p, name: b.name, color: b.color, order: b.order, archivedAt: b.archivedAt, deletedAt: b.deletedAt, updatedAt: at, sections }
-        : { ...p, sections };
+      if (!fieldsChanged) return { ...p, sections };
+      const out: Project = { ...p, name: b.name, color: b.color, order: b.order, updatedAt: at, sections };
+      if (b.archivedAt !== undefined) out.archivedAt = b.archivedAt;
+      else delete out.archivedAt;
+      if (b.deletedAt !== undefined) out.deletedAt = b.deletedAt;
+      else delete out.deletedAt;
+      return out;
     });
   }
   let users = s.users;
   if (entry.users) {
     const prev = entry.users;
     // Restored with a new timestamp, so that the restore also wins against the removal in other browsers
-    users = s.users.map((x) => (x.id in prev ? { ...prev[x.id]!, updatedAt: at } : x));
+    users = s.users.map((x) => {
+      const old = prev[x.id];
+      return old ? { ...old, updatedAt: at } : x;
+    });
   }
   set({ tasks, projects, users, undoStack: s.undoStack.slice(0, -1) });
   showToast(tr('toast.undone'));

@@ -188,7 +188,8 @@ function SubRow({ t, parent, siblings, kids }: { t: TaskState; parent: TaskState
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.nativeEvent.isComposing) return;
     const mod = isMod(e);
-    const row = rowRef.current!;
+    const row = rowRef.current;
+    if (!row) return;
     let handled = true;
     if (mod && e.key === 'Enter') toggleDone(t.id);
     else if (mod && e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) moveBy(e.key === 'ArrowUp' ? -1 : 1);
@@ -196,7 +197,7 @@ function SubRow({ t, parent, siblings, kids }: { t: TaskState; parent: TaskState
     else if (e.altKey && (e.code === 'KeyP' || e.code === 'KeyD')) {
       const btn = row.querySelector<HTMLButtonElement>(e.code === 'KeyP' ? '[data-field="assignee"]' : '[data-field="due"]');
       if (btn) {
-        btn.dataset.returnFocus = `${t.id}|panel`;
+        btn.dataset['returnFocus'] = `${t.id}|panel`;
         btn.click();
       }
     }

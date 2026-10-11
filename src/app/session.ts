@@ -52,6 +52,11 @@ const set = useSession.setState;
 
 let handle: FileSystemDirectoryHandle | null = null;
 let repo: FsRepository | null = null;
+
+function requireRepo(): FsRepository {
+  if (!repo) throw new Error('No data folder');
+  return repo;
+}
 let persister: Persister | null = null;
 let sync: SyncEngine | null = null;
 
@@ -64,7 +69,7 @@ const E2E_NS = 'teamtodo.e2e';
 const POLL = E2E && params.get('poll') ? Number(params.get('poll')) : undefined;
 
 if (E2E) {
-  (window as unknown as { __e2e: unknown }).__e2e = {
+  window.__e2e = {
     flush: () => persister?.flush(),
     sync: () => sync?.poll(),
     repo: () => repo,
@@ -105,7 +110,8 @@ export async function pickFolder() {
       StorageDir.clear(localStorage, E2E_NS);
       handle = new StorageDir(localStorage, E2E_NS).asHandle();
     } else {
-      handle = await window.showDirectoryPicker!({ id: 'teamtodo', mode: 'readwrite' });
+      if (!window.showDirectoryPicker) throw new Error('The folder picker is not available in this browser');
+      handle = await window.showDirectoryPicker({ id: 'teamtodo', mode: 'readwrite' });
       await saveDirHandle(handle);
     }
     set({ dirName: handle.name });
@@ -175,7 +181,7 @@ export async function initialize(opts: { samples: boolean; subfolder: boolean })
       if (await repo.hasWorkspace()) return load();
     }
     const name = handle.name;
-    await repo!.initialize(opts.samples ? sampleSnapshot(name) : emptySnapshot(name));
+    await requireRepo().initialize(opts.samples ? sampleSnapshot(name) : emptySnapshot(name));
     await load();
   } catch (e) {
     set({ phase: 'failed', error: t('session.setupFailed', { reason: errorText(classifyError(e)) }) });
@@ -183,18 +189,18 @@ export async function initialize(opts: { samples: boolean; subfolder: boolean })
 }
 
 async function load() {
-  const res = await repo!.loadAll();
+  const res = await requireRepo().loadAll();
   if (res.newerSchema) {
     set({ phase: 'failed', error: errorText('newerSchema') });
     return;
   }
   stopEngines();
   loadSnapshot(res.snapshot);
-  persister = new Persister(repo!);
+  persister = new Persister(requireRepo());
   persister.start();
   recoverEmergencyCopy(res.snapshot.workspace.id);
   set({ conflictCopies: res.conflictCopies, issues: res.issues });
-  sync = new SyncEngine(repo!, persister, (names) => set({ conflictCopies: names }), POLL);
+  sync = new SyncEngine(requireRepo(), persister, (names) => set({ conflictCopies: names }), POLL);
   sync.start();
   void maintenance();
 
@@ -222,7 +228,10 @@ function recoverEmergencyCopy(workspaceId: ID) {
     });
     const newest = (t: Task) => Object.values(t.fieldUpdatedAt).sort().pop() ?? t.createdAt;
     const cur = useApp.getState().tasks;
-    const take = tasks.filter((t) => !cur[t.id] || newest(t) > newest(cur[t.id]!));
+    const take = tasks.filter((t) => {
+      const old = cur[t.id];
+      return !old || newest(t) > newest(old);
+    });
     if (!take.length) return;
     useApp.setState({ tasks: { ...cur, ...Object.fromEntries(take.map((t) => [t.id, t])) } });
     showToast(t('toast.restored', { n: take.length }));

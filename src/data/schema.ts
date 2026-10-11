@@ -61,4 +61,4 @@ export function makeWorkspace(name: string): WorkspaceFile {
   return { schemaVersion: SCHEMA_VERSION, id: newId(), name, createdAt: nowIso(), lastBackupDate: null, lastPurgeAt: null };
 }
 
-export const pickColor = (index: number): Color => COLORS[index % COLORS.length]!;
+export const pickColor = (index: number): Color => COLORS[index % COLORS.length] ?? COLORS[0];

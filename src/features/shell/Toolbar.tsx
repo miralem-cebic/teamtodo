@@ -101,7 +101,7 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
       </label>
       <button type="button" className={'tb' + (s.completed !== 'open' ? ' active' : '')} onClick={cp.open} aria-haspopup="menu">
         <Icon n="mine" s={15} />
-        <span>{completedOptions().find((x) => x[0] === s.completed)![1]}</span>
+        <span>{completedOptions().find((x) => x[0] === s.completed)?.[1]}</span>
       </button>
       <button type="button" className={'tb' + (nFilters ? ' active' : '')} onClick={fp.open} aria-haspopup="dialog" aria-label={nFilters ? t('toolbar.filterActive', { n: nFilters }) : t('toolbar.filter')}>
         <Icon n="filter" s={15} />
@@ -118,7 +118,7 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
       </button>
       <button type="button" className={'tb' + (s.sort !== 'manual' ? ' active' : '')} onClick={sp.open} aria-haspopup="menu">
         <Icon n="sort" s={15} />
-        <span>{s.sort === 'manual' ? t('toolbar.sort') : sortOptions().find((x) => x[0] === s.sort)![1]}</span>
+        <span>{s.sort === 'manual' ? t('toolbar.sort') : sortOptions().find((x) => x[0] === s.sort)?.[1]}</span>
       </button>
       <button type="button" className={'tb' + (s.group !== def.group ? ' active' : '')} onClick={gp.open} aria-haspopup="menu">
         <Icon n="group" s={15} />

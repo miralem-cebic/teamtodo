@@ -19,7 +19,7 @@ function dataUrlToBlob(url: string, type?: string): Blob {
   const bin = atob(b64);
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new Blob([bytes], { type });
+  return new Blob([bytes], type ? { type } : {});
 }
 
 function blobToDataUrl(b: Blob): Promise<string> {
@@ -61,9 +61,8 @@ class StorageFile {
         const prev = this.s.getItem(this.key);
         const m = Math.max(Date.now(), prev ? (JSON.parse(prev) as Entry).m + 1 : 0);
         const binary = parts.some((p) => typeof p !== 'string');
-        const entry: Entry = binary
-          ? { c: await blobToDataUrl(new Blob(parts)), m, b: true, t: parts.find((p): p is Blob => typeof p !== 'string')?.type }
-          : { c: parts.join(''), m };
+        const type = parts.find((p): p is Blob => typeof p !== 'string')?.type;
+        const entry: Entry = binary ? { c: await blobToDataUrl(new Blob(parts)), m, b: true, ...(type ? { t: type } : {}) } : { c: parts.join(''), m };
         this.s.setItem(this.key, JSON.stringify(entry));
       },
       abort: async () => undefined,

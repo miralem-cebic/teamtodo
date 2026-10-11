@@ -27,7 +27,7 @@ export function focusRow(row: HTMLElement | null | undefined) {
 
 /** Neighboring row relative to `row` (dir −1/+1) in the same section */
 export function neighbour(row: HTMLElement, dir: number): HTMLElement | null {
-  const scope = (row.dataset.scope ?? 'list') as NavScope;
+  const scope = (row.dataset['scope'] ?? 'list') as NavScope;
   const rows = rowsIn(scope);
   return rows[rows.indexOf(row) + dir] ?? null;
 }

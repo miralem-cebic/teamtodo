@@ -8,7 +8,10 @@ import './styles/components.css';
 import './styles/app.css';
 import { App } from './App';
 
-createRoot(document.getElementById('root')!).render(
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing #root element in index.html');
+
+createRoot(root).render(
   <StrictMode>
     <App />
   </StrictMode>,

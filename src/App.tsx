@@ -26,7 +26,7 @@ export function App() {
     document.documentElement.lang = currentLang();
   }, [lang]);
   useEffect(() => {
-    document.documentElement.dataset.palette = palette;
+    document.documentElement.dataset['palette'] = palette;
   }, [palette]);
   // Last resort: a crash outside every boundary below still shows a way back
   return (

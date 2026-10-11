@@ -158,7 +158,8 @@ export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
       const a2 = tasks[a.taskId];
       const o2 = tasks[o.taskId];
       if (!a2 || !o2 || a2.parentId !== o2.parentId) return;
-      const list = (childrenOf[a2.parentId!] ?? []).filter((x) => x.id !== a.taskId);
+      const siblings = a2.parentId ? childrenOf[a2.parentId] : undefined;
+  const list = (siblings ?? []).filter((x) => x.id !== a.taskId);
       const i = list.findIndex((x) => x.id === o.taskId) + (pos === 'after' ? 1 : 0);
       updateTask(a.taskId, { order: orderBetween(list[i - 1], list[i]) }, { undo: t('undo.moved') });
       return;

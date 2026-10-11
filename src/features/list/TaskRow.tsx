@@ -46,7 +46,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
   const canExpand = view.type === 'project' && depth === 0;
   const dnd = useDndRow(
     `t:${task.id}`,
-    depth > 0 ? { type: 'sub', taskId: task.id, parentId: task.parentId!, scope: 'list' } : { type: 'task', taskId: task.id, groupKey: group?.key ?? '' },
+    task.parentId && depth > 0 ? { type: 'sub', taskId: task.id, parentId: task.parentId, scope: 'list' } : { type: 'task', taskId: task.id, groupKey: group?.key ?? '' },
     !task.title.trim(),
   );
 
@@ -91,7 +91,8 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
     const i = siblings.findIndex((x) => x.id === task.id);
     const j = i + dir;
     if (j < 0 || j >= siblings.length) return;
-    const a = siblings[j]!;
+    const a = siblings[j];
+    if (!a) return;
     const b = siblings[j + dir];
     updateTask(task.id, { order: dir < 0 ? orderBetween(b, a) : orderBetween(a, b) }, { undo: t('undo.moved') });
   };
@@ -99,7 +100,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
   const openField = (name: 'assignee' | 'due') => {
     const btn = rowRef.current?.querySelector<HTMLButtonElement>(`[data-field="${name}"]`);
     if (!btn) return;
-    btn.dataset.returnFocus = `${task.id}|list`;
+    btn.dataset['returnFocus'] = `${task.id}|list`;
     btn.click();
   };
 
@@ -124,7 +125,8 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
   const onTitleKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.nativeEvent.isComposing || common(e)) return;
     const el = e.currentTarget;
-    const row = rowRef.current!;
+    const row = rowRef.current;
+    if (!row) return;
     if (e.key === 'Enter') {
       e.preventDefault();
       if (!task.title.trim()) {
@@ -164,7 +166,7 @@ export function TaskRow({ task, depth = 0, group, siblings, view, third, manual,
       const next = neighbour(row, e.key === 'ArrowUp' ? -1 : 1);
       if (next) {
         focusRow(next);
-        if (useApp.getState().panelId && next.dataset.row) openPanel(next.dataset.row);
+        if (useApp.getState().panelId && next.dataset['row']) openPanel(next.dataset['row']);
       }
     } else if (e.key === 'Enter') {
       e.preventDefault();

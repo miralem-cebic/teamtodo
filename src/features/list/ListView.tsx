@@ -112,6 +112,7 @@ function GroupSection({ g, children }: { g: Group; children: ReactNode }) {
 }
 
 function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseKey: string }) {
+  const section = g.section;
   const focusReq = useApp((s) => s.focusReq);
   // A newly created section starts in edit mode at once (synchronously, so that no keystroke is lost)
   const [editing, setEditing] = useState(() => {
@@ -187,11 +188,11 @@ function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseK
                   {
                     label: t('section.insertBelow'),
                     icon: 'plus',
-                    onClick: () => requestFocus(addSection(projectId, t('section.new'), g.section!.order), 'section'),
+                    onClick: () => section && requestFocus(addSection(projectId, t('section.new'), section.order), 'section'),
                     keepFocus: true,
                   },
                   { sep: true },
-                  { label: t('section.delete'), icon: 'trash', danger: true, onClick: () => deleteSection(projectId, g.section!.id) },
+                  { label: t('section.delete'), icon: 'trash', danger: true, onClick: () => section && deleteSection(projectId, section.id) },
                 ]}
               />
             </Popover>

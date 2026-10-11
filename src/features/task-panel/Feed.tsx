@@ -81,12 +81,13 @@ export function CommentBox({ t }: { t: TaskState }) {
     setV(val);
     const pos = ref.current?.selectionStart ?? val.length;
     const mm = /(?:^|\s)@([\wäöüÄÖÜß-]*)$/.exec(val.slice(0, pos));
-    setM(mm ? mm[1]! : null);
+    setM(mm?.[1] ?? null);
     setHi(0);
   };
   const links = useLinkInput(ref, v, onChange);
   const insert = (u: User) => {
-    const el = ref.current!;
+    const el = ref.current;
+    if (!el) return;
     const pos = el.selectionStart;
     const before = v.slice(0, pos).replace(/@([\wäöüÄÖÜß-]*)$/, `@${u.name} `);
     setV(before + v.slice(pos));
@@ -137,7 +138,8 @@ export function CommentBox({ t }: { t: TaskState }) {
               setHi((h) => (h + (e.key === 'ArrowDown' ? 1 : -1) + sugg.length) % sugg.length);
             } else if (sugg.length && (e.key === 'Enter' || e.key === 'Tab')) {
               e.preventDefault();
-              insert(sugg[hi]!);
+              const choice = sugg[hi];
+              if (choice) insert(choice);
             } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
               send();

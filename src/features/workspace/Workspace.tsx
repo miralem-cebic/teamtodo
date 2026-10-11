@@ -97,7 +97,7 @@ export function Workspace() {
       if (e.key === 'Escape' && !typing) {
         if (navOpen) setNavOpen(false);
         else if (useApp.getState().panelId) {
-          const id = useApp.getState().panelId!;
+          const id = useApp.getState().panelId ?? '';
           closePanel();
           requestFocus(id, 'row');
         }
