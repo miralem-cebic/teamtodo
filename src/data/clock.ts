@@ -10,6 +10,11 @@ export function observeStamp(iso: string): void {
   if (!Number.isNaN(ms) && ms > newest) newest = ms;
 }
 
+/** The newest timestamp seen in this thread (the parse worker has its own clock and reports it back) */
+export function newestSeenIso(): string | null {
+  return newest > 0 ? new Date(newest).toISOString() : null;
+}
+
 /** A timestamp for a new change: the clock, but at least one millisecond after the newest one seen */
 export function stampNow(): string {
   const ms = Math.max(Date.now(), newest + 1);

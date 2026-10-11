@@ -8,6 +8,8 @@ import type { Plugin } from 'vite';
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'none'",
   "script-src 'self'",
+  // the parse worker is built into the app and started from a blob: URL
+  "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",

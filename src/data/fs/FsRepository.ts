@@ -1,6 +1,8 @@
 import { brandId } from '../ids';
 import { mergeProjects, mergeTask, mergeUsers, sameJson } from '../merge';
 import { migrate, migrateCollection, NewerSchemaError, type RejectedRecord } from '../migrations';
+import { parseFiles, parseOne } from '../parse/parseClient';
+import { parseFailure, type ParseKind } from '../parse/parseFile';
 import { classifyError, type BackupInfo, type ChangeSet, type ConflictPayload, type LoadIssue, type LoadResult, type Repository, type StorageError } from '../repository';
 import { err, ok, type Result } from '../result';
 import { SCHEMA_VERSION } from '../schema';
@@ -148,12 +150,14 @@ export class FsRepository implements Repository {
     await this.runSaveWorkspace(snapshot.workspace);
   }
 
-  private async readJson<T>(handle: FileSystemFileHandle, path: string): Promise<T> {
+  /** Reads a file as text and remembers its timestamp, so that a later pull can tell whether it changed */
+  private async readText(handle: FileSystemFileHandle, path: string): Promise<string> {
     const file = await handle.getFile();
     this.known.set(path, file.lastModified);
-    return JSON.parse(await file.text()) as T;
+    return file.text();
   }
 
+  /** Loads all files. The reads run here; parsing and validation run in the parse worker, one batch per kind. */
   private async runLoadAll(): Promise<LoadResult> {
     const issues: LoadIssue[] = [];
     let newerSchema = false;
@@ -162,13 +166,16 @@ export class FsRepository implements Repository {
       issues.push({ file, message: e instanceof Error ? e.message : String(e) });
     };
 
-    const workspace = migrate<WorkspaceFile>('workspace', await this.readJson(await this.root.getFileHandle(FILES.workspace), FILES.workspace));
+    const workspaceRes = await parseOne('workspace', await this.readText(await this.root.getFileHandle(FILES.workspace), FILES.workspace));
+    if (!workspaceRes.ok) throw parseFailure('workspace', workspaceRes);
+    const workspace = workspaceRes.value as WorkspaceFile;
     // A broken user or project is left out and reported; the rest of the file still loads
     const loadCollection = async <T>(kind: 'users' | 'projects', file: string): Promise<T[]> => {
       try {
-        const res = migrateCollection(kind, await this.readJson(await this.root.getFileHandle(file), file));
+        const res = await parseOne(kind, await this.readText(await this.root.getFileHandle(file), file));
+        if (!res.ok) throw parseFailure(kind, res);
         for (const r of res.rejected) issues.push({ file: `${file} › ${r.path}`, message: r.message });
-        return res.items as T[];
+        return res.value as T[];
       } catch (e) {
         note(file, e);
         return [];
@@ -178,19 +185,27 @@ export class FsRepository implements Repository {
     const projects = await loadCollection<Project>('projects', FILES.projects);
 
     const conflictCopies = [...(await listFiles(this.root)).keys()].filter((n) => TOP_CONFLICT.test(n));
-    const tasks: Task[] = [];
     const files = await listFiles(await this.dir(DIRS.tasks));
+    const texts: { path: string; text: string }[] = [];
     await Promise.all(
       [...files].map(async ([name, f]) => {
         if (!name.endsWith('.json')) return;
         if (!TASK_FILE.test(name)) return void conflictCopies.push(`${DIRS.tasks}/${name}`);
+        const path = `${DIRS.tasks}/${name}`;
         try {
-          tasks.push(migrate<Task>('task', await this.readJson(f.handle, `${DIRS.tasks}/${name}`)));
+          texts.push({ path, text: await this.readText(f.handle, path) });
         } catch (e) {
-          note(`${DIRS.tasks}/${name}`, e);
+          note(path, e);
         }
       }),
     );
+    const tasks: Task[] = [];
+    const results = await parseFiles(texts.map((x) => ({ kind: 'task', text: x.text })));
+    results.forEach((res, i) => {
+      const path = texts[i]?.path ?? '';
+      if (res.ok) tasks.push(res.value as Task);
+      else note(path, parseFailure('task', res));
+    });
     return { snapshot: { workspace, users, projects, tasks }, conflictCopies, issues, newerSchema };
   }
 
@@ -200,21 +215,29 @@ export class FsRepository implements Repository {
     const changed = (path: string, lm: number) => this.known.get(path) !== lm;
 
     for (const [name, f] of top) {
-      if (TOP_CONFLICT.test(name)) out.conflictCopies.push(name);
-      else if (!changed(name, f.lastModified)) continue;
-      else
-        try {
-          // broken records are reported on load; the valid ones are applied here
-          if (name === FILES.users) out.users = migrateCollection('users', await this.readJson(f.handle, name)).items as User[];
-          else if (name === FILES.projects) out.projects = migrateCollection('projects', await this.readJson(f.handle, name)).items as Project[];
-          else if (name === FILES.workspace) out.workspace = migrate<WorkspaceFile>('workspace', await this.readJson(f.handle, name));
-        } catch {
-          /* half-written file (OneDrive) → retried on the next pass */
-        }
+      if (TOP_CONFLICT.test(name)) {
+        out.conflictCopies.push(name);
+        continue;
+      }
+      if (!changed(name, f.lastModified)) continue;
+      const kind: ParseKind | null = name === FILES.users ? 'users' : name === FILES.projects ? 'projects' : name === FILES.workspace ? 'workspace' : null;
+      if (!kind) continue;
+      try {
+        // broken records are reported on load; the valid ones are applied here
+        const res = await parseOne(kind, await this.readText(f.handle, name));
+        // a failed parse (OneDrive: half-written file) is read again on the next pass
+        if (!res.ok) continue;
+        if (kind === 'workspace') out.workspace = res.value as WorkspaceFile;
+        else if (kind === 'users') out.users = res.value as User[];
+        else out.projects = res.value as Project[];
+      } catch {
+        /* the read failed: retried on the next pass */
+      }
     }
 
     const files = await listFiles(await this.dir(DIRS.tasks));
     const seen = new Set<string>();
+    const texts: { path: string; text: string }[] = [];
     for (const [name, f] of files) {
       if (!name.endsWith('.json')) continue;
       if (!TASK_FILE.test(name)) {
@@ -225,10 +248,14 @@ export class FsRepository implements Repository {
       seen.add(path);
       if (!changed(path, f.lastModified)) continue;
       try {
-        out.tasks.push(migrate<Task>('task', await this.readJson(f.handle, path)));
+        texts.push({ path, text: await this.readText(f.handle, path) });
       } catch {
-        /* siehe oben */
+        /* the read failed: retried on the next pass */
       }
+    }
+    for (const res of await parseFiles(texts.map((x) => ({ kind: 'task', text: x.text })))) {
+      // a broken task is not applied; it is read again on the next pass only if the file changes again
+      if (res.ok) out.tasks.push(res.value as Task);
     }
     for (const path of [...this.known.keys()]) {
       if (path.startsWith(`${DIRS.tasks}/`) && !seen.has(path)) {

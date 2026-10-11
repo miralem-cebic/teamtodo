@@ -54,6 +54,9 @@ src/
     persister.ts             Observes the store, writes changed entities (400 ms debounce)
     merge.ts                 Field-level merge (tasks, projects, team)
     validate.ts              Runtime checks for every file, backup and emergency copy read (hand-written)
+    parse/parseFile.ts       One file: JSON.parse, then migrate and validate (pure, runs in the worker or on the main thread)
+    parse/parseWorker.ts     Parse worker, built into the app inline (`?worker&inline`); started from a blob: URL (CSP `worker-src`)
+    parse/parseClient.ts     Sends the texts of a load or pull to the worker in one message; falls back to the main thread
     fs/fileNames.ts          Safe attachment file names (sanitize on write, check on read)
     sync.ts                  SyncEngine (every 10 s + window focus), applying external changes
     maintenance.ts           Daily backup (14 kept), purge after 30 days, restore
@@ -194,7 +197,9 @@ What made the difference: a row re-rendered on every change to the list. Three c
 
 Rows also use `content-visibility: auto` (app.css): the browser skips layout and paint of rows outside the screen, and the rows stay in the DOM. Typing 5 characters: 0.82 s → 0.58 s. What is left is native style and layout over about 2,700 rows; JavaScript is now a small share of the time. Fewer DOM rows needs virtualization, which must keep keyboard navigation (it finds rows in the DOM) and drag and drop (drop targets are DOM nodes) working.
 
-Startup with 10,000 tasks (about 18 s here) is dominated by reading the files (`File` and `text`, about 5 s in the profile); parsing and validation do not show near the top. A worker would not help this, so none is planned.
+Startup with 10,000 tasks (about 18 s here) is dominated by reading the files (`File` and `text`, about 5 s in the profile); parsing and validation do not show near the top.
+
+Parsing and validation run in a worker (`src/data/parse/`), reads stay on the main thread. Measured in Node with 10,000 tasks: JSON.parse + migrate + validate 84 ms, the worker's reply copied back to the main thread (structured clone) 62 ms, the request 14 ms. So the worker moves about as much work off the main thread as the copy costs on it. It is kept because it was requested and keeps the validation off the main thread for large pulls; it does not make startup faster. Measure in the browser before expecting a gain.
 
 Still open: the store copies the whole task record per change (`Map` would copy about 3× faster, measured 1.2 ms against 3.6 ms at 10,000 keys; not done, since the change touches every reader), and about 160 ms per keystroke remains with 2,685 rows in the DOM. Virtualization is the next step for that; it has to keep keyboard navigation (which finds rows in the DOM) and drag and drop working.
 

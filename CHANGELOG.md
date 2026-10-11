@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Files from the data folder are parsed and validated in a background worker during loading and sync. If the worker cannot start, the same work runs on the main thread.
 - Files from the data folder, backups and the emergency copy are checked when they are read. A broken user or project is left out and reported; the rest of the workspace still loads.
 - Backups are written in batches, and the undo stack and attachment previews use bounded memory.
 - The built app sends a Content Security Policy: no network access, scripts and styles only from the app itself.
