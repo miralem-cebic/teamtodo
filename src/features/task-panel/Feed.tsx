@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Avatar } from '../../components/Avatar';
 import { RichText } from '../../components/RichText';
 import { useLinkInput } from '../../components/LinkInput';
@@ -75,6 +75,16 @@ export function CommentBox({ t }: { t: TaskState }) {
   const [m, setM] = useState<string | null>(null);
   const [hi, setHi] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
+  // Where the caret goes after a suggestion was inserted. Set right after the new text is rendered, so that
+  // keystrokes typed meanwhile land after the mention, not at the old position.
+  const pendingCaret = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el && pendingCaret.current !== null) {
+      el.setSelectionRange(pendingCaret.current, pendingCaret.current);
+      pendingCaret.current = null;
+    }
+  }, [v]);
   const sugg = m !== null ? users.filter((u) => !u.deletedAt && u.name.toLowerCase().startsWith(m.toLowerCase())).slice(0, 6) : [];
 
   const onChange = (val: string) => {
@@ -90,12 +100,10 @@ export function CommentBox({ t }: { t: TaskState }) {
     if (!el) return;
     const pos = el.selectionStart;
     const before = v.slice(0, pos).replace(/@([\wäöüÄÖÜß-]*)$/, `@${u.name} `);
+    el.focus();
+    pendingCaret.current = before.length;
     setV(before + v.slice(pos));
     setM(null);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(before.length, before.length);
-    });
   };
   const send = () => {
     if (!v.trim()) return;
