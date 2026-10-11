@@ -131,3 +131,7 @@
 .nav-arch.dragging{opacity:.5}
 .nav-arch.drop-before{box-shadow:inset 0 2px 0 var(--accent)}
 .nav-arch.drop-after{box-shadow:inset 0 -2px 0 var(--accent)}
+
+/* Long lists: the browser skips layout and paint of rows outside the screen. The rows stay in the DOM, so keyboard
+   navigation and drag and drop are unchanged. */
+.row{content-visibility:auto;contain-intrinsic-size:auto 38px}

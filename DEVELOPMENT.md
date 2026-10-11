@@ -190,6 +190,10 @@ What made the difference: a row re-rendered on every change to the list. Three c
 - Each row passed new `data` objects to dnd-kit. They are now kept stable while their content is the same.
 - Rows rendered again although their task did not change. `TaskRow` is memoised and reads siblings, group defaults and subtasks from a snapshot the list publishes (`listSnapshot.ts`), not from props.
 
+Rows also use `content-visibility: auto` (app.css): the browser skips layout and paint of rows outside the screen, and the rows stay in the DOM. Typing 5 characters: 0.82 s → 0.58 s. What is left is native style and layout over about 2,700 rows; JavaScript is now a small share of the time. Fewer DOM rows needs virtualization, which must keep keyboard navigation (it finds rows in the DOM) and drag and drop (drop targets are DOM nodes) working.
+
+Startup with 10,000 tasks (about 18 s here) is dominated by reading the files (`File` and `text`, about 5 s in the profile); parsing and validation do not show near the top. A worker would not help this, so none is planned.
+
 Still open: the store copies the whole task record per change (`Map` would copy about 3× faster, measured 1.2 ms against 3.6 ms at 10,000 keys; not done, since the change touches every reader), and about 160 ms per keystroke remains with 2,685 rows in the DOM. Virtualization is the next step for that; it has to keep keyboard navigation (which finds rows in the DOM) and drag and drop working.
 
 ## Tests
