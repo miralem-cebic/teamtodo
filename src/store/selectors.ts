@@ -19,6 +19,8 @@ export interface ViewSettings {
   status: (TaskStatus | 'done')[];
   /** '' = everyone, 'none' = nobody, otherwise a user ID */
   assignee: string;
+  /** '' = all tags, otherwise one tag (compared without case) */
+  tag: string;
 }
 
 export const defaultSettings = (view: View): ViewSettings => ({
@@ -28,6 +30,7 @@ export const defaultSettings = (view: View): ViewSettings => ({
   due: 'all',
   status: [],
   assignee: '',
+  tag: '',
 });
 
 export const byOrder = (a: { order: number }, b: { order: number }) => a.order - b.order;
@@ -181,6 +184,7 @@ export function buildGroups(inp: BuildInput): Group[] {
     if (s.assignee && view.type === 'project') {
       if (s.assignee === 'none' ? t.assigneeId : t.assigneeId !== s.assignee) return false;
     }
+    if (s.tag && !(t.tags ?? []).some((x) => x.toLowerCase() === s.tag.toLowerCase())) return false;
     if (s.due !== 'all') {
       const k = dueKey(t);
       if (s.due === 'overdue' && k !== 'overdue') return false;
@@ -267,7 +271,7 @@ export function buildGroups(inp: BuildInput): Group[] {
     assignee: (a, b) => userName(a.assigneeId).localeCompare(userName(b.assigneeId), 'de') || a.order - b.order,
     created: (a, b) => b.createdAt.localeCompare(a.createdAt),
   };
-  const filtering = !!(q || s.due !== 'all' || s.status.length || s.assignee);
+  const filtering = !!(q || s.due !== 'all' || s.status.length || s.assignee || s.tag);
   return groups
     .map((x) => ({ ...x, tasks: (map.get(x.key) ?? []).sort(cmp[s.sort]), collapsed: !!inp.collapsed[x.key] }))
     .filter((x) => x.tasks.length || (x.keep && !filtering));

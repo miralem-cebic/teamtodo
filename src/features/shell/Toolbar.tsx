@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import { Icon } from '../../components/Icon';
 import { Menu, Popover, usePop } from '../../components/Popover';
@@ -7,6 +8,7 @@ import { defaultSettings, type CompletedFilter, type DueFilter, type GroupBy, ty
 import type { TaskStatus } from '../../data/types';
 import { statusLabel, STATUSES } from '../../lib/labels';
 import { t } from '../../i18n';
+import { uniqueTags } from '../../lib/tags';
 
 interface Props {
   view: View;
@@ -47,9 +49,11 @@ export function groupOptions(view: View): [GroupBy, string][] {
     : [['due', t('sort.due')], ['project', t('group.project')], ['status', t('group.status')], ['none', t('group.none')]];
 }
 
-export const activeFilterCount = (s: ViewSettings) => (s.due !== 'all' ? 1 : 0) + (s.status.length ? 1 : 0) + (s.assignee ? 1 : 0);
+export const activeFilterCount = (s: ViewSettings) => (s.due !== 'all' ? 1 : 0) + (s.status.length ? 1 : 0) + (s.assignee ? 1 : 0) + (s.tag ? 1 : 0);
 
 export function Toolbar({ view, settings: s, setSettings, layout, setLayout, search, setSearch, searchRef, onAdd, onExport }: Props) {
+  const tasks = useApp((x) => x.tasks);
+  const allTags = useMemo(() => uniqueTags(Object.values(tasks).map((x) => x.tags)), [tasks]);
   const users = useApp((x) => x.users);
   const meId = useApp((x) => x.meId);
   const fp = usePop();
@@ -108,7 +112,7 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
         <span>{t('toolbar.filter')}{nFilters ? ` (${nFilters})` : ''}</span>
       </button>
       {nFilters > 0 && (
-        <button type="button" className="icon-btn tb-reset" onClick={() => setSettings({ due: 'all', status: [], assignee: '' })} aria-label={t('toolbar.resetFilters')} title={t('toolbar.resetFilters')}>
+        <button type="button" className="icon-btn tb-reset" onClick={() => setSettings({ due: 'all', status: [], assignee: '', tag: '' })} aria-label={t('toolbar.resetFilters')} title={t('toolbar.resetFilters')}>
           <Icon n="x" s={14} />
         </button>
       )}
@@ -164,6 +168,17 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
                 <Chip key={k} on={s.due === k} onClick={() => setSettings({ due: k })} autoFocus={view.type !== 'project' && k === 'all'}>{l}</Chip>
               ))}
             </div>
+            {allTags.length > 0 && (
+              <>
+                <div className="f-sec" id="f-tag">{t('tags.filter')}</div>
+                <div className="chips" role="group" aria-labelledby="f-tag">
+                  <Chip on={!s.tag} onClick={() => setSettings({ tag: '' })}>{t('common.all')}</Chip>
+                  {allTags.map((x) => (
+                    <Chip key={x} on={s.tag.toLowerCase() === x.toLowerCase()} onClick={() => setSettings({ tag: x })}>{x}</Chip>
+                  ))}
+                </div>
+              </>
+            )}
             <div className="f-sec" id="f-status">{t('group.status')}</div>
             <div className="chips" role="group" aria-labelledby="f-status">
               {[...STATUSES, 'done' as const].map((k) => (
@@ -171,7 +186,7 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
               ))}
             </div>
             {nFilters > 0 && (
-              <button type="button" className="link f-reset" onClick={() => setSettings({ due: 'all', status: [], assignee: '' })}>
+              <button type="button" className="link f-reset" onClick={() => setSettings({ due: 'all', status: [], assignee: '', tag: '' })}>
                 {t('toolbar.resetFilters')}
               </button>
             )}

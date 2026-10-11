@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { makeProject, makeSection, makeTask, makeUser, newId, nowIso, pickColor } from '../data/schema';
 import type { Activity, ActivityType, Attachment, Color, ID, MergeableField, Project, Section, Snapshot, Task, TaskState, User, WorkspaceFile } from '../data/types';
 import { MERGEABLE_FIELDS } from '../data/types';
+import { withoutTag, withTag } from '../lib/tags';
 import type { StorageErrorKind } from '../data/repository';
 import { descendantIds, liveSections, reorderWithinGroup } from './selectors';
 import { t as tr } from '../i18n';
@@ -185,6 +186,20 @@ export interface UpdateOptions {
   /** Undo entry with this text; `toast` shows it */
   undo?: string;
   toast?: boolean;
+}
+
+export function addTag(id: ID, name: string) {
+  const t = get().tasks[id];
+  if (!t) return;
+  const current = t.tags ?? [];
+  const tags = withTag(current, name);
+  if (tags !== current) updateTask(id, { tags });
+}
+
+export function removeTag(id: ID, name: string) {
+  const t = get().tasks[id];
+  if (!t?.tags?.includes(name)) return;
+  updateTask(id, { tags: withoutTag(t.tags, name) });
 }
 
 export function updateTask(id: ID, patch: TaskPatch, opts: UpdateOptions = {}) {
@@ -376,6 +391,8 @@ function copyTaskTree(src: TaskState[], projectId: ID, sectionMap: Map<ID, ID>):
     if (!id) continue;
     out[id] = {
       ...makeTask({ createdBy: me ?? 'unbekannt', id, projectId, title: t.title, description: t.description, order: t.order }),
+      // tags are part of the structure of a template; assignees, dates and status are not copied
+      ...(t.tags ? { tags: [...t.tags] } : {}),
       parentId: t.parentId ? (ids.get(t.parentId) ?? null) : null,
       sectionId: t.parentId ? null : (sectionMap.get(t.sectionId ?? '') ?? null),
       followerIds: me ? [me] : [],

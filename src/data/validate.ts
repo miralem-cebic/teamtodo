@@ -2,6 +2,7 @@
 // Files are written by other clients too, so a value is only used after it has passed these checks.
 // Hand-written on purpose: the app has no runtime dependencies beyond the UI stack.
 
+import { normalizeTag } from '../lib/tags';
 import {
   COLORS,
   type Activity,
@@ -122,6 +123,9 @@ const recurrence = objectOf<RecurrenceRule>({
   interval: num,
 });
 
+const tagName: Check<string> = (v, path) =>
+  typeof v === 'string' && v !== '' && v === normalizeTag(v) ? v : fail(path, `expected a tag, got ${describe(v)}`);
+
 const fieldTimestamps: Check<Record<string, string>> = (v, path) => {
   if (!isRecord(v)) return fail(path, `expected an object, got ${describe(v)}`);
   // Unknown fields are ignored (they may come from a newer version), but known ones must have a timestamp.
@@ -183,7 +187,7 @@ export const validateTask: Check<Task> = objectOf<Task>({
   createdBy: id,
   deletedAt: nullable(dateTime),
   fieldUpdatedAt: fieldTimestamps,
-  tags: optional(arrayOf(id)),
+  tags: optional(arrayOf(tagName)),
   recurrence: optional(nullable(recurrence)),
 }) as Check<Task>;
 

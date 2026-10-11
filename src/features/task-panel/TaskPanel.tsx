@@ -23,6 +23,7 @@ import { Attachments } from './Attachments';
 import { CommentBox, Feed } from './Feed';
 import { t as tr } from '../../i18n';
 import { Followers } from './Followers';
+import { Tags } from './Tags';
 import { useDndRow } from '../dnd/TaskDnd';
 import { exportIcs } from '../calendar/exportIcs';
 
@@ -129,6 +130,7 @@ export function TaskPanel({ id, order }: { id: ID; order: ID[] }) {
         <h4 className="p-h">{tr('panel.feed')}</h4>
         <Feed t={t} />
         <Followers t={t} />
+        <Tags t={t} />
       </div>
       <CommentBox t={t} />
     </aside>

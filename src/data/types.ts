@@ -120,6 +120,7 @@ export const MERGEABLE_FIELDS = [
   'completedAt',
   'order',
   'followerIds',
+  'tags',
   'deletedAt',
 ] as const;
 export type MergeableField = (typeof MERGEABLE_FIELDS)[number];
@@ -152,7 +153,8 @@ export interface Task {
   createdBy: ID;
   deletedAt: ISODateTime | null;
   fieldUpdatedAt: Partial<Record<MergeableField, ISODateTime>>;
-  tags?: ID[];
+  /** Short names, see lib/tags.ts */
+  tags?: string[];
   recurrence?: RecurrenceRule | null;
 }
 
