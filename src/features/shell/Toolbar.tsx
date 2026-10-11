@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import { Icon } from '../../components/Icon';
 import { Menu, Popover, usePop } from '../../components/Popover';
@@ -7,6 +8,8 @@ import { defaultSettings, type CompletedFilter, type DueFilter, type GroupBy, ty
 import type { TaskStatus } from '../../data/types';
 import { statusLabel, STATUSES } from '../../lib/labels';
 import { t } from '../../i18n';
+import { uniqueTags } from '../../lib/tags';
+import { TagsDialog } from './TagsDialog';
 
 interface Props {
   view: View;
@@ -43,13 +46,15 @@ const dueOptions = (): [DueFilter, string][] => [
 
 export function groupOptions(view: View): [GroupBy, string][] {
   return view.type === 'project'
-    ? [['section', t('group.section')], ['assignee', t('group.assignee')], ['due', t('sort.due')], ['status', t('group.status')], ['none', t('group.none')]]
-    : [['due', t('sort.due')], ['project', t('group.project')], ['status', t('group.status')], ['none', t('group.none')]];
+    ? [['section', t('group.section')], ['assignee', t('group.assignee')], ['due', t('sort.due')], ['status', t('group.status')], ['tag', t('group.tag')], ['none', t('group.none')]]
+    : [['due', t('sort.due')], ['project', t('group.project')], ['status', t('group.status')], ['tag', t('group.tag')], ['none', t('group.none')]];
 }
 
-export const activeFilterCount = (s: ViewSettings) => (s.due !== 'all' ? 1 : 0) + (s.status.length ? 1 : 0) + (s.assignee ? 1 : 0);
+export const activeFilterCount = (s: ViewSettings) => (s.due !== 'all' ? 1 : 0) + (s.status.length ? 1 : 0) + (s.assignee ? 1 : 0) + (s.tag ? 1 : 0);
 
 export function Toolbar({ view, settings: s, setSettings, layout, setLayout, search, setSearch, searchRef, onAdd, onExport }: Props) {
+  const tasks = useApp((x) => x.tasks);
+  const allTags = useMemo(() => uniqueTags(Object.values(tasks).map((x) => x.tags)), [tasks]);
   const users = useApp((x) => x.users);
   const meId = useApp((x) => x.meId);
   const fp = usePop();
@@ -59,9 +64,11 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
   const nFilters = activeFilterCount(s);
   const def = defaultSettings(view);
   const groups = groupOptions(view);
+  const [tagsOpen, setTagsOpen] = useState(false);
   const toggleStatus = (k: TaskStatus | 'done') => setSettings({ status: s.status.includes(k) ? s.status.filter((x) => x !== k) : [...s.status, k] });
 
   return (
+    <>
     <div className="toolbar" role="toolbar" aria-label={t('toolbar.label')}>
       <button type="button" className="btn primary" onClick={onAdd}>
         <Icon n="plus" s={15} />
@@ -101,14 +108,14 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
       </label>
       <button type="button" className={'tb' + (s.completed !== 'open' ? ' active' : '')} onClick={cp.open} aria-haspopup="menu">
         <Icon n="mine" s={15} />
-        <span>{completedOptions().find((x) => x[0] === s.completed)![1]}</span>
+        <span>{completedOptions().find((x) => x[0] === s.completed)?.[1]}</span>
       </button>
       <button type="button" className={'tb' + (nFilters ? ' active' : '')} onClick={fp.open} aria-haspopup="dialog" aria-label={nFilters ? t('toolbar.filterActive', { n: nFilters }) : t('toolbar.filter')}>
         <Icon n="filter" s={15} />
         <span>{t('toolbar.filter')}{nFilters ? ` (${nFilters})` : ''}</span>
       </button>
       {nFilters > 0 && (
-        <button type="button" className="icon-btn tb-reset" onClick={() => setSettings({ due: 'all', status: [], assignee: '' })} aria-label={t('toolbar.resetFilters')} title={t('toolbar.resetFilters')}>
+        <button type="button" className="icon-btn tb-reset" onClick={() => setSettings({ due: 'all', status: [], assignee: '', tag: '' })} aria-label={t('toolbar.resetFilters')} title={t('toolbar.resetFilters')}>
           <Icon n="x" s={14} />
         </button>
       )}
@@ -118,7 +125,7 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
       </button>
       <button type="button" className={'tb' + (s.sort !== 'manual' ? ' active' : '')} onClick={sp.open} aria-haspopup="menu">
         <Icon n="sort" s={15} />
-        <span>{s.sort === 'manual' ? t('toolbar.sort') : sortOptions().find((x) => x[0] === s.sort)![1]}</span>
+        <span>{s.sort === 'manual' ? t('toolbar.sort') : sortOptions().find((x) => x[0] === s.sort)?.[1]}</span>
       </button>
       <button type="button" className={'tb' + (s.group !== def.group ? ' active' : '')} onClick={gp.open} aria-haspopup="menu">
         <Icon n="group" s={15} />
@@ -164,6 +171,18 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
                 <Chip key={k} on={s.due === k} onClick={() => setSettings({ due: k })} autoFocus={view.type !== 'project' && k === 'all'}>{l}</Chip>
               ))}
             </div>
+            {allTags.length > 0 && (
+              <>
+                <div className="f-sec" id="f-tag">{t('tags.filter')}</div>
+                <div className="chips" role="group" aria-labelledby="f-tag">
+                  <Chip on={!s.tag} onClick={() => setSettings({ tag: '' })}>{t('common.all')}</Chip>
+                  {allTags.map((x) => (
+                    <Chip key={x} on={s.tag.toLowerCase() === x.toLowerCase()} onClick={() => setSettings({ tag: x })}>{x}</Chip>
+                  ))}
+                </div>
+                <button type="button" className="link f-reset" onClick={() => setTagsOpen(true)}>{t('tags.manage')}</button>
+              </>
+            )}
             <div className="f-sec" id="f-status">{t('group.status')}</div>
             <div className="chips" role="group" aria-labelledby="f-status">
               {[...STATUSES, 'done' as const].map((k) => (
@@ -171,7 +190,7 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
               ))}
             </div>
             {nFilters > 0 && (
-              <button type="button" className="link f-reset" onClick={() => setSettings({ due: 'all', status: [], assignee: '' })}>
+              <button type="button" className="link f-reset" onClick={() => setSettings({ due: 'all', status: [], assignee: '', tag: '' })}>
                 {t('toolbar.resetFilters')}
               </button>
             )}
@@ -179,6 +198,8 @@ export function Toolbar({ view, settings: s, setSettings, layout, setLayout, sea
         </Popover>
       )}
     </div>
+    {tagsOpen && <TagsDialog onClose={() => setTagsOpen(false)} />}
+    </>
   );
 }
 

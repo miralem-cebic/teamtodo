@@ -1,12 +1,14 @@
 import { addDays, diffDays, nextMonday, today } from '../lib/dates';
+import type { ProjectId, TaskId, UserId } from '../data/ids';
 import type { ID, Project, Section, Task, TaskState, TaskStatus, User } from '../data/types';
 import { statusLabel, STATUSES } from '../lib/labels';
+import { uniqueTags } from '../lib/tags';
 import { t } from '../i18n';
 
 // Pure functions: visibility, hierarchy, grouping, filters, sorting.
 
-export type View = { type: 'my' } | { type: 'inbox' } | { type: 'templates' } | { type: 'project'; id: ID };
-export type GroupBy = 'section' | 'due' | 'status' | 'assignee' | 'project' | 'none';
+export type View = { type: 'my' } | { type: 'inbox' } | { type: 'templates' } | { type: 'project'; id: ProjectId };
+export type GroupBy = 'section' | 'due' | 'status' | 'assignee' | 'project' | 'tag' | 'none';
 export type SortBy = 'manual' | 'due' | 'title' | 'assignee' | 'created';
 export type CompletedFilter = 'open' | 'all' | 'done';
 export type DueFilter = 'all' | 'overdue' | 'today' | 'week' | 'none';
@@ -19,6 +21,8 @@ export interface ViewSettings {
   status: (TaskStatus | 'done')[];
   /** '' = everyone, 'none' = nobody, otherwise a user ID */
   assignee: string;
+  /** '' = all tags, otherwise one tag (compared without case) */
+  tag: string;
 }
 
 export const defaultSettings = (view: View): ViewSettings => ({
@@ -28,9 +32,65 @@ export const defaultSettings = (view: View): ViewSettings => ({
   due: 'all',
   status: [],
   assignee: '',
+  tag: '',
 });
 
 export const byOrder = (a: { order: number }, b: { order: number }) => a.order - b.order;
+/** Pinned projects first, then by order */
+export const byPinnedThenOrder = (a: Project, b: Project) => Number(!!b.pinned) - Number(!!a.pinned) || a.order - b.order;
+
+/**
+ * Moves a project one place up or down inside its group (pinned or not). Only the projects of that group
+ * that change position get a new `order` and `updatedAt`. Returns null if the project cannot move.
+ */
+/**
+ * What a project is now: its stored `state`, and the `template` flag. Deleted wins over template, template over archived.
+ */
+export type ProjectStatus = 'deleted' | 'template' | 'archived' | 'active';
+
+export function projectStatus(p: Project): ProjectStatus {
+  if (p.state.kind === 'deleted') return 'deleted';
+  if (p.template) return 'template';
+  if (p.state.kind === 'archived') return 'archived';
+  return 'active';
+}
+
+/** The projects that are shown in the sidebar, in their arrangement: pinned first, then by order */
+const arranged = (projects: Project[]) => projects.filter((p) => projectStatus(p) === 'active').sort(byPinnedThenOrder);
+
+/** Gives the projects in `ordered` the positions 0, 1, 2 …; only projects whose position changes get `updatedAt` */
+function renumber(projects: Project[], ordered: Project[], at: string): Project[] {
+  const position = new Map(ordered.map((p, i) => [p.id, i]));
+  return projects.map((p) => {
+    const order = position.get(p.id);
+    return order === undefined || order === p.order ? p : { ...p, order, updatedAt: at };
+  });
+}
+
+/**
+ * Puts project `id` directly before or after `targetId`. Only inside one group: a pinned project cannot go
+ * below an unpinned one, nor an unpinned one above a pinned one. Returns null if nothing would change.
+ */
+export function placeProject(projects: Project[], id: ID, targetId: ID, pos: 'before' | 'after', at: string): Project[] | null {
+  const group = arranged(projects);
+  const me = group.find((p) => p.id === id);
+  const target = group.find((p) => p.id === targetId);
+  if (!me || !target || me.id === target.id || !!me.pinned !== !!target.pinned) return null;
+  const rest = group.filter((p) => p.id !== id);
+  const slot = rest.findIndex((p) => p.id === targetId) + (pos === 'after' ? 1 : 0);
+  const moved = [...rest.slice(0, slot), me, ...rest.slice(slot)];
+  if (moved.every((p, i) => p === group[i])) return null;
+  return renumber(projects, moved, at);
+}
+
+/** Moves a project one place up or down inside its group (the keyboard way). Null if it cannot move. */
+export function reorderWithinGroup(projects: Project[], id: ID, dir: -1 | 1, at: string): Project[] | null {
+  const group = arranged(projects);
+  const i = group.findIndex((p) => p.id === id);
+  const neighbour = group[i + dir];
+  if (i < 0 || !neighbour) return null;
+  return placeProject(projects, id, neighbour.id, dir < 0 ? 'before' : 'after', at);
+}
 export const isDone = (t: Task) => !!t.completedAt;
 export const isOverdue = (t: Task) => !!t.dueDate && !t.completedAt && diffDays(t.dueDate, today()) < 0;
 
@@ -39,7 +99,7 @@ export function liveSections(p: Project | undefined): Section[] {
 }
 
 /** Projects whose tasks do not show in any view: deleted projects and templates (templates only hold a blueprint). */
-export const hiddenProjectIds = (projects: Project[]) => new Set(projects.filter((p) => p.deletedAt || p.template).map((p) => p.id));
+export const hiddenProjectIds = (projects: Project[]) => new Set(projects.filter((p) => projectStatus(p) === 'deleted' || p.template).map((p) => p.id));
 
 /** Task is visible: not deleted, its project is not deleted, its parent task is not deleted. */
 export function isVisible(t: TaskState, tasks: Record<ID, TaskState>, deletedProjects: Set<ID>): boolean {
@@ -53,23 +113,28 @@ export function isVisible(t: TaskState, tasks: Record<ID, TaskState>, deletedPro
 }
 
 /** parent ID → child IDs, per task state. The store replaces the state object on every change, so the cache never goes stale. */
-const childIndexCache = new WeakMap<Record<ID, TaskState>, Map<ID, ID[]>>();
-function childIndex(tasks: Record<ID, TaskState>): Map<ID, ID[]> {
+const childIndexCache = new WeakMap<Record<TaskId, TaskState>, Map<TaskId, TaskId[]>>();
+function childIndex(tasks: Record<TaskId, TaskState>): Map<TaskId, TaskId[]> {
   let index = childIndexCache.get(tasks);
   if (!index) {
-    index = new Map();
-    for (const t of Object.values(tasks)) if (t.parentId) (index.get(t.parentId) ?? index.set(t.parentId, []).get(t.parentId)!).push(t.id);
+    index = new Map<TaskId, TaskId[]>();
+    for (const t of Object.values(tasks)) {
+    if (!t.parentId) continue;
+    const siblings = index.get(t.parentId) ?? [];
+    index.set(t.parentId, siblings);
+    siblings.push(t.id);
+  }
     childIndexCache.set(tasks, index);
   }
   return index;
 }
 
 /** All subtasks below a task (any depth), in depth-first order */
-export function descendantIds(tasks: Record<ID, TaskState>, id: ID): ID[] {
+export function descendantIds(tasks: Record<TaskId, TaskState>, id: TaskId): TaskId[] {
   const kids = childIndex(tasks);
-  const out: ID[] = [];
-  const seen = new Set<ID>([id]);
-  const walk = (pid: ID) => {
+  const out: TaskId[] = [];
+  const seen = new Set<TaskId>([id]);
+  const walk = (pid: TaskId) => {
     for (const k of kids.get(pid) ?? []) {
       if (seen.has(k)) continue;
       seen.add(k);
@@ -82,7 +147,22 @@ export function descendantIds(tasks: Record<ID, TaskState>, id: ID): ID[] {
 }
 
 /** Visible tasks + children per parent task (sorted) */
-export function visibleTasks(tasks: Record<ID, TaskState>, projects: Project[]) {
+type Visible = ReturnType<typeof computeVisible>;
+let visibleMemo: { tasks: Record<ID, TaskState>; projects: Project[]; result: Visible } | null = null;
+
+/**
+ * The tasks that are shown, and the children of each task. Several components ask for the same result with the
+ * same state objects in one render, so the last answer is kept while both inputs are the same objects.
+ * The result must not be changed by the caller.
+ */
+export function visibleTasks(tasks: Record<ID, TaskState>, projects: Project[]): Visible {
+  if (visibleMemo && visibleMemo.tasks === tasks && visibleMemo.projects === projects) return visibleMemo.result;
+  const result = computeVisible(tasks, projects);
+  visibleMemo = { tasks, projects, result };
+  return result;
+}
+
+function computeVisible(tasks: Record<ID, TaskState>, projects: Project[]) {
   const deleted = hiddenProjectIds(projects);
   const visible: TaskState[] = [];
   const children: Record<ID, TaskState[]> = {};
@@ -130,13 +210,16 @@ export interface BuildInput {
   tasks: Record<ID, TaskState>;
   projects: Project[];
   users: User[];
-  meId: ID | null;
+  meId: UserId | null;
   view: View;
   settings: ViewSettings;
   search: string;
   recentDone: Set<ID>;
   collapsed: Record<string, boolean>;
 }
+
+/** Group key of a tag. Lower case: tags are unique without regard to case. */
+const tagGroupKey = (tag: string) => `tag:${tag.toLowerCase()}`;
 
 export function buildGroups(inp: BuildInput): Group[] {
   const { view, settings: s, meId } = inp;
@@ -152,6 +235,7 @@ export function buildGroups(inp: BuildInput): Group[] {
     if (s.assignee && view.type === 'project') {
       if (s.assignee === 'none' ? t.assigneeId : t.assigneeId !== s.assignee) return false;
     }
+    if (s.tag && !(t.tags ?? []).some((x) => x.toLowerCase() === s.tag.toLowerCase())) return false;
     if (s.due !== 'all') {
       const k = dueKey(t);
       if (s.due === 'overdue' && k !== 'overdue') return false;
@@ -163,8 +247,10 @@ export function buildGroups(inp: BuildInput): Group[] {
     return true;
   });
 
-  const baseDef: Partial<Task> = view.type === 'project' ? { projectId: view.id } : { assigneeId: meId };
-  const firstSection = (pid: ID) => liveSections(inp.projects.find((p) => p.id === pid))[0]?.id ?? null;
+  const baseDef: Partial<Task> = {};
+  if (view.type === 'project') baseDef.projectId = view.id;
+  else if (meId) baseDef.assigneeId = meId;
+  const firstSection = (pid: ProjectId) => liveSections(inp.projects.find((p) => p.id === pid))[0]?.id ?? null;
   type Proto = Omit<Group, 'tasks' | 'collapsed'>;
   let groups: Proto[];
   let keyOf: (t: TaskState) => string;
@@ -213,15 +299,23 @@ export function buildGroups(inp: BuildInput): Group[] {
   } else if (g === 'project') {
     groups = [
       ...inp.projects
-        .filter((p) => !p.deletedAt && !p.template)
+        .filter((p) => projectStatus(p) !== 'deleted' && !p.template)
         .sort(byOrder)
         .map((p) => {
           const apply = { projectId: p.id, sectionId: firstSection(p.id) };
-          return { key: p.id, label: p.name, project: p, apply, defaults: { ...baseDef, ...apply }, keep: !p.archivedAt };
+          return { key: p.id, label: p.name, project: p, apply, defaults: { ...baseDef, ...apply }, keep: projectStatus(p) !== 'archived' };
         }),
       { key: '__none', label: t('group.noProject'), apply: { projectId: null, sectionId: null }, defaults: { ...baseDef, projectId: null, sectionId: null }, keep: true },
     ];
     keyOf = (t) => t.projectId ?? '__none';
+  } else if (g === 'tag') {
+    // A task is listed under its first tag: one row, one group (drag and drop needs unique rows)
+    const tags = uniqueTags(base.map((x) => (x.tags?.[0] ? [x.tags[0]] : [])));
+    groups = [
+      ...tags.map((tag) => ({ key: tagGroupKey(tag), label: tag, apply: null, defaults: { ...baseDef, tags: [tag] }, keep: true })),
+      { key: '__none', label: t('group.noTag'), apply: null, defaults: { ...baseDef }, keep: true },
+    ];
+    keyOf = (x) => (x.tags?.[0] ? tagGroupKey(x.tags[0]) : '__none');
   } else {
     groups = [{ key: 'all', label: t('filter.all'), apply: {}, defaults: { ...baseDef }, keep: true }];
     keyOf = () => 'all';
@@ -238,7 +332,7 @@ export function buildGroups(inp: BuildInput): Group[] {
     assignee: (a, b) => userName(a.assigneeId).localeCompare(userName(b.assigneeId), 'de') || a.order - b.order,
     created: (a, b) => b.createdAt.localeCompare(a.createdAt),
   };
-  const filtering = !!(q || s.due !== 'all' || s.status.length || s.assignee);
+  const filtering = !!(q || s.due !== 'all' || s.status.length || s.assignee || s.tag);
   return groups
     .map((x) => ({ ...x, tasks: (map.get(x.key) ?? []).sort(cmp[s.sort]), collapsed: !!inp.collapsed[x.key] }))
     .filter((x) => x.tasks.length || (x.keep && !filtering));

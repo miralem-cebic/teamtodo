@@ -76,7 +76,7 @@ npm run build
 - Update the documentation when behavior changes.
 - Do not commit generated files, secrets, or local configuration. The `.gitignore` covers the common cases.
 - Editor settings are shared via [`.editorconfig`](.editorconfig).
-- The app's user interface and code comments are currently in German. New text should follow the language of the surrounding code, and translating the UI is welcome in its own pull request.
+- Code, comments, log messages and tests are in English. The user interface is available in five languages (`src/i18n/messages.ts`); every new text needs all five.
 
 ## Pull request checklist
 

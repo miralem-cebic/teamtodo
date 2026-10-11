@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-11
+
+### Added
+
+- Tags for tasks: add tags in the task panel, filter every view by a tag. Tags are kept when a project is created from a template.
+- Manage tags from the tags filter: rename a tag (renaming onto an existing tag merges them), remove a tag from all tasks, and see how many tasks use each tag. Both actions are undoable.
+- Group the list or board by tag. A task with several tags is listed under its first tag only.
+- Pin projects to the top of the sidebar. Arrange projects by drag and drop in the sidebar, or with Ctrl/⌘ + Shift + ↑/↓ on a focused project. A project stays in its group: unpinned projects cannot move above pinned ones. Both are undoable.
+- Conflicting copies from the shared folder (for example OneDrive's `…-LAPTOP.json`) are listed in a dialog. Each copy can be merged into the workspace or discarded. A copy is removed only after its merged content was saved.
+- A crash in one part of the screen (the sidebar, a view, the task panel or a dialog) shows a short message with **Try again** and **Copy diagnostics**. The rest of the app keeps working, and unsaved changes are kept.
+
+### Changed
+
+- Projects have one state (active, archived or deleted) instead of two dates. Files are written in format version 2 and are upgraded when read. **Every device that shares the folder must run this version before it saves again:** a device on an older version shows a message and does not load the folder.
+- Files from the data folder are parsed and validated in a background worker during loading and sync. If the worker cannot start, the same work runs on the main thread.
+- Files from the data folder, backups and the emergency copy are checked when they are read. A broken user or project is left out and reported; the rest of the workspace still loads.
+- Backups are written in batches, and the undo stack and attachment previews use bounded memory.
+- The built app sends a Content Security Policy: no network access, scripts and styles only from the app itself.
+
+### Fixed
+
+- Attachment names read from task files are checked before they are used. HTML, SVG and XML attachments are always downloaded, never opened as a page.
+- A change made at the same moment as another one is no longer lost: when another client overwrites the shared file, the next poll brings the change back and writes it again.
+- A device with a slow clock no longer makes its later edits lose against earlier edits from other devices.
+- One broken user or project record in the shared folder no longer blocks saving users and projects.
+- Merging a task no longer keeps an older change timestamp on a field. Such a timestamp could let an older edit win over a newer one later.
+
 ## [0.3.0] - 2026-10-10
 
 ### Added

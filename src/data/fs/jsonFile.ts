@@ -15,6 +15,52 @@ export async function readJson<T>(dir: FileSystemDirectoryHandle, name: string):
   return { data: JSON.parse(await file.text()) as T, lastModified: file.lastModified };
 }
 
+const BATCH_CHARS = 1 << 20;
+
+/**
+ * Writes a JSON object whose big lists (for example all tasks of a backup) are serialized in batches:
+ * the peak memory is one batch, not the whole file. The result is ordinary JSON.
+ */
+export async function writeLargeJson(
+  dir: FileSystemDirectoryHandle,
+  name: string,
+  header: Record<string, unknown>,
+  lists: Record<string, unknown[]>,
+): Promise<number> {
+  const fh = await dir.getFileHandle(name, { create: true });
+  const w = await fh.createWritable();
+  try {
+    let buf = '';
+    const add = async (text: string) => {
+      buf += text;
+      if (buf.length >= BATCH_CHARS) {
+        await w.write(buf);
+        buf = '';
+      }
+    };
+    await add('{');
+    let first = true;
+    const sep = () => {
+      const s = first ? '' : ',';
+      first = false;
+      return s;
+    };
+    for (const [key, value] of Object.entries(header)) await add(`${sep()}${JSON.stringify(key)}:${JSON.stringify(value)}`);
+    for (const [key, list] of Object.entries(lists)) {
+      await add(`${sep()}${JSON.stringify(key)}:[`);
+      for (let i = 0; i < list.length; i++) await add((i ? ',' : '') + JSON.stringify(list[i]));
+      await add(']');
+    }
+    await add('}\n');
+    if (buf) await w.write(buf);
+    await w.close();
+  } catch (e) {
+    await w.abort().catch(() => undefined);
+    throw e;
+  }
+  return (await fh.getFile()).lastModified;
+}
+
 export async function writeJson(dir: FileSystemDirectoryHandle, name: string, data: unknown): Promise<number> {
   const fh = await dir.getFileHandle(name, { create: true });
   const w = await fh.createWritable();

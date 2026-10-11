@@ -1,3 +1,5 @@
+import { brandId } from '../data/ids';
+import { isValidId } from '../data/validate';
 import { create } from 'zustand';
 import { FsRepository } from '../data/fs/FsRepository';
 import { clearDirHandle, loadDirHandle, saveDirHandle } from '../data/fs/handleStore';
@@ -6,13 +8,15 @@ import { ensureReadWrite } from '../data/fs/permission';
 import { checkSupport } from '../data/fs/support';
 import { EMERGENCY_KEY, LEGACY_EMERGENCY_KEY, Persister } from '../data/persister';
 import { dailyBackup, purge, restoreBackup } from '../data/maintenance';
+import { migrate } from '../data/migrations';
 import { SyncEngine } from '../data/sync';
 import { classifyError, type LoadResult } from '../data/repository';
+import { must } from '../data/result';
 import { errorText } from '../lib/labels';
 import { t } from '../i18n';
 import { emptySnapshot, sampleSnapshot } from '../data/seed';
 import type { ID, Task } from '../data/types';
-import { addUser, loadSnapshot, resetApp, setMe, showToast, useApp } from '../store/appStore';
+import { addUser, loadSnapshot, mergeConflictPayload, resetApp, setMe, showToast, touchTasks, useApp } from '../store/appStore';
 import { loadMe, saveMe } from '../store/prefs';
 import { readStorage } from '../lib/storage';
 
@@ -51,6 +55,11 @@ const set = useSession.setState;
 
 let handle: FileSystemDirectoryHandle | null = null;
 let repo: FsRepository | null = null;
+
+function requireRepo(): FsRepository {
+  if (!repo) throw new Error('No data folder');
+  return repo;
+}
 let persister: Persister | null = null;
 let sync: SyncEngine | null = null;
 
@@ -63,11 +72,35 @@ const E2E_NS = 'teamtodo.e2e';
 const POLL = E2E && params.get('poll') ? Number(params.get('poll')) : undefined;
 
 if (E2E) {
-  (window as unknown as { __e2e: unknown }).__e2e = {
+  window.__e2e = {
     flush: () => persister?.flush(),
     sync: () => sync?.poll(),
     repo: () => repo,
   };
+}
+
+export const readConflictCopy = (name: string) => requireRepo().readConflictCopy(name);
+
+/**
+ * "merge": the content of the copy is merged into the workspace and saved first; the copy is removed only
+ * after that save succeeded, so nothing is lost if the save fails. "discard": the copy is removed.
+ */
+export async function resolveConflictCopy(name: string, action: 'merge' | 'discard') {
+  const r = requireRepo();
+  if (action === 'merge') {
+    const payload = await r.readConflictCopy(name);
+    if (payload.kind === 'unreadable' || payload.kind === 'workspace') throw new Error(`Copy ${name} can only be discarded`);
+    mergeConflictPayload(payload);
+    await persister?.flush();
+    if (useApp.getState().save.state === 'error') throw new Error('The merged state could not be saved');
+  }
+  await r.removeConflictCopy(name);
+  useSession.setState((s) => ({ conflictCopies: s.conflictCopies.filter((n) => n !== name) }));
+}
+
+/** Keeps unsaved edits in the browser before anything else happens (used when the UI crashed). */
+export function saveEmergencyCopy() {
+  persister?.writeEmergencyCopy();
 }
 
 /* ---------- Start ---------- */
@@ -99,7 +132,8 @@ export async function pickFolder() {
       StorageDir.clear(localStorage, E2E_NS);
       handle = new StorageDir(localStorage, E2E_NS).asHandle();
     } else {
-      handle = await window.showDirectoryPicker!({ id: 'teamtodo', mode: 'readwrite' });
+      if (!window.showDirectoryPicker) throw new Error('The folder picker is not available in this browser');
+      handle = await window.showDirectoryPicker({ id: 'teamtodo', mode: 'readwrite' });
       await saveDirHandle(handle);
     }
     set({ dirName: handle.name });
@@ -169,7 +203,7 @@ export async function initialize(opts: { samples: boolean; subfolder: boolean })
       if (await repo.hasWorkspace()) return load();
     }
     const name = handle.name;
-    await repo!.initialize(opts.samples ? sampleSnapshot(name) : emptySnapshot(name));
+    must(await requireRepo().initialize(opts.samples ? sampleSnapshot(name) : emptySnapshot(name)));
     await load();
   } catch (e) {
     set({ phase: 'failed', error: t('session.setupFailed', { reason: errorText(classifyError(e)) }) });
@@ -177,24 +211,24 @@ export async function initialize(opts: { samples: boolean; subfolder: boolean })
 }
 
 async function load() {
-  const res = await repo!.loadAll();
+  const res = must(await requireRepo().loadAll());
   if (res.newerSchema) {
     set({ phase: 'failed', error: errorText('newerSchema') });
     return;
   }
   stopEngines();
   loadSnapshot(res.snapshot);
-  persister = new Persister(repo!);
+  persister = new Persister(requireRepo());
   persister.start();
   recoverEmergencyCopy(res.snapshot.workspace.id);
   set({ conflictCopies: res.conflictCopies, issues: res.issues });
-  sync = new SyncEngine(repo!, persister, (names) => set({ conflictCopies: names }), POLL);
+  sync = new SyncEngine(requireRepo(), persister, (names) => set({ conflictCopies: names }), POLL);
   sync.start();
   void maintenance();
 
   const me = loadMe(res.snapshot.workspace.id);
   if (me && res.snapshot.users.some((u) => u.id === me && !u.deletedAt)) {
-    setMe(me);
+    setMe(isValidId(me) ? brandId<'UserId'>(me) : null);
     set({ phase: 'ready' });
   } else set({ phase: 'who' });
 }
@@ -204,12 +238,24 @@ function recoverEmergencyCopy(workspaceId: ID) {
   try {
     const raw = readStorage(EMERGENCY_KEY, LEGACY_EMERGENCY_KEY);
     if (!raw) return;
-    const copy = JSON.parse(raw) as { workspaceId?: ID; tasks?: Task[] };
+    const copy = JSON.parse(raw) as { workspaceId?: ID; tasks?: unknown[] };
     if (copy.workspaceId !== workspaceId || !copy.tasks?.length) return;
+    // The copy is data like any other file: only tasks that pass the same checks as the folder are restored
+    const tasks = copy.tasks.flatMap((x): Task[] => {
+      try {
+        return [migrate<Task>('task', x)];
+      } catch {
+        return [];
+      }
+    });
     const newest = (t: Task) => Object.values(t.fieldUpdatedAt).sort().pop() ?? t.createdAt;
     const cur = useApp.getState().tasks;
-    const take = copy.tasks.filter((t) => !cur[t.id] || newest(t) > newest(cur[t.id]!));
+    const take = tasks.filter((t) => {
+      const old = cur[t.id];
+      return !old || newest(t) > newest(old);
+    });
     if (!take.length) return;
+    touchTasks(take.map((t) => t.id));
     useApp.setState({ tasks: { ...cur, ...Object.fromEntries(take.map((t) => [t.id, t])) } });
     showToast(t('toast.restored', { n: take.length }));
   } catch {
@@ -240,7 +286,7 @@ async function maintenance() {
 export function chooseUser(id: ID) {
   const ws = useApp.getState().workspace;
   if (ws) saveMe(ws.id, id);
-  setMe(id);
+  setMe(isValidId(id) ? brandId<'UserId'>(id) : null);
   set({ phase: 'ready' });
 }
 

@@ -1,3 +1,4 @@
+import type { TaskId } from '../../data/ids';
 import { useEffect, useLayoutEffect, useMemo, useRef, type KeyboardEvent } from 'react';
 import { AutoText } from '../../components/AutoText';
 import { Check } from '../../components/Check';
@@ -18,11 +19,12 @@ import {
   useApp,
 } from '../../store/appStore';
 import { orderBetween, visibleTasks } from '../../store/selectors';
-import type { ID, TaskState } from '../../data/types';
+import type { TaskState } from '../../data/types';
 import { Attachments } from './Attachments';
 import { CommentBox, Feed } from './Feed';
 import { t as tr } from '../../i18n';
 import { Followers } from './Followers';
+import { Tags } from './Tags';
 import { useDndRow } from '../dnd/TaskDnd';
 import { exportIcs } from '../calendar/exportIcs';
 
@@ -32,7 +34,7 @@ const short = (s: string) => {
 };
 
 /** `order`: the tasks of the current list in display order; the arrows go to the previous and next one */
-export function TaskPanel({ id, order }: { id: ID; order: ID[] }) {
+export function TaskPanel({ id, order }: { id: TaskId; order: TaskId[] }) {
   const t = useApp((s) => s.tasks[id]);
   const parent = useApp((s) => (t?.parentId ? s.tasks[t.parentId] : undefined));
   const focusReq = useApp((s) => s.focusReq);
@@ -129,6 +131,7 @@ export function TaskPanel({ id, order }: { id: ID; order: ID[] }) {
         <h4 className="p-h">{tr('panel.feed')}</h4>
         <Feed t={t} />
         <Followers t={t} />
+        <Tags t={t} />
       </div>
       <CommentBox t={t} />
     </aside>
@@ -188,7 +191,8 @@ function SubRow({ t, parent, siblings, kids }: { t: TaskState; parent: TaskState
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.nativeEvent.isComposing) return;
     const mod = isMod(e);
-    const row = rowRef.current!;
+    const row = rowRef.current;
+    if (!row) return;
     let handled = true;
     if (mod && e.key === 'Enter') toggleDone(t.id);
     else if (mod && e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) moveBy(e.key === 'ArrowUp' ? -1 : 1);
@@ -196,7 +200,7 @@ function SubRow({ t, parent, siblings, kids }: { t: TaskState; parent: TaskState
     else if (e.altKey && (e.code === 'KeyP' || e.code === 'KeyD')) {
       const btn = row.querySelector<HTMLButtonElement>(e.code === 'KeyP' ? '[data-field="assignee"]' : '[data-field="due"]');
       if (btn) {
-        btn.dataset.returnFocus = `${t.id}|panel`;
+        btn.dataset['returnFocus'] = `${t.id}|panel`;
         btn.click();
       }
     }

@@ -71,7 +71,8 @@ function eventLines(task: Task, opts: IcsOptions, stamp: string): string[] {
     lines.push(`DTSTART:${utcStamp(start)}`, `DTEND:${utcStamp(end)}`);
   } else {
     // all-day: the end date is exclusive
-    lines.push(`DTSTART;VALUE=DATE:${dateValue(task.dueDate!)}`, `DTEND;VALUE=DATE:${dateValue(addDays(task.dueDate!, 1))}`);
+    if (!task.dueDate) throw new Error('A task without a due date cannot be exported as an event');
+    lines.push(`DTSTART;VALUE=DATE:${dateValue(task.dueDate)}`, `DTEND;VALUE=DATE:${dateValue(addDays(task.dueDate, 1))}`);
   }
   lines.push(`SUMMARY:${escapeIcsText(task.title.trim() || opts.untitled || 'Task')}`);
   const details = [

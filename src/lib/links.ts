@@ -19,12 +19,13 @@ export function parseLinks(text: string): Segment[] {
   let last = 0;
   for (const m of text.matchAll(TOKEN)) {
     const at = m.index ?? 0;
-    if (m[1] !== undefined) {
+    const [whole = '', label, target, bare] = m;
+    if (label !== undefined && target !== undefined) {
       if (at > last) out.push({ kind: 'text', text: text.slice(last, at) });
-      out.push({ kind: 'link', text: m[1], href: m[2]! });
-      last = at + m[0].length;
+      out.push({ kind: 'link', text: label, href: target });
+      last = at + whole.length;
     } else {
-      const url = trimTail(m[3]!);
+      const url = trimTail(bare ?? '');
       if (at > last) out.push({ kind: 'text', text: text.slice(last, at) });
       out.push({ kind: 'link', text: url, href: toHref(url) });
       last = at + url.length;

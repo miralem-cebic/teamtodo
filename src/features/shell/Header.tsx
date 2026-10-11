@@ -7,7 +7,7 @@ import { fmtDate } from '../../lib/dates';
 import { COLORS, type Project } from '../../data/types';
 import { errorText } from '../../lib/labels';
 import { reconnectAndRetry, retrySave } from '../../app/session';
-import type { View } from '../../store/selectors';
+import { projectStatus, type View } from '../../store/selectors';
 import { t } from '../../i18n';
 
 const colorName = (c: (typeof COLORS)[number]) => t(`color.${c}` as 'color.teal');
@@ -18,7 +18,7 @@ export function Header({ view, onBurger }: { view: View; onBurger: () => void })
   const lastDue = useApp((s) => {
     if (view.type !== 'project') return null;
     const proj = s.projects.find((p) => p.id === view.id);
-    if (!proj || proj.deletedAt) return null;
+    if (!proj || projectStatus(proj) === 'deleted') return null;
     return lastDueDate(Object.values(s.tasks).filter((x) => x.projectId === view.id && !x.deletedAt));
   });
   return (
@@ -101,7 +101,7 @@ function ProjectTitle({ proj }: { proj: Project }) {
           }
         }}
       />
-      {proj.archivedAt && <span className="badge">{t('project.archived')}</span>}
+      {projectStatus(proj) === 'archived' && <span className="badge">{t('project.archived')}</span>}
       <button type="button" className="icon-btn" onClick={p.open} aria-label={t('project.options')}>
         <Icon n="dots" />
       </button>
@@ -113,7 +113,7 @@ function ProjectTitle({ proj }: { proj: Project }) {
               { head: t('project.color') },
               ...COLORS.map((c) => ({ label: colorName(c), dot: c, active: proj.color === c, onClick: () => setProjectColor(proj.id, c) })),
               { sep: true as const },
-              proj.archivedAt
+              projectStatus(proj) === 'archived'
                 ? { label: t('project.restore'), icon: 'archive' as const, onClick: () => archiveProject(proj.id, false) }
                 : { label: t('project.archive'), icon: 'archive' as const, onClick: () => archiveProject(proj.id, true) },
               { label: t('templates.saveAs'), icon: 'copy' as const, onClick: () => saveAsTemplate(proj.id, proj.name) && showToast(t('templates.saved', { name: proj.name })) },

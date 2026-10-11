@@ -1,17 +1,17 @@
+import type { ProjectId } from '../../data/ids';
 import { useMemo, useState } from 'react';
 import { Icon } from '../../components/Icon';
 import { deleteProject, renameProject, useApp } from '../../store/appStore';
-import { byOrder } from '../../store/selectors';
-import type { ID } from '../../data/types';
+import { byOrder, projectStatus } from '../../store/selectors';
 import { t } from '../../i18n';
 import { NewProjectDialog } from './NewProjectDialog';
 
 /** Templates: saved project blueprints. Rename, delete, or create a project from one. */
-export function TemplatesView({ onCreated }: { onCreated: (id: ID) => void }) {
+export function TemplatesView({ onCreated }: { onCreated: (id: ProjectId) => void }) {
   const projects = useApp((s) => s.projects);
   const tasks = useApp((s) => s.tasks);
-  const [dialog, setDialog] = useState<{ templateId?: ID } | null>(null);
-  const list = useMemo(() => projects.filter((p) => p.template && !p.deletedAt).sort(byOrder), [projects]);
+  const [dialog, setDialog] = useState<{ templateId?: ProjectId } | null>(null);
+  const list = useMemo(() => projects.filter((p) => p.template && projectStatus(p) !== 'deleted').sort(byOrder), [projects]);
 
   return (
     <div className="inbox tpl-view">

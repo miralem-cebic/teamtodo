@@ -1,3 +1,4 @@
+import type { TaskId } from '../data/ids';
 import { openPanel, useApp } from '../store/appStore';
 import { setNotifications, usePrefs } from '../store/prefs';
 import { t } from '../i18n';
@@ -15,7 +16,7 @@ const SEEN_MAX = 300;
 
 export interface Notice {
   key: string;
-  taskId: ID;
+  taskId: TaskId;
   title: string;
   body: string;
 }
@@ -26,7 +27,7 @@ export function assignmentNotices(tasks: Record<ID, TaskState>, meId: ID, since:
   for (const task of Object.values(tasks)) {
     if (task.deletedAt || task.draft) continue;
     for (const a of task.activity) {
-      if (a.type !== 'assigned' || a.data?.userId !== meId || a.userId === meId || a.at < since) continue;
+      if (a.type !== 'assigned' || a.data?.['userId'] !== meId || a['userId'] === meId || a.at < since) continue;
       const key = `assigned:${a.id}`;
       if (seen.has(key)) continue;
       const by = users.find((u) => u.id === a.userId)?.name ?? t('inbox.someone');

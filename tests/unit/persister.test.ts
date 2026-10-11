@@ -4,6 +4,7 @@ import { MemDir } from '../../src/data/fs/memoryFs';
 import { Persister } from '../../src/data/persister';
 import { sampleSnapshot } from '../../src/data/seed';
 import * as A from '../../src/store/appStore';
+import { must } from '../../src/data/result';
 
 beforeAll(() => {
   (globalThis as unknown as { window: unknown }).window = { addEventListener() {}, removeEventListener() {} };
@@ -16,8 +17,8 @@ let persister: Persister;
 beforeEach(async () => {
   root = new MemDir('T');
   repo = new FsRepository(root.asHandle());
-  await repo.initialize(sampleSnapshot('T'));
-  const res = await repo.loadAll();
+  must(await repo.initialize(sampleSnapshot('T')));
+  const res = must(await repo.loadAll());
   A.resetApp();
   A.loadSnapshot(res.snapshot);
   A.setMe(res.snapshot.users[0]!.id);
@@ -36,7 +37,7 @@ describe('Persister', () => {
     A.updateTask(id, { title: 'Saved' });
     await persister.flush();
     expect(await fileCount()).toBe(n + 1);
-    const res = await repo.loadAll();
+    const res = must(await repo.loadAll());
     expect(res.snapshot.tasks.find((t) => t.id === id)?.title).toBe('Saved');
     expect(A.useApp.getState().save.state).toBe('saved');
     persister.stop();
@@ -48,7 +49,7 @@ describe('Persister', () => {
     const p = A.useApp.getState().projects[0]!;
     A.addSection(p.id, 'Neu hier');
     await persister.flush();
-    const res = await repo.loadAll();
+    const res = must(await repo.loadAll());
     expect(res.snapshot.tasks.find((x) => x.id === t.id)?.completedAt).toBeTruthy();
     expect(res.snapshot.projects[0]!.sections.map((s) => s.name)).toContain('Neu hier');
     persister.stop();
@@ -68,7 +69,7 @@ describe('Persister', () => {
     fail = false;
     await persister.retry();
     expect(A.useApp.getState().save.state).toBe('saved');
-    expect((await repo.loadAll()).snapshot.tasks.find((x) => x.id === t.id)?.title).toBe('After error');
+    expect((must(await repo.loadAll())).snapshot.tasks.find((x) => x.id === t.id)?.title).toBe('After error');
     persister.stop();
   });
 });

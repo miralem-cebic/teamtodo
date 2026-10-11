@@ -1,6 +1,8 @@
 // Data model of teamtodo. Every file in the data folder carries `schemaVersion`.
 
 export type ID = string;
+export type { TaskId, ProjectId, SectionId, UserId } from './ids';
+import type { ActivityId, AttachmentId, CommentId, ProjectId, SectionId, TaskId, UserId } from './ids';
 /** Calendar date without time, e.g. "2026-10-02" */
 export type ISODate = string;
 /** Timestamp, e.g. "2026-10-02T14:03:11.123Z" */
@@ -19,7 +21,7 @@ export interface WorkspaceFile {
 }
 
 export interface User {
-  id: ID;
+  id: UserId;
   name: string;
   color: Color;
   createdAt: ISODateTime;
@@ -32,24 +34,28 @@ export interface UsersFile {
 }
 
 export interface Section {
-  id: ID;
+  id: SectionId;
   name: string;
   order: number;
   updatedAt: ISODateTime;
   deletedAt?: ISODateTime | null;
 }
+/** One state of a project. `archived` and `deleted` keep the time they were set; deleted projects are purged after 30 days. */
+export type ProjectState = { kind: 'active' } | { kind: 'archived'; at: ISODateTime } | { kind: 'deleted'; at: ISODateTime };
+
 export interface Project {
-  id: ID;
+  id: ProjectId;
   name: string;
   color: Color;
   order: number;
   sections: Section[];
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
-  archivedAt?: ISODateTime | null;
-  deletedAt?: ISODateTime | null;
+  state: ProjectState;
   /** Template: a project without a place in the project list. Its sections and tasks are the blueprint for new projects. */
   template?: boolean;
+  /** Pinned projects stay above the unpinned ones in the sidebar; `order` arranges each group */
+  pinned?: boolean;
 }
 export interface ProjectsFile {
   schemaVersion: number;
@@ -60,20 +66,20 @@ export interface ProjectsFile {
 export type TaskStatus = 'todo' | 'doing' | 'waiting';
 
 export interface Attachment {
-  id: ID;
+  id: AttachmentId;
   fileName: string;
   size: number;
   mimeType: string;
   addedAt: ISODateTime;
-  addedBy: ID;
+  addedBy: UserId;
   removedAt?: ISODateTime | null;
 }
 
 export interface Comment {
-  id: ID;
-  userId: ID;
+  id: CommentId;
+  userId: UserId;
   text: string;
-  mentions: ID[];
+  mentions: UserId[];
   at: ISODateTime;
   editedAt?: ISODateTime | null;
   deletedAt?: ISODateTime | null;
@@ -97,8 +103,8 @@ export type ActivityType =
   | 'attachment';
 
 export interface Activity {
-  id: ID;
-  userId: ID;
+  id: ActivityId;
+  userId: UserId;
   type: ActivityType;
   data?: Record<string, string | null>;
   at: ISODateTime;
@@ -118,6 +124,7 @@ export const MERGEABLE_FIELDS = [
   'completedAt',
   'order',
   'followerIds',
+  'tags',
   'deletedAt',
 ] as const;
 export type MergeableField = (typeof MERGEABLE_FIELDS)[number];
@@ -130,27 +137,28 @@ export interface RecurrenceRule {
 
 export interface Task {
   schemaVersion: number;
-  id: ID;
-  parentId: ID | null;
-  projectId: ID | null;
-  sectionId: ID | null;
+  id: TaskId;
+  parentId: TaskId | null;
+  projectId: ProjectId | null;
+  sectionId: SectionId | null;
   title: string;
   description: string;
-  assigneeId: ID | null;
+  assigneeId: UserId | null;
   dueDate: ISODate | null;
   dueTime: string | null;
   status: TaskStatus;
   completedAt: ISODateTime | null;
   order: number;
-  followerIds: ID[];
+  followerIds: UserId[];
   attachments: Attachment[];
   comments: Comment[];
   activity: Activity[];
   createdAt: ISODateTime;
-  createdBy: ID;
+  createdBy: UserId;
   deletedAt: ISODateTime | null;
   fieldUpdatedAt: Partial<Record<MergeableField, ISODateTime>>;
-  tags?: ID[];
+  /** Short names, see lib/tags.ts */
+  tags?: string[];
   recurrence?: RecurrenceRule | null;
 }
 

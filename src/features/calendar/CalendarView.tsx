@@ -37,7 +37,7 @@ export function CalendarView({ tasks, defaults }: Props) {
 
   const onGridKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const cell = e.target as HTMLElement;
-    const iso = cell.dataset.day;
+    const iso = cell.dataset['day'];
     // only when the day cell itself has focus, not a task inside it
     if (iso === undefined) return;
     if (e.key === 'Enter') {

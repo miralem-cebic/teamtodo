@@ -2,7 +2,8 @@ import type { User } from '../data/types';
 
 export const initials = (name: string) => {
   const p = name.trim().split(/\s+/);
-  return (p.length > 1 ? p[0]![0]! + p[1]![0]! : (p[0] ?? '?').slice(0, 2)).toUpperCase();
+  const [first = '', second = ''] = p;
+  return (p.length > 1 ? first.charAt(0) + second.charAt(0) : (first || '?').slice(0, 2)).toUpperCase();
 };
 
 export function Avatar({ user, size = 22 }: { user: User | undefined | null; size?: number }) {

@@ -2,8 +2,12 @@ import { useMemo, useState } from 'react';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { Menu, Popover, usePop } from '../../components/Popover';
-import { archiveProject, showToast, useApp } from '../../store/appStore';
-import { byOrder, visibleTasks, type View } from '../../store/selectors';
+import { archiveProject, moveProject, setProjectPinned, showToast, useApp } from '../../store/appStore';
+import { useDndProject } from '../dnd/TaskDnd';
+import { isMod } from '../../hooks/listNav';
+import type { KeyboardEvent } from 'react';
+import type { Project } from '../../data/types';
+import { byPinnedThenOrder, projectStatus, visibleTasks, type View } from '../../store/selectors';
 import { forgetFolder, switchUser, useSession } from '../../app/session';
 import { useInbox } from '../inbox/InboxView';
 import { LANGS, LANG_NAMES, currentLang, t } from '../../i18n';
@@ -18,9 +22,35 @@ interface Props {
   openKeys: () => void;
   openData: () => void;
   openTeam: () => void;
+  openConflicts: () => void;
 }
 
-export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
+/** A project in the sidebar: a click opens it, the pin button pins it, drag and drop or Ctrl/⌘+Shift+↑/↓ arrange it */
+function ProjectNavItem({ p, on, count, go }: { p: Project; on: boolean; count: number; go: (v: View) => void }) {
+  const dnd = useDndProject(p.id, !!p.pinned);
+  const onKey = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (!isMod(e) || !e.shiftKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    e.preventDefault();
+    moveProject(p.id, e.key === 'ArrowUp' ? -1 : 1);
+  };
+  return (
+    // only the pointer listeners go on the row: the buttons inside keep their own roles
+    <div ref={dnd.ref} {...dnd.listeners} className={'nav-arch' + (dnd.dragging ? ' dragging' : '') + (dnd.dropPos ? ' drop-' + dnd.dropPos : '')}>
+      <button type="button" className={'nav' + (on ? ' on' : '')} onClick={() => go({ type: 'project', id: p.id })} onKeyDown={onKey} aria-current={on ? 'page' : undefined}
+        aria-keyshortcuts="Control+Shift+ArrowUp Control+Shift+ArrowDown">
+        <span className={'sq c-' + p.color} />
+        <span>{p.name}</span>
+        <span className="n">{count}</span>
+      </button>
+      <button type="button" className={'icon-btn' + (p.pinned ? ' on' : '')} onClick={() => setProjectPinned(p.id, !p.pinned)} aria-pressed={!!p.pinned}
+        aria-label={p.pinned ? t('project.unpinNamed', { name: p.name }) : t('project.pinNamed', { name: p.name })} title={p.pinned ? t('project.unpin') : t('project.pin')}>
+        <Icon n="pin" s={14} />
+      </button>
+    </div>
+  );
+}
+
+export function Sidebar({ view, go, openKeys, openData, openTeam, openConflicts }: Props) {
   const tasks = useApp((s) => s.tasks);
   const projects = useApp((s) => s.projects);
   const users = useApp((s) => s.users);
@@ -40,15 +70,15 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
     const c: Record<string, number> = { my: 0 };
     for (const t of visible) {
       if (t.completedAt) continue;
-      if (t.assigneeId === meId) c.my! += 1;
+      if (t.assigneeId === meId) c['my'] = (c['my'] ?? 0) + 1;
       if (t.projectId && !t.parentId) c[t.projectId] = (c[t.projectId] ?? 0) + 1;
     }
     return c;
   }, [tasks, projects, meId]);
 
-  const live = projects.filter((p) => !p.deletedAt && !p.template).sort(byOrder);
-  const active = live.filter((p) => !p.archivedAt);
-  const archived = live.filter((p) => p.archivedAt);
+  const shown = projects.filter((p) => projectStatus(p) === 'active' || projectStatus(p) === 'archived').sort(byPinnedThenOrder);
+  const active = shown.filter((p) => projectStatus(p) === 'active');
+  const archived = shown.filter((p) => projectStatus(p) === 'archived');
 
   return (
     <nav className="side" aria-label={t('nav.label')}>
@@ -59,7 +89,7 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
       <button type="button" className={'nav' + (view.type === 'my' ? ' on' : '')} onClick={() => go({ type: 'my' })} aria-current={view.type === 'my' ? 'page' : undefined}>
         <Icon n="mine" />
         <span>{t('nav.myTasks')}</span>
-        <span className="n">{counts.my}</span>
+        <span className="n">{counts['my']}</span>
       </button>
       <button type="button" className={'nav' + (view.type === 'inbox' ? ' on' : '')} onClick={() => go({ type: 'inbox' })} aria-current={view.type === 'inbox' ? 'page' : undefined}
         aria-label={unread ? t('nav.inboxUnread', { n: unread }) : t('nav.inbox')}>
@@ -79,12 +109,7 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
         </button>
       </div>
       {active.map((p) => (
-        <button key={p.id} type="button" className={'nav' + (view.type === 'project' && view.id === p.id ? ' on' : '')} onClick={() => go({ type: 'project', id: p.id })}
-          aria-current={view.type === 'project' && view.id === p.id ? 'page' : undefined}>
-          <span className={'sq c-' + p.color} />
-          <span>{p.name}</span>
-          <span className="n">{counts[p.id] ?? 0}</span>
-        </button>
+        <ProjectNavItem key={p.id} p={p} on={view.type === 'project' && view.id === p.id} count={counts[p.id] ?? 0} go={go} />
       ))}
       {!active.length && <p className="side-empty">{t('side.noProjects')}</p>}
       {archived.length > 0 && (
@@ -120,7 +145,7 @@ export function Sidebar({ view, go, openKeys, openData, openTeam }: Props) {
 
       <span className="sp" />
       {conflicts > 0 && (
-        <p className="side-note" role="button" tabIndex={0} onClick={openData} onKeyDown={(e) => e.key === 'Enter' && openData()} title={t('side.conflictHint')}>
+        <p className="side-note" role="button" tabIndex={0} onClick={openConflicts} onKeyDown={(e) => e.key === 'Enter' && openConflicts()} title={t('side.conflictHint')}>
           <Icon n="alert" s={14} />
           {conflicts === 1 ? t('side.conflict1') : t('side.conflictN', { n: conflicts })}
         </p>

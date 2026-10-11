@@ -1,3 +1,4 @@
+import type { TaskId, UserId } from '../../data/ids';
 import { create } from 'zustand';
 import type { ID, ISODateTime, TaskState, User } from '../../data/types';
 import { activityText } from '../../lib/activityText';
@@ -12,7 +13,7 @@ export type InboxKind = 'assigned' | 'mention' | 'comment' | 'completed';
 export interface InboxItem {
   id: ID;
   kind: InboxKind;
-  taskId: ID;
+  taskId: TaskId;
   userId: ID;
   at: ISODateTime;
   text: string;
@@ -21,7 +22,7 @@ export interface InboxItem {
 
 const DAYS = 30;
 
-export function deriveInbox(tasks: Record<ID, TaskState>, users: User[], meId: ID | null, visible: (task: TaskState) => boolean): InboxItem[] {
+export function deriveInbox(tasks: Record<TaskId, TaskState>, users: User[], meId: UserId | null, visible: (task: TaskState) => boolean): InboxItem[] {
   if (!meId) return [];
   const since = new Date(Date.now() - DAYS * 86_400_000).toISOString();
   const out: InboxItem[] = [];
@@ -30,7 +31,7 @@ export function deriveInbox(tasks: Record<ID, TaskState>, users: User[], meId: I
     const follows = task.followerIds.includes(meId);
     for (const a of task.activity) {
       if (a.userId === meId || a.at < since) continue;
-      if (a.type === 'assigned' && a.data?.userId === meId) {
+      if (a.type === 'assigned' && a.data?.['userId'] === meId) {
         out.push({ id: a.id, kind: 'assigned', taskId: task.id, userId: a.userId, at: a.at, text: t('inbox.assigned') });
       } else if (a.type === 'completed' && follows) {
         out.push({ id: a.id, kind: 'completed', taskId: task.id, userId: a.userId, at: a.at, text: activityText(a, users) });

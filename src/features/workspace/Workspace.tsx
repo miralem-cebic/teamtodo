@@ -3,18 +3,20 @@ import { ToastHost } from '../../components/Toast';
 import { isTyping, isMod } from '../../hooks/listNav';
 import { addTask, clearRecentDone, closePanel, openPanel, requestFocus, undo, useApp } from '../../store/appStore';
 import { collapseKey, patchSettings, setLayout, setView, settingsFor, toggleCollapsed, usePrefs, viewKey, type Layout } from '../../store/prefs';
-import { buildGroups, visibleTasks, type View, type ViewSettings } from '../../store/selectors';
+import { buildGroups, visibleTasks, type View, type ViewSettings, projectStatus } from '../../store/selectors';
 import { KeysDialog } from '../keys/KeysDialog';
 import { ListView } from '../list/ListView';
 import { Header } from '../shell/Header';
 import { Toolbar } from '../shell/Toolbar';
 import { DataDialog } from '../shell/DataDialog';
+import { ConflictDialog } from '../shell/ConflictDialog';
 import { t } from '../../i18n';
 import { TeamDialog } from '../team/TeamDialog';
 import { BoardView } from '../board/BoardView';
 import { TaskDnd } from '../dnd/TaskDnd';
 import { Sidebar } from '../shell/Sidebar';
 import { TaskPanel } from '../task-panel/TaskPanel';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { InboxView } from '../inbox/InboxView';
 import { loadInboxRead } from '../inbox/inbox';
 import { CalendarView } from '../calendar/CalendarView';
@@ -35,6 +37,7 @@ export function Workspace() {
   const [keysOpen, setKeysOpen] = useState(false);
   const [dataOpen, setDataOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
+  const [conflictsOpen, setConflictsOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const workspaceId = useApp((s) => s.workspace?.id);
   useEffect(() => {
@@ -43,7 +46,10 @@ export function Workspace() {
 
   // view of a deleted project → back to "My tasks"
   let view: View = prefs.view;
-  if (view.type === 'project' && !projects.some((p) => p.id === (view as { id: string }).id && !p.deletedAt)) view = { type: 'my' };
+  if (view.type === 'project') {
+    const id = view.id;
+    if (!projects.some((p) => p.id === id && projectStatus(p) !== 'deleted')) view = { type: 'my' };
+  }
   const settings = settingsFor(prefs, view);
   const cKey = collapseKey(view, settings);
   const collapsed = prefs.collapsed[cKey] ?? {};
@@ -63,7 +69,8 @@ export function Workspace() {
   const listIds = useMemo(() => (view.type === 'inbox' || view.type === 'templates' ? [] : groups.filter((g) => !g.collapsed).flatMap((g) => g.tasks.map((x) => x.id))), [groups, view.type]);
   /** Open tasks of the view after filters: the calendar and the calendar export use them */
   const openTasks = useMemo(() => groups.flatMap((g) => g.tasks).filter((x) => !x.completedAt), [groups]);
-  const viewName = useApp((s) => (view.type === 'project' ? s.projects.find((p) => p.id === (view as { id: string }).id)?.name : undefined));
+  const viewProjectId = view.type === 'project' ? view.id : null;
+  const viewName = useApp((s) => (viewProjectId ? s.projects.find((p) => p.id === viewProjectId)?.name : undefined));
 
   const go = useCallback((v: View) => {
     setView(v);
@@ -96,7 +103,7 @@ export function Workspace() {
       if (e.key === 'Escape' && !typing) {
         if (navOpen) setNavOpen(false);
         else if (useApp.getState().panelId) {
-          const id = useApp.getState().panelId!;
+          const id = useApp.getState().panelId ?? '';
           closePanel();
           requestFocus(id, 'row');
         }
@@ -137,12 +144,15 @@ export function Workspace() {
 
   return (
     <div className={'app' + (navOpen ? ' nav-open' : '') + (panelId ? ' has-panel' : '')}>
-      <Sidebar view={view} go={go} openKeys={() => setKeysOpen(true)} openData={() => setDataOpen(true)} openTeam={() => setTeamOpen(true)} />
-      {navOpen && <div className="scrim" onClick={() => setNavOpen(false)} />}
       <TaskDnd groups={groups} settings={settings} childrenOf={children}>
+      <ErrorBoundary name="sidebar">
+        <Sidebar view={view} go={go} openKeys={() => setKeysOpen(true)} openData={() => setDataOpen(true)} openTeam={() => setTeamOpen(true)} openConflicts={() => setConflictsOpen(true)} />
+      </ErrorBoundary>
+      {navOpen && <div className="scrim" onClick={() => setNavOpen(false)} />}
       <main className="main">
         <div className="content">
           <Header view={view} onBurger={() => setNavOpen(true)} />
+          <ErrorBoundary key={viewKey(view)} name="view">
           {view.type === 'inbox' || view.type === 'templates' ? (
             <div className="scroll" data-testid="list-scroll">
               {view.type === 'inbox' ? <InboxView /> : <TemplatesView onCreated={(id) => go({ type: 'project', id })} />}
@@ -172,14 +182,36 @@ export function Workspace() {
               </div>
             </>
           )}
+          </ErrorBoundary>
         </div>
-        {panelId && <TaskPanel key={panelId} id={panelId} order={listIds} />}
+        {panelId && (
+          <ErrorBoundary key={panelId} name="panel">
+            <TaskPanel key={panelId} id={panelId} order={listIds} />
+          </ErrorBoundary>
+        )}
       </main>
       </TaskDnd>
       <ToastHost />
-      {keysOpen && <KeysDialog onClose={() => setKeysOpen(false)} />}
-      {dataOpen && <DataDialog onClose={() => setDataOpen(false)} />}
-      {teamOpen && <TeamDialog onClose={() => setTeamOpen(false)} />}
+      {keysOpen && (
+        <ErrorBoundary name="dialog">
+          <KeysDialog onClose={() => setKeysOpen(false)} />
+        </ErrorBoundary>
+      )}
+      {dataOpen && (
+        <ErrorBoundary name="dialog">
+          <DataDialog onClose={() => setDataOpen(false)} onConflicts={() => setConflictsOpen(true)} />
+        </ErrorBoundary>
+      )}
+      {conflictsOpen && (
+        <ErrorBoundary name="dialog">
+          <ConflictDialog onClose={() => setConflictsOpen(false)} />
+        </ErrorBoundary>
+      )}
+      {teamOpen && (
+        <ErrorBoundary name="dialog">
+          <TeamDialog onClose={() => setTeamOpen(false)} />
+        </ErrorBoundary>
+      )}
     </div>
   );
 }

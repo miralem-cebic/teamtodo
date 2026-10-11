@@ -1,8 +1,9 @@
-import { flashRows, useApp } from '../store/appStore';
+import type { TaskId } from './ids';
+import { flashRows, touchTasks, useApp } from '../store/appStore';
 import { mergeProjects, mergeTask, mergeUsers, sameJson } from './merge';
 import type { Persister } from './persister';
 import type { ChangeSet, Repository } from './repository';
-import type { ID, Project, Task, TaskState, User } from './types';
+import { MERGEABLE_FIELDS, type MergeableField, type Project, type Task, type TaskState, type User } from './types';
 
 // Multi-user sync: every 10 seconds and on window focus, read the changed files
 // and apply them to the state. Own unsaved changes are merged field by field.
@@ -14,12 +15,23 @@ export const POLL_MS = 10_000;
 const VISIBLE: (keyof Task)[] = ['title', 'assigneeId', 'dueDate', 'dueTime', 'status', 'completedAt', 'sectionId', 'projectId', 'order', 'comments', 'attachments'];
 const visiblyDifferent = (a: Task, b: Task) => VISIBLE.some((k) => !sameJson(a[k], b[k]));
 const stripDraft = ({ draft: _d, ...t }: TaskState): Task => t;
+const stampOf = (t: Task, f: MergeableField) => t.fieldUpdatedAt[f] ?? t.createdAt;
 
-export function integrateTasks(p: Persister, remotes: Task[], removed: ID[] = []) {
+/** Does `local` hold a change that `remote` does not have: a newer field value, or a comment, activity entry or attachment that is missing there? */
+function hasNewerThan(local: Task, remote: Task): boolean {
+  if (MERGEABLE_FIELDS.some((f) => stampOf(local, f) > stampOf(remote, f))) return true;
+  const ids = (t: Task) => new Set([...t.comments, ...t.activity, ...t.attachments].map((x) => x.id));
+  const remoteIds = ids(remote);
+  return [...ids(local)].some((id) => !remoteIds.has(id));
+}
+
+export function integrateTasks(p: Persister, remotes: Task[], removed: TaskId[] = []) {
   if (!remotes.length && !removed.length) return;
+  touchTasks(remotes.map((r) => r.id));
+  touchTasks(removed);
   const s = useApp.getState();
   const tasks = { ...s.tasks };
-  const flash: ID[] = [];
+  const flash: TaskId[] = [];
   let changed = false;
   for (const r of remotes) {
     const local = tasks[r.id];
@@ -30,9 +42,17 @@ export function integrateTasks(p: Persister, remotes: Task[], removed: ID[] = []
       changed = true;
     } else if (p.isClean(local)) {
       if (sameJson(stripDraft(local), r)) continue;
-      p.markCleanObject(r);
-      tasks[r.id] = r;
-      if (visiblyDifferent(local, r)) flash.push(r.id);
+      if (hasNewerThan(local, r)) {
+        // Saved here, but the file was written by someone else without this change: keep the newer values.
+        // The result is not clean, so it is written again.
+        const m = mergeTask(stripDraft(local), r);
+        tasks[r.id] = m;
+        if (visiblyDifferent(local, m)) flash.push(r.id);
+      } else {
+        p.markCleanObject(r);
+        tasks[r.id] = r;
+        if (visiblyDifferent(local, r)) flash.push(r.id);
+      }
       changed = true;
     } else {
       // own unsaved change: merge it, it stays "dirty" and is written
@@ -58,6 +78,7 @@ export function integrateWrittenTask(p: Persister, written: Task, stored: Task) 
   const s = useApp.getState();
   const cur = s.tasks[written.id];
   if (!cur) return;
+  touchTasks([stored.id]);
   if (cur === written) {
     p.markCleanObject(stored);
     useApp.setState({ tasks: { ...s.tasks, [stored.id]: stored } });
@@ -133,9 +154,13 @@ export class SyncEngine {
     try {
       if (this.persister.pending) await this.persister.flush();
       if (this.persister.pending) return;
-      const changes = await this.repo.pullChanges();
-      applyChanges(this.persister, changes);
-      this.onConflictCopies(changes.conflictCopies);
+      const r = await this.repo.pullChanges();
+      if (!r.ok) {
+        console.warn('Sync failed', r.error.cause ?? r.error.kind);
+        return;
+      }
+      applyChanges(this.persister, r.value);
+      this.onConflictCopies(r.value.conflictCopies);
     } catch (e) {
       console.warn('Sync failed', e);
     } finally {

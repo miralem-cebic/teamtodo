@@ -9,8 +9,11 @@ export type { MessageKey } from './messages';
 
 const LOCALES: Record<Lang, Locale> = { en: enUS, de, fr, es, it };
 
+// The browser language does not change while the app runs: detect it once, not for every string
+let systemLang: Lang | null = null;
+
 /** Current UI language (stored per browser in prefs). */
-export const currentLang = (): Lang => usePrefs.getState().language ?? detectLang();
+export const currentLang = (): Lang => usePrefs.getState().language ?? (systemLang ??= detectLang());
 
 /** Translate a message. `{name}` placeholders are replaced from `vars`. */
 export function t(key: MessageKey, vars?: Record<string, string | number>): string {

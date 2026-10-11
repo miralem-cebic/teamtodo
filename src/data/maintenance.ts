@@ -1,8 +1,10 @@
-import { showToast, useApp } from '../store/appStore';
+import type { TaskId } from './ids';
+import { showToast, touchTasks, useApp } from '../store/appStore';
 import { today } from '../lib/dates';
 import { mergeUsers } from './merge';
 import { nowIso } from './schema';
 import type { Repository } from './repository';
+import { must } from './result';
 import type { ID, Snapshot, Task, TaskState } from './types';
 import { MERGEABLE_FIELDS } from './types';
 
@@ -36,7 +38,7 @@ export async function dailyBackup(repo: Repository, force = false): Promise<stri
   if (!force && ws.lastBackupDate === day) return null;
   const snapshot = currentSnapshot();
   if (!snapshot) return null;
-  await repo.writeBackup(day, snapshot);
+  must(await repo.writeBackup(day, snapshot));
   const all = await repo.listBackups();
   const daily = all.filter((b) => DAILY.test(b.name)).sort((a, b) => b.name.localeCompare(a.name));
   for (const b of daily.slice(KEEP_BACKUPS)) await repo.removeBackup(b.name);
@@ -55,7 +57,7 @@ export async function purge(repo: Repository, now = Date.now()): Promise<number>
   const cutoff = new Date(now - PURGE_AFTER_DAYS * 86_400_000).toISOString();
   const old = (at?: string | null) => !!at && at < cutoff;
 
-  const deadProjects = new Set(s.projects.filter((p) => old(p.deletedAt)).map((p) => p.id));
+  const deadProjects = new Set(s.projects.filter((p) => p.state.kind === 'deleted' && old(p.state.at)).map((p) => p.id));
   const isDead = (t: TaskState): boolean => {
     for (let cur: TaskState | undefined = t, g = 0; cur && g < 50; g++) {
       if (old(cur.deletedAt) || (cur.projectId && deadProjects.has(cur.projectId))) return true;
@@ -64,8 +66,8 @@ export async function purge(repo: Repository, now = Date.now()): Promise<number>
     return false;
   };
 
-  const remove: ID[] = Object.values(s.tasks).filter((t) => !t.draft && isDead(t)).map((t) => t.id);
-  for (const id of remove) await repo.removeTask(id);
+  const remove: TaskId[] = Object.values(s.tasks).filter((t) => !t.draft && isDead(t)).map((t) => t.id);
+  for (const id of remove) must(await repo.removeTask(id));
 
   // permanently delete removed attachments
   const tasks = { ...s.tasks };
@@ -82,6 +84,7 @@ export async function purge(repo: Repository, now = Date.now()): Promise<number>
     .map((p) => (p.sections.some((x) => old(x.deletedAt)) ? { ...p, sections: p.sections.filter((x) => !old(x.deletedAt)) } : p));
   const projectsChanged = projects.length !== s.projects.length || projects.some((p, i) => p !== s.projects[i]);
 
+  touchTasks('all');
   useApp.setState({
     tasks,
     ...(projectsChanged ? { projects } : {}),
@@ -99,8 +102,8 @@ export async function restoreBackup(repo: Repository, name: string) {
   const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
   const snapshot = currentSnapshot();
   if (!snapshot) throw new Error('Restore needs a loaded workspace');
-  await repo.writeBackup(`before-restore-${stamp}`, snapshot);
-  const b = await repo.readBackup(name);
+  must(await repo.writeBackup(`before-restore-${stamp}`, snapshot));
+  const b = must(await repo.readBackup(name));
   const at = nowIso();
   const s = useApp.getState();
   const allFields = Object.fromEntries(MERGEABLE_FIELDS.map((f) => [f, at])) as Task['fieldUpdatedAt'];
@@ -116,7 +119,8 @@ export async function restoreBackup(repo: Repository, name: string) {
   }
   const projects = b.projects.map((p) => ({ ...p, updatedAt: at, sections: p.sections.map((x) => ({ ...x, updatedAt: at })) }));
   // mark projects that were created after the backup as deleted
-  for (const p of s.projects) if (!projects.some((x) => x.id === p.id)) projects.push({ ...p, deletedAt: p.deletedAt ?? at, updatedAt: at });
+  for (const p of s.projects) if (!projects.some((x) => x.id === p.id)) projects.push({ ...p, state: p.state.kind === 'deleted' ? p.state : { kind: 'deleted', at }, updatedAt: at });
+  touchTasks('all');
   useApp.setState({ tasks, projects, users: mergeUsers(s.users, b.users), panelId: null, undoStack: [] });
   showToast(`Backup from ${name} restored`);
 }

@@ -15,22 +15,24 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
-import { useCallback, type ReactNode } from 'react';
+import { useCallback, useRef, type ReactNode } from 'react';
 import { create } from 'zustand';
-import { moveSection, showToast, updateTask, useApp } from '../../store/appStore';
+import { moveProjectNear, moveSection, showToast, updateTask, useApp } from '../../store/appStore';
 import { liveSections, orderBetween, type Group, type ViewSettings } from '../../store/selectors';
 import type { ID, TaskState } from '../../data/types';
+import type { ProjectId, SectionId, TaskId } from '../../data/ids';
 import { t } from '../../i18n';
 
 // Drag and drop for list, board, sections and subtasks.
-// IDs: "t:<id>" task, "g:<key>" group end/column, "s:<id>" section.
+// IDs: "t:<id>" task, "g:<key>" group end/column, "s:<id>" section, "p:<id>" project in the sidebar.
 // Keyboard: move with Ctrl/⌘+Shift+↑/↓, change group via the fields (section, date …).
 
 export type DragData =
-  | { type: 'task'; taskId: ID; groupKey: string }
-  | { type: 'sub'; taskId: ID; parentId: ID; scope: 'list' | 'panel' }
+  | { type: 'task'; taskId: TaskId; groupKey: string }
+  | { type: 'sub'; taskId: TaskId; parentId: TaskId; scope: 'list' | 'panel' }
   | { type: 'group'; groupKey: string }
-  | { type: 'section'; sectionId: ID; projectId: ID };
+  | { type: 'section'; sectionId: SectionId; projectId: ProjectId }
+  | { type: 'project'; projectId: ProjectId; pinned: boolean };
 
 interface DndUi {
   activeId: string | null;
@@ -50,10 +52,21 @@ if (typeof window !== 'undefined') {
   window.addEventListener('touchmove', (e) => (pointerY = e.touches[0]?.clientY ?? pointerY), { passive: true, capture: true });
 }
 
+/**
+ * The same object as long as its content is the same. dnd-kit re-registers a draggable when its data object changes,
+ * and that updates the whole drag context: every row would render again for each change in the list.
+ */
+function useStableData<T>(data: T): T {
+  const ref = useRef(data);
+  if (JSON.stringify(ref.current) !== JSON.stringify(data)) ref.current = data;
+  return ref.current;
+}
+
 /** Task or section row: draggable via the handle, and a drop target at the same time */
 export function useDndRow(id: string, data: DragData, disabled = false) {
-  const drag = useDraggable({ id, data, disabled });
-  const drop = useDroppable({ id, data, disabled });
+  const stable = useStableData(data);
+  const drag = useDraggable({ id, data: stable, disabled });
+  const drop = useDroppable({ id, data: stable, disabled });
   const overId = useDndUi((s) => s.overId);
   const pos = useDndUi((s) => s.pos);
   const ref = useCallback(
@@ -74,14 +87,46 @@ export function useDndRow(id: string, data: DragData, disabled = false) {
   };
 }
 
+/** Project row in the sidebar: draggable and a drop target, only within its own group (pinned or not) */
+export function useDndProject(projectId: ProjectId, pinned: boolean) {
+  const id = `p:${projectId}`;
+  const data = useStableData<DragData>({ type: 'project', projectId, pinned });
+  const drag = useDraggable({ id, data });
+  const drop = useDroppable({ id, data });
+  const overId = useDndUi((s) => s.overId);
+  const pos = useDndUi((s) => s.pos);
+  const ref = useCallback(
+    (el: HTMLElement | null) => {
+      drag.setNodeRef(el);
+      drop.setNodeRef(el);
+      if (el) nodes.set(id, el);
+      else nodes.delete(id);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [drag.setNodeRef, drop.setNodeRef, id],
+  );
+  return { ref, listeners: drag.listeners, attributes: drag.attributes, dragging: drag.isDragging, dropPos: overId === id ? pos : null };
+}
+
 export function useDndGroup(key: string, disabled = false) {
-  const { setNodeRef } = useDroppable({ id: `g:${key}`, data: { type: 'group', groupKey: key } satisfies DragData, disabled });
+  const data = useStableData<DragData>({ type: 'group', groupKey: key });
+  const { setNodeRef } = useDroppable({ id: `g:${key}`, data, disabled });
   const over = useDndUi((s) => s.overId === `g:${key}`);
   return { ref: setNodeRef, over };
 }
 
 const collision: CollisionDetection = (args) => {
   const type = (args.active.data.current as DragData | undefined)?.type;
+  if (type === 'project') {
+    // only the projects of the same group are targets: a pinned project cannot land among the unpinned ones
+    const pinned = (args.active.data.current as { pinned: boolean }).pinned;
+    const containers = args.droppableContainers.filter((c) => {
+      const d = c.data.current as DragData | undefined;
+      return d?.type === 'project' && d.pinned === pinned;
+    });
+    const within = pointerWithin({ ...args, droppableContainers: containers });
+    return within.length ? within : closestCenter({ ...args, droppableContainers: containers });
+  }
   const prefix = type === 'section' ? 's:' : 't:';
   const containers = args.droppableContainers.filter((c) => {
     const id = String(c.id);
@@ -109,23 +154,34 @@ interface Props {
   childrenOf: Record<ID, TaskState[]>;
 }
 
-export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
-  const tasks = useApp((s) => s.tasks);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }));
+// Module-level options: the drag context is only re-rendered when these objects change, and rows depend on it
+const POINTER_OPTIONS = { activationConstraint: { distance: 5 } };
+const TOUCH_OPTIONS = { activationConstraint: { delay: 200, tolerance: 6 } };
+const ACCESSIBILITY = { restoreFocus: false };
 
-  const onStart = (e: DragStartEvent) => {
+export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
+  const sensors = useSensors(useSensor(PointerSensor, POINTER_OPTIONS), useSensor(TouchSensor, TOUCH_OPTIONS));
+  // The handlers below are stable (they would otherwise change the drag context on every render); they read the
+  // latest props and the task record when they run.
+  const latest = useRef({ groups, settings, childrenOf });
+  latest.current = { groups, settings, childrenOf };
+
+  const onStart = useCallback((e: DragStartEvent) => {
+    const tasks = useApp.getState().tasks;
     const d = e.active.data.current as DragData;
     const label =
       d.type === 'section'
         ? (useApp.getState().projects.find((p) => p.id === d.projectId)?.sections.find((s) => s.id === d.sectionId)?.name ?? '')
-        : d.type === 'group'
-          ? ''
-          : (tasks[d.taskId]?.title ?? '');
+        : d.type === 'project'
+          ? (useApp.getState().projects.find((p) => p.id === d.projectId)?.name ?? '')
+          : d.type === 'group'
+            ? ''
+            : (tasks[d.taskId]?.title ?? '');
     useDndUi.setState({ activeId: String(e.active.id), label });
-  };
+  }, []);
 
   // also on every move: dnd-kit only reports "over" when the target changes
-  const onOver = (e: DragOverEvent | DragMoveEvent) => {
+  const onOver = useCallback((e: DragOverEvent | DragMoveEvent) => {
     const over = e.over;
     if (!over || over.id === e.active.id) {
       if (useDndUi.getState().overId !== null) useDndUi.setState({ overId: null, pos: null });
@@ -136,9 +192,11 @@ export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
     const pos = String(over.id).startsWith('g:') ? null : pointerY < r.top + r.height / 2 ? 'before' : 'after';
     const cur = useDndUi.getState();
     if (cur.overId !== String(over.id) || cur.pos !== pos) useDndUi.setState({ overId: String(over.id), pos });
-  };
+  }, []);
 
-  const onEnd = (e: DragEndEvent) => {
+  const onEnd = useCallback((e: DragEndEvent) => {
+    const { groups, settings, childrenOf } = latest.current;
+    const tasks = useApp.getState().tasks;
     const pos = useDndUi.getState().pos;
     reset();
     const over = e.over;
@@ -154,11 +212,17 @@ export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
       return;
     }
 
+    if (a.type === 'project' && o.type === 'project') {
+      if (pos) moveProjectNear(a.projectId, o.projectId, pos);
+      return;
+    }
+
     if (a.type === 'sub' && o.type === 'sub') {
       const a2 = tasks[a.taskId];
       const o2 = tasks[o.taskId];
       if (!a2 || !o2 || a2.parentId !== o2.parentId) return;
-      const list = (childrenOf[a2.parentId!] ?? []).filter((x) => x.id !== a.taskId);
+      const siblings = a2.parentId ? childrenOf[a2.parentId] : undefined;
+  const list = (siblings ?? []).filter((x) => x.id !== a.taskId);
       const i = list.findIndex((x) => x.id === o.taskId) + (pos === 'after' ? 1 : 0);
       updateTask(a.taskId, { order: orderBetween(list[i - 1], list[i]) }, { undo: t('undo.moved') });
       return;
@@ -185,10 +249,10 @@ export function TaskDnd({ groups, settings, childrenOf, children }: Props) {
     const order = orderBetween(list[i - 1], list[i]);
     if (same) updateTask(task.id, { order }, { undo: t('undo.moved') });
     else updateTask(task.id, { ...to.apply, ...(manual ? { order } : {}) }, { undo: `Moved to "${to.label}"`, toast: true });
-  };
+  }, []);
 
   return (
-    <DndContext sensors={sensors} collisionDetection={collision} onDragStart={onStart} onDragOver={onOver} onDragMove={onOver} onDragEnd={onEnd} onDragCancel={reset} accessibility={{ restoreFocus: false }}>
+    <DndContext sensors={sensors} collisionDetection={collision} onDragStart={onStart} onDragOver={onOver} onDragMove={onOver} onDragEnd={onEnd} onDragCancel={reset} accessibility={ACCESSIBILITY}>
       {children}
       <DragOverlay dropAnimation={null}>
         <Overlay />

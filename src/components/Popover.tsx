@@ -18,8 +18,8 @@ export function usePop() {
     const a = ref.current;
     setAnchor(null);
     if (!a) return;
-    const back = a.dataset.returnFocus;
-    delete a.dataset.returnFocus;
+    const back = a.dataset['returnFocus'];
+    delete a.dataset['returnFocus'];
     if (!refocus) return;
     if (back) {
       // Opened by a shortcut from the title field: back to the title (the row may have moved meanwhile)

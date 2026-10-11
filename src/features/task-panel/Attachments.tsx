@@ -5,26 +5,29 @@ import { getRepo } from '../../app/session';
 import { classifyError } from '../../data/repository';
 import { errorText } from '../../lib/labels';
 import { t } from '../../i18n';
-import { newId, nowIso } from '../../data/schema';
+import { nowIso } from '../../data/schema';
+import { newAttachmentId } from '../../data/ids';
 import type { Attachment, TaskState } from '../../data/types';
 
 // Attachments are stored as real files in attachments/<taskId>/<file name>.
 
-const urlCache = new Map<string, string>();
+/** Time an object URL stays valid after it was handed to the browser (a new tab or a download needs it briefly) */
+const URL_LIFETIME_MS = 60_000;
 const fmtSize = (b: number) => (b < 1024 ? `${b} B` : b < 1048576 ? `${Math.round(b / 1024)} KB` : `${(b / 1048576).toFixed(1)} MB`);
 const isImage = (a: Attachment) => a.mimeType.startsWith('image/');
-const opensInBrowser = (a: Attachment) => isImage(a) || a.mimeType === 'application/pdf' || a.mimeType.startsWith('text/') || a.mimeType.startsWith('video/') || a.mimeType.startsWith('audio/');
+// Types that can run script when a browser renders them as a page. They are only ever downloaded.
+const ACTIVE_TYPES = /^(text\/html|application\/xhtml\+xml|text\/xml|application\/xml|image\/svg\+xml)$/i;
+const opensInBrowser = (a: Attachment) => {
+  if (ACTIVE_TYPES.test(a.mimeType)) return false;
+  return isImage(a) || a.mimeType === 'application/pdf' || a.mimeType.startsWith('text/') || a.mimeType.startsWith('video/') || a.mimeType.startsWith('audio/');
+};
 
+/** A new object URL for the file. The caller revokes it, otherwise the file stays in memory. */
 async function objectUrl(taskId: string, a: Attachment): Promise<string> {
-  const key = `${taskId}/${a.fileName}`;
-  const hit = urlCache.get(key);
-  if (hit) return hit;
   const repo = getRepo();
   if (!repo) throw new Error('No data folder');
   const file = await repo.readAttachment(taskId, a.fileName);
-  const url = URL.createObjectURL(file.type ? file : new Blob([file], { type: a.mimeType }));
-  urlCache.set(key, url);
-  return url;
+  return URL.createObjectURL(file.type ? file : new Blob([file], { type: a.mimeType }));
 }
 
 export async function addFiles(task: TaskState, files: FileList | File[]) {
@@ -34,7 +37,7 @@ export async function addFiles(task: TaskState, files: FileList | File[]) {
   for (const f of [...files]) {
     try {
       const fileName = await repo.writeAttachment(task.id, f.name, f);
-      addAttachmentMeta(task.id, { id: newId(), fileName, size: f.size, mimeType: f.type || 'application/octet-stream', addedAt: nowIso(), addedBy: me });
+      addAttachmentMeta(task.id, { id: newAttachmentId(), fileName, size: f.size, mimeType: f.type || 'application/octet-stream', addedAt: nowIso(), addedBy: me });
     } catch (e) {
       showToast(t('attach.saveFailed', { name: f.name, reason: errorText(classifyError(e)) }));
     }
@@ -45,9 +48,21 @@ function Thumb({ taskId, a }: { taskId: string; a: Attachment }) {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
-    if (isImage(a)) objectUrl(taskId, a).then((u) => live && setSrc(u), () => undefined);
+    let url: string | null = null;
+    if (isImage(a))
+      objectUrl(taskId, a).then(
+        (u) => {
+          if (live) {
+            url = u;
+            setSrc(u);
+          } else URL.revokeObjectURL(u);
+        },
+        () => undefined,
+      );
     return () => {
       live = false;
+      // the thumbnail keeps the file in memory only while it is shown
+      if (url) URL.revokeObjectURL(url);
     };
   }, [taskId, a]);
   return src ? <img src={src} alt="" /> : <span className="att-ic"><Icon n="clip" s={15} /></span>;
@@ -68,6 +83,7 @@ export function Attachments({ task }: { task: TaskState }) {
         link.download = a.fileName;
         link.click();
       }
+      setTimeout(() => URL.revokeObjectURL(url), URL_LIFETIME_MS);
     } catch (e) {
       showToast(t('attach.notFound') + (e instanceof DOMException ? ' ' + t('attach.notFoundHint') : ''));
     }

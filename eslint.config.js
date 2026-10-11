@@ -15,8 +15,21 @@ export default tseslint.config(
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-non-null-assertion': 'off',
     },
+  },
+  {
+    // Application code: no unchecked assertions and no `any`. Tests keep the looser defaults.
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'error',
+      '@typescript-eslint/no-explicit-any': 'error',
+    },
+  },
+  {
+    // Type-aware: a switch over a union must handle every case (or end with a `never` check)
+    files: ['src/**/*.{ts,tsx}'],
+    languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
+    rules: { '@typescript-eslint/switch-exhaustiveness-check': 'error' },
   },
   {
     files: ['scripts/**/*.mjs', '*.config.*', 'tests/**/*.ts'],

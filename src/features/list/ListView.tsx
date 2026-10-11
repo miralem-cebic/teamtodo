@@ -1,3 +1,6 @@
+import { brandId } from '../../data/ids';
+const emptySection = brandId<'SectionId'>('');
+const emptyProject = brandId<'ProjectId'>('');
 import { useEffect, useState, type ReactNode } from 'react';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
@@ -7,6 +10,9 @@ import { toggleCollapsed, usePrefs } from '../../store/prefs';
 import type { Group, View, ViewSettings } from '../../store/selectors';
 import type { ID, TaskState } from '../../data/types';
 import { TaskRow, type ThirdColumn } from './TaskRow';
+import { publishListSnapshot } from './listSnapshot';
+
+const doneCount = (list: TaskState[]) => list.filter((k) => k.completedAt).length;
 import { useDndGroup, useDndRow } from '../dnd/TaskDnd';
 import { t, t as tr } from '../../i18n';
 
@@ -30,6 +36,16 @@ export function ListView({ groups, view, settings, collapseKey, children }: Prop
     requestFocus(addTask({ ...g.defaults, order: last ? last.order + 1 : Date.now() }), 'list');
   };
 
+  // the rows read this in their event handlers (see listSnapshot.ts)
+  const shownSubs = new Map<ID, TaskState[]>();
+  if (view.type === 'project') {
+    for (const g of groups) for (const t of g.tasks) {
+      if (!expanded[t.id]) continue;
+      const all = children[t.id] ?? [];
+      shownSubs.set(t.id, showDoneKids ? all : all.filter((k) => !k.completedAt || recentDone.has(k.id)));
+    }
+  }
+  publishListSnapshot(groups, children, shownSubs);
   return (
     <div className={'list' + (third ? '' : ' no3')} role="grid" aria-label="Tasks">
       <div className="lhead" role="row">
@@ -50,10 +66,10 @@ export function ListView({ groups, view, settings, collapseKey, children }: Prop
                 const open = view.type === 'project' && !!expanded[t.id];
                 return (
                   <div key={t.id} className="row-wrap">
-                    <TaskRow task={t} group={g} siblings={g.tasks} view={view} third={third} manual={manual} kids={allKids} />
+                    <TaskRow task={t} groupKey={g.key} view={view} third={third} manual={manual} kidCount={allKids.length} doneKidCount={doneCount(allKids)} />
                     {open &&
                       kids.map((k) => (
-                        <TaskRow key={k.id} task={k} depth={1} siblings={kids} view={view} third={third} manual kids={children[k.id] ?? []} />
+                        <TaskRow key={k.id} task={k} depth={1} view={view} third={third} manual kidCount={(children[k.id] ?? []).length} doneKidCount={doneCount(children[k.id] ?? [])} />
                       ))}
                     {open && (
                       <div className="row add-row sub">
@@ -112,6 +128,7 @@ function GroupSection({ g, children }: { g: Group; children: ReactNode }) {
 }
 
 function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseKey: string }) {
+  const section = g.section;
   const focusReq = useApp((s) => s.focusReq);
   // A newly created section starts in edit mode at once (synchronously, so that no keystroke is lost)
   const [editing, setEditing] = useState(() => {
@@ -127,7 +144,7 @@ function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseK
   }, [focusReq, sectionId]);
 
   const projectId = view.type === 'project' ? view.id : null;
-  const dnd = useDndRow(`s:${g.key}`, { type: 'section', sectionId: g.section?.id ?? '', projectId: projectId ?? '' }, !g.section || !projectId);
+  const dnd = useDndRow(`s:${g.key}`, { type: 'section', sectionId: g.section?.id ?? emptySection, projectId: projectId ?? emptyProject }, !g.section || !projectId);
   const commit = () => {
     setEditing(false);
     if (g.section && projectId && name.trim() && name !== g.label) renameSection(projectId, g.section.id, name.trim());
@@ -187,11 +204,11 @@ function GroupHeader({ g, view, collapseKey }: { g: Group; view: View; collapseK
                   {
                     label: t('section.insertBelow'),
                     icon: 'plus',
-                    onClick: () => requestFocus(addSection(projectId, t('section.new'), g.section!.order), 'section'),
+                    onClick: () => section && requestFocus(addSection(projectId, t('section.new'), section.order), 'section'),
                     keepFocus: true,
                   },
                   { sep: true },
-                  { label: t('section.delete'), icon: 'trash', danger: true, onClick: () => deleteSection(projectId, g.section!.id) },
+                  { label: t('section.delete'), icon: 'trash', danger: true, onClick: () => section && deleteSection(projectId, section.id) },
                 ]}
               />
             </Popover>
