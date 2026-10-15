@@ -11,7 +11,7 @@
 
 **teamtodo** is a task management tool for marketing teams, modeled after the interaction style of Asana.
 
-It runs entirely in the browser and needs no server. All data is stored as plain files in a shared folder, for example on OneDrive or SharePoint, so your team keeps full control over its data.
+It runs entirely in the browser and needs no server. All data is stored as plain files in a shared folder, for example on OneDrive, SharePoint, Nextcloud or Dropbox, so your team keeps full control over its data. The [user guide](docs/user-guide.md) lists the storage options.
 
 <p align="center">
   <img src="docs/collage.png" alt="teamtodo in use: list view with sections and subtasks, and board view with one column per section" width="100%" />
@@ -38,6 +38,10 @@ It runs entirely in the browser and needs no server. All data is stored as plain
 3. Extract the archive, then double-click `index.html` to open the app in Chrome or Edge.
 
 The [user guide](docs/user-guide.md) explains how to connect the shared data folder, set up your team, and work with tasks.
+
+### Use it online
+
+Open <https://miralem-cebic.github.io/teamtodo/> in Google Chrome or Microsoft Edge. The website shows the latest release and is updated with each release. It needs an internet connection to open. Data is still stored in a folder you choose on your computer, and nothing is uploaded.
 
 ### Build from source
 

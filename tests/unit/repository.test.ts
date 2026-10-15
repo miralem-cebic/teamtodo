@@ -42,6 +42,28 @@ describe('FsRepository', () => {
     expect(res.conflictCopies.sort()).toEqual([`tasks/${t.id}-LAPTOP-123.json`, 'users-MacBook.json'].sort());
   });
 
+  it('detects conflict copies that other sync tools name with a space and a suffix', async () => {
+    const root = new MemDir('teamtodo');
+    const repo = new FsRepository(root.asHandle());
+    const snap = sampleSnapshot('teamtodo');
+    must(await repo.initialize(snap));
+    const tasks = await root.getDirectoryHandle('tasks');
+    const t = snap.tasks[0]!;
+    await root.getFileHandle('users (conflicted copy 2026-10-15 0930).json', { create: true });
+    await root.getFileHandle('projects (Conflicted copy 2026-10-15 093012 Name).json', { create: true });
+    await tasks.getFileHandle(`${t.id} (conflicted copy 2026-10-15 0930).json`, { create: true });
+
+    const res = must(await repo.loadAll());
+    expect(res.snapshot.tasks).toHaveLength(snap.tasks.length);
+    expect(res.conflictCopies.sort()).toEqual(
+      [
+        'users (conflicted copy 2026-10-15 0930).json',
+        'projects (Conflicted copy 2026-10-15 093012 Name).json',
+        `tasks/${t.id} (conflicted copy 2026-10-15 0930).json`,
+      ].sort(),
+    );
+  });
+
   it('reports files from a newer schema version', async () => {
     const root = new MemDir('T');
     const repo = new FsRepository(root.asHandle());

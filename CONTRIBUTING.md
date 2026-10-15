@@ -120,9 +120,10 @@ The [release workflow](.github/workflows/release.yml) then:
 
 - refuses to release tags that do not point to a commit on `main`,
 - builds the package and its SHA-256 checksum,
-- publishes a GitHub release with the changelog section and the generated release notes.
+- publishes a GitHub release with the changelog section and the generated release notes,
+- publishes the same package to [GitHub Pages](https://miralem-cebic.github.io/teamtodo/), after the release is published.
 
-Tags containing a hyphen (for example `v1.2.0-rc.1`) are published as pre-releases.
+Tags containing a hyphen (for example `v1.2.0-rc.1`) are published as pre-releases. They do not update the website.
 
 ## Repository settings (maintainers)
 
@@ -144,7 +145,8 @@ These settings live in the GitHub UI and are not stored in the repository. Maint
 
 - Enable private vulnerability reporting under *Security*.
 - Enable automatic deletion of head branches after merge.
-- Set the repository description, website, and topics.
+- Set the repository description, website (`https://miralem-cebic.github.io/teamtodo/`), and topics.
+- Under *Settings → Pages*, set *Source* to *GitHub Actions*. The release workflow deploys to the `github-pages` environment.
 
 ## Questions
 
