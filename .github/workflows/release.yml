@@ -1,5 +1,6 @@
 # Publishes a GitHub release whenever a version tag such as v1.2.0 is pushed.
 # Release notes combine the matching CHANGELOG.md section with GitHub's generated notes.
+# The same package is then published to GitHub Pages (not for pre-releases, see the pages job).
 name: Release
 
 on:
@@ -96,3 +97,45 @@ jobs:
             --title "teamtodo ${TAG}" \
             --notes-file "$RUNNER_TEMP/release-notes.md" \
             $PRERELEASE_FLAG
+
+  pages:
+    name: pages
+    # Only after the release is published, and not for pre-releases (tags with a hyphen).
+    if: ${{ success() && !contains(github.ref_name, '-') }}
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - name: Download package
+        uses: actions/download-artifact@v8
+        with:
+          name: teamtodo-package
+          path: release
+
+      - name: Unpack the release package into the site folder
+        # The site is the same ZIP that is attached to the release, so the website matches the download.
+        run: |
+          mkdir -p site
+          unzip -q "release/teamtodo-${TAG}.zip" -d site
+          test -f site/index.html
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
