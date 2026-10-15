@@ -8,6 +8,8 @@ teamtodo is a task management tool for marketing teams. It runs directly in the 
 2. Double-click **`index.html`**.
 3. The app opens in your default browser. It only works in **Google Chrome** and **Microsoft Edge**. If another browser is your default, right-click `index.html` → "Open with" → Chrome or Edge.
 
+Or open <https://miralem-cebic.github.io/teamtodo/> in Chrome or Edge. The website always shows the latest release and needs an internet connection to open. Your data stays in the folder you choose. Settings and the remembered folder are kept per address and per browser, so the first start on the website asks for the folder again.
+
 Tip: bookmark the opened page to get there faster next time.
 
 ## Language

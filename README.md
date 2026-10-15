@@ -39,6 +39,10 @@ It runs entirely in the browser and needs no server. All data is stored as plain
 
 The [user guide](docs/user-guide.md) explains how to connect the shared data folder, set up your team, and work with tasks.
 
+### Use it online
+
+Open <https://miralem-cebic.github.io/teamtodo/> in Google Chrome or Microsoft Edge. The website shows the latest release and is updated with each release. It needs an internet connection to open. Data is still stored in a folder you choose on your computer, and nothing is uploaded.
+
 ### Build from source
 
 ```bash
