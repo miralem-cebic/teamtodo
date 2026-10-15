@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - The app is available on GitHub Pages: <https://miralem-cebic.github.io/teamtodo/>. Each release is published there, and the website works like the downloaded package in Chrome or Edge. Data stays in the folder you choose.
 - The browser tab shows the teamtodo icon.
+- The user guide describes how to keep the data folder on OneDrive, SharePoint, Nextcloud, Dropbox, Google Drive and iCloud Drive, and how to put the app on a shared drive.
 
 ### Changed
 

@@ -38,6 +38,40 @@ On later starts the app shows **"Continue with folder …"**. One click is enoug
 
 **Important with OneDrive:** In Finder or Explorer, right-click the data folder and choose **"Always keep on this device"** (the menu name depends on the language of your OneDrive). Otherwise OneDrive first has to download the files and the app starts more slowly.
 
+## Other storage options
+
+The app saves into a folder on your computer. It does not connect to any service itself. Any storage that shows up as a normal folder on your computer can hold the data folder, as long as its sync program keeps the folder up to date.
+
+| Storage | Folder to choose | Notes |
+| --- | --- | --- |
+| **OneDrive** (personal or work) | The folder in your OneDrive folder, for example `OneDrive - Company\teamtodo` | Choose **Always keep on this device**, as described above. |
+| **SharePoint** document library | Open the library in your browser, click **Sync**, and choose the folder that the OneDrive app creates on your computer. | The web address cannot be selected. Only the synced copy works. |
+| **Nextcloud** | The folder in the Nextcloud desktop app, for example `Nextcloud\teamtodo` | Make the folder available offline, so the files are stored on your computer. |
+| **Dropbox** | The folder in your Dropbox folder | Choose **Make available offline** for the folder. |
+| **Google Drive** (desktop app) | The folder under the Google Drive drive letter | In the Google Drive settings, use **Mirror files** instead of **Stream files**. |
+| **iCloud Drive** (Mac) | The folder in iCloud Drive in Finder | Choose **Keep Downloaded** for the folder. |
+| **Network drive or NAS** | A mapped drive, or a folder that another program keeps in sync | Not tested by the team. Delays and conflict copies depend on the device. |
+
+Some rules apply to all of them:
+
+- Everyone in the team uses the same synced folder and chooses it on their own computer.
+- The files must be stored on your computer. A file that exists only in the cloud has to be downloaded first, which makes the app start more slowly.
+- Changes from others appear once the sync program has downloaded them.
+- Conflict copies are recognized by their names. The original name stays at the start, followed by a space or a dash, for example `users-LAPTOP-123.json` (OneDrive) or `users (conflicted copy 2026-10-15).json` (other tools). The app ignores such copies and lists them under **Data and backups**.
+
+## Putting the app on a shared drive
+
+The app itself is a folder with `index.html` and an `assets` folder. You can keep it in the same synced storage as the data, in its own folder next to the data folder.
+
+1. Download `teamtodo-<version>.zip` from the [Releases](https://github.com/miralem-cebic/teamtodo/releases) page and check it with the attached `.sha256` file.
+2. Extract the ZIP into a new folder named `teamtodo-app` in your synced storage, for example `OneDrive\teamtodo-app`. Do not extract it into the data folder.
+3. Wait until the sync has finished, and choose **Always keep on this device** for the `teamtodo-app` folder.
+4. Double-click `index.html` in the synced folder on your computer. The app opens in Chrome or Edge.
+
+The app does not run from the web view of OneDrive or SharePoint. Open the copy on your computer. Alternatively, use the website (see [Opening the app](#opening-the-app)). Then you only need the data folder.
+
+**Updating:** replace `index.html` and the `assets` folder with the new release. The data folder stays as it is. If a release changes the data format (the [changelog](https://github.com/miralem-cebic/teamtodo/blob/main/CHANGELOG.md) says so), everyone who shares the data folder must update before saving again. A computer with an older version shows a message and does not load the folder.
+
 ## Setting up your team
 
 - On first start, choose **who you are**. If your name is missing, add yourself directly.
