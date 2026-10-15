@@ -28,11 +28,13 @@ export function Onboarding() {
 }
 
 function Unsupported() {
+  // Opened from the file, the user starts index.html by hand; on the website they copy the address instead.
+  const hint = location.protocol === 'file:' ? t('onb.openFile', { file: 'index.html' }) : t('onb.openSite');
   return (
     <>
       <h1>{t('onb.unsupportedTitle')}</h1>
       <p className="onb-text">
-        {t('onb.unsupportedText')} {t('onb.openFile', { file: 'index.html' })}
+        {t('onb.unsupportedText')} {hint}
       </p>
     </>
   );
