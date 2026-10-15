@@ -74,7 +74,8 @@ describe('lost update between two clients', () => {
     must(await repoA.loadAll());
     must(await repoB.loadAll());
 
-    const stamp = (n: number) => `2026-10-11T10:00:0${n}.000Z`;
+    // later than the sample data, which is stamped with the current time when it is created
+    const stamp = (n: number) => new Date(Date.now() + n * 1000).toISOString();
     const aVersion: Task = { ...base, description: 'written by A', fieldUpdatedAt: { ...base.fieldUpdatedAt, description: stamp(2) } };
     const bVersion: Task = { ...base, title: 'written by B', fieldUpdatedAt: { ...base.fieldUpdatedAt, title: stamp(3) } };
 
