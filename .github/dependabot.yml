@@ -18,6 +18,12 @@ updates:
       day: monday
     commit-message:
       prefix: build
+    # typescript-eslint 8.x refuses to load with TypeScript 7.0 and plans
+    # support from 7.1 on: https://github.com/typescript-eslint/typescript-eslint/issues/10940
+    ignore:
+      - dependency-name: typescript
+        versions:
+          - "7.0.x"
     groups:
       npm-minor-and-patch:
         update-types:
