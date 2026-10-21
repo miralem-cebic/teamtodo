@@ -37,7 +37,7 @@ function LinkBar({ onSubmit, onCancel, onBlur }: { onSubmit: (url: string) => vo
  * Ctrl/⌘ + K in a text field: asks for a URL and turns the selected text into a link.
  * Use `onKeyDown` in the field, and render `bar` right below it.
  */
-export function useLinkInput(ref: RefObject<HTMLTextAreaElement>, text: string, commit: (next: string) => void) {
+export function useLinkInput(ref: RefObject<HTMLTextAreaElement | null>, text: string, commit: (next: string) => void) {
   const [range, setRange] = useState<{ start: number; end: number } | null>(null);
   const close = () => {
     setRange(null);
