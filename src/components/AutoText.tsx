@@ -11,7 +11,7 @@ interface Props {
   onKeyDown?: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
   onBlur?: () => void;
   autoFocus?: boolean;
-  inputRef?: RefObject<HTMLTextAreaElement>;
+  inputRef?: RefObject<HTMLTextAreaElement | null>;
   ariaLabel: string;
   /** Links: URLs are clickable when the field is not being edited, and Ctrl/⌘ + K turns a selection into a link */
   rich?: boolean;

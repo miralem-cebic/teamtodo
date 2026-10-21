@@ -19,7 +19,7 @@ interface Props {
   setLayout: (l: Layout) => void;
   search: string;
   setSearch: (v: string) => void;
-  searchRef: RefObject<HTMLInputElement>;
+  searchRef: RefObject<HTMLInputElement | null>;
   onAdd: () => void;
   onExport: () => void;
 }

@@ -1,6 +1,6 @@
 # Development guide
 
-teamtodo is a local web app (React 18, TypeScript, Vite) for task management, modeled after the interaction style of Asana. It runs without a server: open `dist/index.html` directly via `file://` in Chrome or Edge. Data is stored through the File System Access API in a folder chosen by the user.
+teamtodo is a local web app (React 19, TypeScript, Vite) for task management, modeled after the interaction style of Asana. It runs without a server: open `dist/index.html` directly via `file://` in Chrome or Edge. Data is stored through the File System Access API in a folder chosen by the user.
 
 ## Setup
 
