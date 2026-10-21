@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-21
+
+### Changed
+
+- The app is built with React 19 and TypeScript 6.0, and other dependencies are updated. Features and the file format are unchanged, so devices on 0.4.1 and 0.4.2 can share the same data folder.
+
 ## [0.4.1] - 2026-10-15
 
 ### Added
