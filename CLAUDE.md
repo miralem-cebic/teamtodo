@@ -7,6 +7,7 @@ Guidance for AI agents working in this repository. Details live in [DEVELOPMENT.
 Run these before a change is done. They are the same checks CI runs:
 
 ```bash
+npm run verify        # typecheck, lint, tests, build and check:file in one go
 npm run typecheck     # tsc --noEmit
 npm run lint          # eslint .
 npm test              # vitest unit tests (tests/unit)
@@ -14,6 +15,11 @@ npm run build         # typecheck + production build into dist/
 npm run check:file    # opens dist/index.html via file:// and checks the build
 npm run test:e2e      # Playwright against dist/index.html (needs installed Chrome)
 ```
+
+## Working agreement
+
+- **Test first.** Write the failing test, watch it fail for the right reason, then implement. A bug fix starts with a test that reproduces the bug.
+- **Done means verified.** A change is done when `npm run verify` is green (zero lint warnings) and you have read its output.
 
 ## Layering
 
