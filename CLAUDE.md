@@ -18,6 +18,8 @@ npm run test:e2e      # Playwright against dist/index.html (needs installed Chro
 
 `check:file` (and so `verify`) needs a browser. It uses the first one that starts, in this order: `CHROME_PATH` (an executable; if set, it is the only candidate), `BROWSER_CHANNEL` (a browser channel; if set, the only candidate), the installed Google Chrome, and Playwright's bundled Chromium if it is on disk (`npx playwright install chromium`). If none starts, the check exits with a message that lists each attempt and the fix.
 
+Claude Code asks before it runs an npm script that is not in the `allow` list of `.claude/settings.json`. Add a script there only if it is safe to run without a prompt. `npm run deploy` stays under `ask`.
+
 ## Working agreement
 
 - **Test first.** Write the failing test, watch it fail for the right reason, then implement. A bug fix starts with a test that reproduces the bug.
