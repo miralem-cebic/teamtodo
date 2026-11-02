@@ -1,12 +1,24 @@
-// Build acceptance test: open dist/index.html via file:// in the installed Chrome
-// and check that the app starts without console errors.
+// Build acceptance test: open dist/index.html via file:// in a browser and check that the app
+// starts without console errors. The browser is chosen in scripts/browser.mjs.
 import { chromium } from 'playwright-core';
+import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
+import { browserCandidates, launchFirstAvailable } from './browser.mjs';
 
 const url = pathToFileURL(resolve('dist/index.html')).href;
-const channel = process.env.BROWSER_CHANNEL || 'chrome';
-const browser = await chromium.launch({ channel, headless: process.env.HEADED ? false : true });
+const bundled = chromium.executablePath();
+const candidates = browserCandidates(process.env, existsSync(bundled) ? bundled : undefined);
+let launched;
+try {
+  launched = await launchFirstAvailable(candidates, (options) => chromium.launch(options), {
+    headless: process.env.HEADED ? false : true,
+  });
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+}
+const { browser, label } = launched;
 const page = await browser.newPage();
 const problems = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') problems.push(`${m.type()}: ${m.text()}`); });
@@ -27,7 +39,7 @@ const env = await page.evaluate(async () => {
     ui: document.querySelector('.onb button')?.textContent ?? null,
   };
 });
-console.log(`Browser: ${channel} ${browser.version()}`);
+console.log(`Browser: ${label} ${browser.version()}`);
 console.log(env);
 console.log(problems.length ? `PROBLEMS:\n${problems.join('\n')}` : 'No console errors or warnings.');
 await browser.close();
