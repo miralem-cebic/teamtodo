@@ -55,4 +55,4 @@ jobs:
     uses: miralem-cebic/engineering-baseline/.github/workflows/conformance.yml@v0.1.1
     with:
       strict: false
-      baseline-ref: v0.1.0
+      baseline-ref: v0.1.1

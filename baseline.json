@@ -1,5 +1,5 @@
 {
-  "baseline": "0.1.0",
+  "baseline": "0.1.1",
   "ecosystems": ["typescript", "react"],
   "topology": "local-only",
   "repo": "miralem-cebic/teamtodo",
