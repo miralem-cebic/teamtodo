@@ -26,7 +26,7 @@ Tip: the project should not live inside a synced folder such as OneDrive, becaus
 | `npm run check:file`           | Build acceptance test: opens `dist/index.html` via `file://` and checks console, secure context, API, and font |
 | `npm run deploy -- "<folder>"` | Copy `dist/` into a target folder (for example OneDrive)                                                       |
 
-Playwright uses the installed Chrome (`channel: 'chrome'`), so no browsers are downloaded. To see the browser window, set `HEADED=1`.
+Playwright uses the installed Chrome (`channel: 'chrome'`), so no browsers are downloaded. To see the browser window, set `HEADED=1`. `npm run check:file` can use another browser: set `CHROME_PATH` to its executable. The order in which it picks a browser is described in [CLAUDE.md](CLAUDE.md).
 
 ## Building for `file://`
 

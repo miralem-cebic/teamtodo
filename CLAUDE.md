@@ -4,7 +4,7 @@ Guidance for AI agents working in this repository. Details live in [DEVELOPMENT.
 
 ## Commands
 
-Run these before a change is done. They are the same checks CI runs:
+Run these before a change is done. CI (`build.yml`) runs lint, tests and the build, which includes the typecheck. It does not run `check:file` or `test:e2e`, so a green CI does not cover them.
 
 ```bash
 npm run verify        # typecheck, lint, tests, build and check:file in one go
@@ -15,6 +15,8 @@ npm run build         # typecheck + production build into dist/
 npm run check:file    # opens dist/index.html via file:// and checks the build
 npm run test:e2e      # Playwright against dist/index.html (needs installed Chrome)
 ```
+
+`check:file` (and so `verify`) needs a browser. It uses the first one that starts, in this order: `CHROME_PATH` (an executable; if set, it is the only candidate), `BROWSER_CHANNEL` (a browser channel; if set, the only candidate), the installed Google Chrome, and Playwright's bundled Chromium if it is on disk (`npx playwright install chromium`). If none starts, the check exits with a message that lists each attempt and the fix.
 
 ## Working agreement
 
