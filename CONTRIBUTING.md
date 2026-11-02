@@ -125,6 +125,22 @@ The [release workflow](.github/workflows/release.yml) then:
 
 Tags containing a hyphen (for example `v1.2.0-rc.1`) are published as pre-releases. They do not update the website.
 
+## Engineering baseline
+
+teamtodo follows the [engineering baseline](https://github.com/miralem-cebic/engineering-baseline) at the version in [`baseline.json`](baseline.json). The `conformance` job in [`ci.yml`](.github/workflows/ci.yml) runs the baseline's reusable workflow and checker at that released tag. Three places must name the same version:
+
+- `"baseline"` in `baseline.json`,
+- the `uses:` ref of the `conformance` job,
+- the `baseline-ref` input of the `conformance` job.
+
+Dependabot bumps only the `uses:` ref. The other two must be changed by hand in the same pull request. `tests/unit/engineeringBaseline.test.ts` fails when they differ.
+
+To upgrade the baseline:
+
+1. Read the release notes of the new version.
+2. Run the checker against it locally: `npx --yes "github:miralem-cebic/engineering-baseline#vX.Y.Z" check`.
+3. Change all three places to `vX.Y.Z` in one pull request, and fix the rules that now fail or add a waiver.
+
 ## Repository settings (maintainers)
 
 These settings live in the GitHub UI and are not stored in the repository. Maintainers should configure them as follows.
