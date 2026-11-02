@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Lint Markdown files
-        uses: DavidAnson/markdownlint-cli2-action@v24
+        uses: DavidAnson/markdownlint-cli2-action@v25
         with:
           globs: "**/*.md"
 
@@ -52,7 +52,7 @@ jobs:
   # Pinned to the released baseline version in baseline.json. Upgrade steps: see "Engineering baseline" in CONTRIBUTING.md.
   conformance:
     name: conformance
-    uses: miralem-cebic/engineering-baseline/.github/workflows/conformance.yml@v0.1.0
+    uses: miralem-cebic/engineering-baseline/.github/workflows/conformance.yml@v0.1.1
     with:
       strict: false
       baseline-ref: v0.1.0
