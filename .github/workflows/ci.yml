@@ -49,8 +49,10 @@ jobs:
     with:
       version: dev-${{ github.run_number }}
 
+  # Pinned to the released baseline version in baseline.json. Upgrade steps: see "Engineering baseline" in CONTRIBUTING.md.
   conformance:
     name: conformance
-    uses: miralem-cebic/engineering-baseline/.github/workflows/conformance.yml@main
+    uses: miralem-cebic/engineering-baseline/.github/workflows/conformance.yml@v0.1.0
     with:
       strict: false
+      baseline-ref: v0.1.0
